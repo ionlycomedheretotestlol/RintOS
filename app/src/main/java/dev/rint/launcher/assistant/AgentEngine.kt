@@ -262,7 +262,7 @@ class AgentEngine(private val ctx: Context, private val scope: CoroutineScope) {
                 if (hit == null) ToolOutcome(call.id, call.name, "No song found for \"$q\".")
                 else {
                     val m = stores.config.value.music
-                    RintApp.instance.music.play(hit, m.preferredApp)
+                    RintApp.instance.music.play(hit, m.playVia, m.preferredApp)
                     ToolOutcome(call.id, call.name, "Playing ${hit.title} by ${hit.artist} (lyrics show in the music widget).")
                 }
             }

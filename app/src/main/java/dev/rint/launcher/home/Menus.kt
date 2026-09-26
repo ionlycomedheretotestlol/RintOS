@@ -376,6 +376,8 @@ fun WidgetPicker(state: LauncherState) {
                                         dev.rint.launcher.ui.RintTheme(look.cfg.copy(look = look.cfg.look.copy(theme = dev.rint.launcher.core.ThemeMode.DARK))) {
                                             spec.content(WidgetCtx("preview-${spec.type}", w, h, preview = true))
                                         }
+                                        // previews are look-only: a tap selects the widget, it never "uses" it
+                                        Box(Modifier.matchParentSize().clickable(remember { MutableInteractionSource() }, null) { chosen = if (chosen == spec.type) null else spec.type })
                                     }
                                     if (chosen == spec.type) {
                                         Spacer(Modifier.height(10.dp))

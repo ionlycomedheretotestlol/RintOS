@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -166,105 +167,209 @@ fun Artwork(np: NowPlaying?, modifier: Modifier = Modifier, placeholderIcon: Boo
     }
 }
 
+/** Starts [t] using the user's playback preference (used by the widget and the full player). */
+fun playPicked(ctx: android.content.Context, t: Track) {
+    val stores = RintApp.instance.stores
+    val m = stores.config.value.music
+    var app = m.preferredApp
+    if (app == null && m.playVia == PlayVia.APP) {
+        app = ctx.packageManager.queryIntentActivities(Intent(MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH), 0)
+            .map { it.activityInfo.packageName }.firstOrNull { it != ctx.packageName }
+    }
+    val via = if (m.playVia == PlayVia.ASK) PlayVia.YOUTUBE else m.playVia
+    RintApp.instance.music.play(t, via, app)
+}
+
+/**
+ * Rint Music, right on the home screen. Empty: a search box that works in place. Playing:
+ * artwork, live lyrics and controls. Tapping it while a song plays opens quick actions.
+ */
 @Composable
 fun MusicWidget(ctx: WidgetCtx) {
     val look = LocalRint.current
     val engine = RintApp.instance.music
     val np by engine.now.collectAsState()
-    val (lyrics, _) = rememberLyrics(np?.track)
-    val pos = rememberPosition(np, look.cfg.music.offsetMs)
     val v = rememberHaptic()
-    LaunchedEffect(Unit) { engine.start() }
+    var actions by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { if (!ctx.preview) engine.start() }
 
-    if (ctx.w < 3) {
-        // compact 2x2 card: artwork, title, the live lyric line, one big play button
-        Column(
-            Modifier.fillMaxSize().clickable(remember { MutableInteractionSource() }, null) { MusicOverlay.show(search = np == null) }.padding(14.dp),
-        ) {
-            Row(verticalAlignment = Alignment.Top) {
-                Box(Modifier.size(52.dp).clip(RoundedCornerShape(12.dp))) { Artwork(np, Modifier.fillMaxSize()) }
-                Spacer(Modifier.weight(1f))
-                Box(
-                    Modifier.size(34.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.9f))
-                        .pressable(PressEffect.BOUNCE) { Haptics.tap(v); if (np == null) MusicOverlay.show(search = true) else engine.toggle() },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(if (np?.playing == true) Icons.Rounded.Pause else if (np == null) Icons.Rounded.Search else Icons.Rounded.PlayArrow, null,
-                        tint = Color.Black, modifier = Modifier.size(20.dp))
-                }
-            }
-            Spacer(Modifier.weight(1f))
-            val cur = np
-            if (cur == null) {
-                Text("Rint Music", color = Color.White, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Text("search any song", color = Color.White.copy(alpha = 0.7f), fontFamily = look.font, fontSize = 12.sp)
-            } else {
-                val line = lyrics?.let { l -> l.lines.getOrNull(l.indexAt(pos))?.text }
-                Text(line ?: cur.track.title, color = if (line != null) look.colors.accent.lighten() else Color.White,
-                    fontFamily = if (line != null) lyricFont(look.cfg.music.lyricsFont, look.font) else look.font,
-                    fontWeight = FontWeight.Bold, fontSize = if (line != null) 17.sp else 15.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 18.sp)
-                Text(cur.track.artist, color = Color.White.copy(alpha = 0.7f), fontFamily = look.font, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
-        return
+    AnimatedContent(np == null, label = "musicwidget", transitionSpec = { fadeIn(tween(260)) togetherWith fadeOut(tween(200)) }) { empty ->
+        if (empty) WidgetSearch(ctx) else np?.let { PlayingWidget(ctx, it) { Haptics.tap(v); actions = true } }
     }
+    if (actions && np != null) MusicQuickActions(np!!) { actions = false }
+}
 
-    Row(
-        Modifier
-            .fillMaxSize()
-            .clickable(remember { MutableInteractionSource() }, null) { MusicOverlay.show(search = np == null) }
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (ctx.w >= 3) {
-            Box(Modifier.fillMaxHeight().aspectRatio(1f).clip(RoundedCornerShape(16.dp))) {
-                Artwork(np, Modifier.fillMaxSize())
-                if (np?.waiting == true) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) {
-                    RinSprite(Pose.WALK, 44.dp)
-                }
-            }
-            Spacer(Modifier.width(12.dp))
+@Composable
+private fun WidgetSearch(ctx: WidgetCtx) {
+    val look = LocalRint.current
+    val context = LocalContext.current
+    val v = rememberHaptic()
+    var q by remember { mutableStateOf("") }
+    var results by remember { mutableStateOf<List<Track>>(emptyList()) }
+    var busy by remember { mutableStateOf(false) }
+    LaunchedEffect(q) {
+        if (q.isBlank()) { results = emptyList(); return@LaunchedEffect }
+        delay(350)
+        busy = true
+        results = MusicSearch.search(context, q.trim())
+        busy = false
+    }
+    val maxResults = when { ctx.h >= 3 -> 4; ctx.h == 2 && ctx.w >= 3 -> 2; ctx.h == 2 -> 2; else -> 0 }
+    Column(Modifier.fillMaxSize().padding(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("RINT MUSIC", fontFamily = RintFonts.Pixel, fontSize = 9.sp, color = look.colors.accent)
+            Spacer(Modifier.weight(1f))
+            if (busy) Text("…", color = look.colors.subtext, fontSize = 12.sp)
         }
-        Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
-            if (np == null) {
-                Text("RINT MUSIC", fontFamily = RintFonts.Pixel, fontSize = 9.sp, color = look.colors.accent)
-                Text("search any song.\nlyrics come alive.", fontFamily = look.font, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = look.colors.text, lineHeight = 19.sp)
+        Spacer(Modifier.height(8.dp))
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(look.colors.text.copy(alpha = 0.08f)).padding(horizontal = 10.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Rounded.Search, null, tint = look.colors.subtext, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Box(Modifier.weight(1f)) {
+                if (q.isEmpty()) Text("search a song", color = look.colors.subtext, fontSize = 14.sp, fontFamily = look.font, maxLines = 1)
+                if (!ctx.preview) BasicTextField(
+                    q, { q = it }, singleLine = true,
+                    textStyle = TextStyle(color = look.colors.text, fontSize = 14.sp, fontFamily = look.font),
+                    cursorBrush = SolidColor(look.colors.accent),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { results.firstOrNull()?.let { Haptics.confirm(v); playPicked(context, it); q = "" } }),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+        if (results.isEmpty()) {
+            Spacer(Modifier.weight(1f))
+            if (ctx.h >= 2) Text(if (q.isBlank()) "type a song — it plays right here,\nlyrics and all." else if (busy) "searching…" else "nothing found",
+                color = look.colors.subtext, fontSize = 12.sp, fontFamily = look.font, lineHeight = 16.sp)
+        } else {
+            Spacer(Modifier.height(6.dp))
+            results.take(maxResults.coerceAtLeast(1)).forEach { t ->
                 Row(
-                    Modifier.clip(RoundedCornerShape(50)).background(look.colors.accent).padding(horizontal = 12.dp, vertical = 7.dp),
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+                        .clickable { Haptics.confirm(v); playPicked(context, t); q = "" }.padding(vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Rounded.Search, null, tint = look.colors.onAccent, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("find a song", color = look.colors.onAccent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, fontFamily = look.font)
-                }
-                return@Column
-            }
-            Column {
-                Text(np!!.track.title, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = look.colors.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(np!!.track.artist, fontFamily = look.font, fontSize = 12.sp, color = look.colors.subtext, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-            val line = lyrics?.let { l -> l.lines.getOrNull(l.indexAt(pos))?.text }
-            val brk = lyrics?.isBreak(pos) ?: false
-            Box(Modifier.fillMaxWidth().height(30.dp), contentAlignment = Alignment.CenterStart) {
-                if (brk && look.cfg.mascot.inMusic && np!!.playing) {
-                    BobbingHead(true, 28.dp)
-                } else AnimatedContent(line ?: if (np!!.waiting) "loading…" else "♪", label = "l", transitionSpec = {
-                    (slideInVertically { it } + fadeIn()) togetherWith (slideOutVertically { -it } + fadeOut())
-                }) { t ->
-                    Text(t, fontFamily = lyricFont(look.cfg.music.lyricsFont, look.font), fontSize = 19.sp, color = look.colors.accent, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp))) { Artwork(NowPlaying(t), Modifier.fillMaxSize()) }
+                    Spacer(Modifier.width(8.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(t.title, color = look.colors.text, fontFamily = look.font, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(t.artist, color = look.colors.subtext, fontFamily = look.font, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PlayingWidget(ctx: WidgetCtx, np: NowPlaying, onTap: () -> Unit) {
+    val look = LocalRint.current
+    val m = look.cfg.music
+    val engine = RintApp.instance.music
+    val (lyrics, loading) = rememberLyrics(np.track)
+    val pos = rememberPosition(np, m.offsetMs)
+    val v = rememberHaptic()
+    val font = lyricFont(m.lyricsFont, look.font)
+    Box(Modifier.fillMaxSize().clickable(remember { MutableInteractionSource() }, null, onClick = onTap)) {
+        Artwork(np, Modifier.fillMaxSize().graphicsLayer { scaleX = 1.3f; scaleY = 1.3f }.blur(22.dp), placeholderIcon = false)
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.35f), Color.Black.copy(alpha = 0.7f)))))
+        Column(Modifier.fillMaxSize().padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                val dur = np!!.track.durationMs.coerceAtLeast(1)
-                Box(Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(2.dp)).background(look.colors.text.copy(alpha = 0.12f))) {
-                    Box(Modifier.fillMaxHeight().fillMaxWidth((pos.toFloat() / dur).coerceIn(0f, 1f)).background(look.colors.accent))
-                }
+                Box(Modifier.size(if (ctx.h >= 2) 40.dp else 30.dp).clip(RoundedCornerShape(9.dp))) { Artwork(np, Modifier.fillMaxSize()) }
                 Spacer(Modifier.width(8.dp))
-                Icon(Icons.Rounded.SkipPrevious, null, tint = look.colors.text, modifier = Modifier.size(24.dp).pressable(PressEffect.BOUNCE) { Haptics.tap(v); engine.previous() })
-                Icon(if (np!!.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, null, tint = look.colors.text,
-                    modifier = Modifier.size(30.dp).pressable(PressEffect.BOUNCE) { Haptics.tap(v); engine.toggle() })
-                Icon(Icons.Rounded.SkipNext, null, tint = look.colors.text, modifier = Modifier.size(24.dp).pressable(PressEffect.BOUNCE) { Haptics.tap(v); engine.next() })
+                Column(Modifier.weight(1f)) {
+                    Text(np.track.title, color = Color.White, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(np.track.artist, color = Color.White.copy(alpha = 0.7f), fontFamily = look.font, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Box(
+                    Modifier.size(32.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.92f))
+                        .pressable(PressEffect.BOUNCE) { Haptics.tap(v); engine.toggle() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(if (np.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, null, tint = Color.Black, modifier = Modifier.size(20.dp))
+                }
             }
+            // live lyrics, right on the widget
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                val idx = lyrics?.takeIf { it.synced }?.indexAt(pos) ?: -1
+                val brk = lyrics?.isBreak(pos) == true
+                when {
+                    np.waiting -> Row(verticalAlignment = Alignment.CenterVertically) {
+                        RinSprite(Pose.WALK, 30.dp)
+                        Spacer(Modifier.width(6.dp))
+                        Text(WebPlayer.status.ifBlank { "loading…" }, color = Color.White.copy(alpha = 0.8f), fontFamily = RintFonts.Pixel, fontSize = 9.sp, maxLines = 2)
+                    }
+                    !m.lyricsOnWidget || lyrics == null -> Row(verticalAlignment = Alignment.CenterVertically) {
+                        BobbingHead(np.playing && look.cfg.mascot.inMusic, 30.dp)
+                        Spacer(Modifier.width(6.dp))
+                        Text(if (loading) "finding lyrics…" else "♪", color = Color.White.copy(alpha = 0.7f), fontFamily = font, fontSize = 16.sp)
+                    }
+                    brk && look.cfg.mascot.inMusic -> BobbingHead(np.playing, 34.dp)
+                    idx >= -1 && lyrics.synced -> Column {
+                        val lines = if (ctx.h >= 3) 3 else if (ctx.h == 2) 2 else 1
+                        AnimatedContent(idx, label = "wl", transitionSpec = {
+                            (slideInVertically { it / 2 } + fadeIn()) togetherWith (slideOutVertically { -it / 2 } + fadeOut())
+                        }) { i ->
+                            Column {
+                                Text(lyrics.lines.getOrNull(i)?.text ?: "♪", fontFamily = font, fontSize = if (ctx.w >= 3) 20.sp else 17.sp,
+                                    color = Color(m.highlight.toInt()), maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 21.sp)
+                                for (k in 1 until lines) lyrics.lines.getOrNull(i + k)?.text?.let {
+                                    Text(it, fontFamily = font, fontSize = 14.sp, color = Color.White.copy(alpha = 0.45f / k), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
+                        }
+                    }
+                    else -> Text(lyrics.lines.getOrNull(((pos.toFloat() / np.track.durationMs.coerceAtLeast(1)) * lyrics.lines.size).toInt())?.text ?: "♪",
+                        fontFamily = font, fontSize = 16.sp, color = Color.White, maxLines = 2)
+                }
+            }
+            val dur = np.track.durationMs.coerceAtLeast(1)
+            Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)).background(Color.White.copy(alpha = 0.2f))) {
+                Box(Modifier.fillMaxHeight().fillMaxWidth((pos.toFloat() / dur).coerceIn(0f, 1f)).background(Color.White))
+            }
+        }
+    }
+}
+
+/** What you get when you tap the widget while something plays. */
+@Composable
+private fun MusicQuickActions(np: NowPlaying, onDismiss: () -> Unit) {
+    val look = LocalRint.current
+    val ctx = LocalContext.current
+    val stores = RintApp.instance.stores
+    val engine = RintApp.instance.music
+    val v = rememberHaptic()
+    androidx.compose.ui.window.Popup(alignment = Alignment.Center, onDismissRequest = onDismiss, properties = androidx.compose.ui.window.PopupProperties(focusable = true)) {
+        Column(
+            Modifier.width(250.dp).clip(RoundedCornerShape(22.dp)).background(look.colors.panelStrong).padding(8.dp),
+        ) {
+            Text(np.track.title, color = look.colors.text, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 15.sp,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
+            @Composable
+            fun item(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, color: Color = look.colors.text, onClick: () -> Unit) {
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable { Haptics.tap(v); onClick() }.padding(horizontal = 12.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Text(label, color = color, fontFamily = look.font, fontSize = 15.sp)
+                }
+            }
+            item("Go to fullscreen", Icons.Rounded.KeyboardArrowDown) { onDismiss(); MusicOverlay.show() }
+            item(if (np.playing) "Pause" else "Play", if (np.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow) { engine.toggle(); onDismiss() }
+            val float = look.cfg.music.floatOverApps
+            item(if (float) "Stop playing over other apps" else "Keep playing over other apps", Icons.Rounded.PhoneAndroid) {
+                stores.config.update { it.copy(music = it.music.copy(floatOverApps = !float)) }
+                if (!float && !android.provider.Settings.canDrawOverlays(ctx)) {
+                    runCatching { ctx.startActivity(Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:${ctx.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                }
+                onDismiss()
+            }
+            item("Stop music", Icons.Rounded.Close, look.colors.danger) { onDismiss(); engine.stop() }
         }
     }
 }
@@ -311,11 +416,15 @@ fun MusicPlayerScreen(onClose: () -> Unit) {
                     when (it.source) {
                         Source.LOCAL -> "on this phone"
                         Source.APP -> it.appPackage?.let { p -> appLabel(p) } ?: "your music app"
+                        Source.WEB -> "YouTube"
+                        Source.STREAM -> "Audius"
                         Source.NONE -> null
                     }
                 }
                 if (src != null) Text("via $src", fontFamily = RintFonts.Pixel, fontSize = 10.sp, color = Color.White.copy(alpha = 0.7f))
                 Spacer(Modifier.weight(1f))
+                if (np != null) Icon(Icons.Rounded.Close, "stop music", tint = Color.White, modifier = Modifier.size(28.dp).pressable(PressEffect.BOUNCE) { engine.stop(); searching = true })
+                Spacer(Modifier.width(14.dp))
                 Icon(Icons.Rounded.Search, "search", tint = Color.White, modifier = Modifier.size(28.dp).pressable(PressEffect.BOUNCE) { searching = true })
             }
 
@@ -332,7 +441,7 @@ fun MusicPlayerScreen(onClose: () -> Unit) {
                 onPick = { t ->
                     Haptics.confirm(v)
                     searching = false
-                    engine.play(t, if (m.playVia == PlayVia.LOCAL) null else m.preferredApp)
+                    engine.play(t, m.playVia, if (m.playVia == PlayVia.LOCAL) null else m.preferredApp)
                 },
                 onClose = { if (np != null) searching = false else onClose() },
             )
@@ -580,7 +689,7 @@ private fun MusicSearchSheet(onPick: (Track) -> Unit, onClose: () -> Unit) {
 
     fun pick(t: Track) {
         val m = stores.config.value.music
-        if (t.localUri == null && m.playVia != PlayVia.LOCAL && (m.preferredApp == null || m.playVia == PlayVia.ASK) && apps.size > 1) {
+        if (t.localUri == null && m.playVia == PlayVia.ASK && apps.size > 1) {
             choosingFor = t
         } else {
             if (t.localUri == null && m.preferredApp == null && apps.size == 1) {
@@ -665,3 +774,50 @@ private fun MusicSearchSheet(onPick: (Track) -> Unit, onClose: () -> Unit) {
         }
     }
 }
+
+
+/** Hosts the YouTube web player: a big popup while it finds the song, then a small floating card. */
+@Composable
+fun WebPlayerHost() {
+    val stage = WebPlayer.stage
+    if (stage == WebPlayer.Stage.HIDDEN) return
+    val look = LocalRint.current
+    val engine = RintApp.instance.music
+    val np by engine.now.collectAsState()
+    val popup = stage == WebPlayer.Stage.POPUP
+    val t by androidx.compose.animation.core.animateFloatAsState(if (popup) 1f else 0f, spring(dampingRatio = 0.82f, stiffness = 260f), label = "wp")
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
+        val bigW = maxWidth - 32.dp
+        val miniW = 200.dp
+        val w = miniW + (bigW - miniW) * t
+        val h = w * 9f / 16f
+        if (t > 0.01f) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f * t)).clickable(remember { MutableInteractionSource() }, null) {})
+        val x = (maxWidth - w - 12.dp) * (1f - t) + ((maxWidth - w) / 2) * t
+        val y = (maxHeight - h - 150.dp) * (1f - t) + (maxHeight * 0.3f) * t
+        Column(Modifier.offset(x, y).width(w)) {
+            if (t > 0.3f) {
+                Row(Modifier.fillMaxWidth().padding(bottom = 10.dp).graphicsLayer { alpha = t }, verticalAlignment = Alignment.CenterVertically) {
+                    RinSprite(Pose.LISTEN, 40.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(np?.track?.title ?: "", color = Color.White, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(WebPlayer.status, color = Color.White.copy(alpha = 0.7f), fontFamily = RintFonts.Pixel, fontSize = 10.sp)
+                    }
+                    Icon(Icons.Rounded.Close, "cancel", tint = Color.White, modifier = Modifier.size(28.dp).clickable { engine.stop() })
+                }
+            }
+            Box(Modifier.fillMaxWidth().height(h).clip(RoundedCornerShape(14.dp)).background(Color.Black)) {
+                androidx.compose.runtime.key(WebPlayer.hostGeneration) {
+                    androidx.compose.ui.viewinterop.AndroidView(factory = { c -> WebPlayer.view(c) }, modifier = Modifier.fillMaxSize())
+                }
+                if (!popup) {
+                    // the mini player: tap opens fullscreen lyrics, ✕ stops
+                    Box(Modifier.fillMaxSize().clickable { MusicOverlay.show() })
+                    Icon(Icons.Rounded.Close, "stop", tint = Color.White, modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(22.dp)
+                        .clip(CircleShape).background(Color.Black.copy(alpha = 0.6f)).clickable { engine.stop() }.padding(3.dp))
+                }
+            }
+        }
+    }
+}
+

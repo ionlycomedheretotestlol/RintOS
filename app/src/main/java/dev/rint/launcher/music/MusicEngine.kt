@@ -34,7 +34,7 @@ data class Track(
     val localUri: Uri? = null,
 )
 
-enum class Source { NONE, LOCAL, APP }
+enum class Source { NONE, LOCAL, APP, WEB, STREAM }
 
 data class NowPlaying(
     val track: Track,
@@ -94,7 +94,7 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
     val hasSessionAccess: Boolean get() = listening
 
     private fun pickController(list: List<MediaController>? = null) {
-        if (_now.value?.source == Source.LOCAL && player?.isPlaying == true) return
+        if (_now.value?.source.let { it == Source.LOCAL || it == Source.STREAM || it == Source.WEB }) return
         val sessions = list ?: runCatching { msm.getActiveSessions(listenerComponent) }.getOrDefault(emptyList())
         val best = sessions.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
             ?: sessions.firstOrNull { it.packageName == pendingAppPackage() }
@@ -144,10 +144,34 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
         )
     }
 
+    /** Position updates from the YouTube web player. */
+    fun onWebState(playing: Boolean, posMs: Long, durMs: Long) {
+        val cur = _now.value ?: return
+        if (cur.source != Source.WEB) return
+        _now.value = cur.copy(
+            playing = playing, positionMs = posMs, positionStamp = SystemClock.elapsedRealtime(), waiting = false,
+            track = if (durMs > 0) cur.track.copy(durationMs = durMs) else cur.track,
+        )
+    }
+
+    /** Stops whatever is playing and returns the widget to search. */
+    fun stop() {
+        waitJob?.cancel()
+        pendingSearch = null
+        when (_now.value?.source) {
+            Source.APP -> controller?.transportControls?.pause()
+            Source.WEB -> WebPlayer.stop()
+            else -> Unit
+        }
+        stopLocal()
+        _now.value = null
+    }
+
     fun toggle() {
         val n = _now.value ?: return
         when (n.source) {
-            Source.LOCAL -> player?.let { if (it.isPlaying) it.pause() else it.start(); publishLocal() }
+            Source.WEB -> { WebPlayer.toggle(!n.playing); _now.value = n.copy(playing = !n.playing, positionMs = n.position(), positionStamp = SystemClock.elapsedRealtime()) }
+            Source.LOCAL, Source.STREAM -> player?.let { if (it.isPlaying) it.pause() else it.start(); publishLocal() }
             Source.APP -> controller?.transportControls?.let {
                 if (n.playing) it.pause() else it.play()
             }
@@ -162,7 +186,8 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
     fun previous() {
         when (_now.value?.source) {
             Source.APP -> controller?.transportControls?.skipToPrevious()
-            Source.LOCAL -> { player?.seekTo(0); publishLocal() }
+            Source.LOCAL, Source.STREAM -> { player?.seekTo(0); publishLocal() }
+            Source.WEB -> WebPlayer.seek(0)
             else -> Unit
         }
     }
@@ -170,8 +195,41 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
     fun seekTo(ms: Long) {
         when (_now.value?.source) {
             Source.APP -> controller?.transportControls?.seekTo(ms)
-            Source.LOCAL -> { player?.seekTo(ms.toInt()); publishLocal() }
+            Source.LOCAL, Source.STREAM -> { player?.seekTo(ms.toInt()); publishLocal() }
+            Source.WEB -> WebPlayer.seek(ms)
             else -> Unit
+        }
+    }
+
+    /**
+     * Plays a track the way the user chose: inside RintOS through YouTube (default), free full
+     * songs from Audius, local files, or by handing off to their music app.
+     */
+    fun play(track: Track, via: dev.rint.launcher.core.PlayVia, preferredApp: String?) {
+        if (track.localUri != null) return playLocal(track)
+        if (_now.value?.source == Source.WEB) WebPlayer.stop()
+        when (via) {
+            dev.rint.launcher.core.PlayVia.YOUTUBE -> playWeb(track)
+            dev.rint.launcher.core.PlayVia.AUDIUS -> playAudius(track)
+            else -> play(track, preferredApp)
+        }
+    }
+
+    private fun playWeb(track: Track) {
+        stopLocal()
+        controller?.transportControls?.pause()
+        _now.value = NowPlaying(track = track, source = Source.WEB, waiting = true)
+        WebPlayer.play(context, track)
+    }
+
+    private fun playAudius(track: Track) {
+        stopLocal()
+        _now.value = NowPlaying(track = track, source = Source.STREAM, waiting = true)
+        scope.launch {
+            val url = Audius.find(track)
+            if (_now.value?.track != track) return@launch
+            if (url == null) { playWeb(track); return@launch }
+            playUrl(track, Uri.parse(url), Source.STREAM)
         }
     }
 
@@ -213,16 +271,18 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
         }
     }
 
-    private fun playLocal(track: Track) {
+    private fun playLocal(track: Track) = playUrl(track, track.localUri!!, Source.LOCAL)
+
+    private fun playUrl(track: Track, uri: Uri, source: Source) {
         stopLocal()
         controller?.transportControls?.pause()
         val p = MediaPlayer()
         player = p
-        _now.value = NowPlaying(track = track, source = Source.LOCAL, waiting = true)
+        _now.value = NowPlaying(track = track, source = source, waiting = true)
         p.setOnPreparedListener { it.start(); publishLocal() }
         p.setOnCompletionListener { publishLocal() }
         p.setOnErrorListener { _, _, _ -> stopLocal(); _now.value = null; true }
-        val ok = runCatching { p.setDataSource(context, track.localUri!!); p.prepareAsync() }.isSuccess
+        val ok = runCatching { p.setDataSource(context, uri); p.prepareAsync() }.isSuccess
         if (!ok) { stopLocal(); _now.value = null; return }
         waitJob?.cancel()
         waitJob = scope.launch {
@@ -255,5 +315,28 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
     @androidx.annotation.VisibleForTesting
     internal fun seedForPreview(np: NowPlaying?) {
         _now.value = np
+    }
+}
+
+/** Free, legal full-length streams from Audius (a large indie catalog). */
+object Audius {
+    private const val APP = "RintOS"
+
+    suspend fun find(track: Track): String? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        runCatching {
+            val host = org.json.JSONObject(java.net.URL("https://api.audius.co").readText()).getJSONArray("data").getString(0)
+            val q = java.net.URLEncoder.encode("${track.title} ${track.artist}", "UTF-8")
+            val arr = org.json.JSONObject(java.net.URL("$host/v1/tracks/search?query=$q&app_name=$APP").readText()).getJSONArray("data")
+            var best: String? = null
+            for (i in 0 until minOf(arr.length(), 10)) {
+                val o = arr.getJSONObject(i)
+                val title = o.optString("title")
+                val user = o.optJSONObject("user")?.optString("name").orEmpty()
+                if (title.contains(track.title, true) && (track.artist.isBlank() || user.contains(track.artist, true) || title.contains(track.artist, true))) {
+                    best = o.getString("id"); break
+                }
+            }
+            best?.let { "$host/v1/tracks/$it/stream?app_name=$APP" }
+        }.getOrNull()
     }
 }

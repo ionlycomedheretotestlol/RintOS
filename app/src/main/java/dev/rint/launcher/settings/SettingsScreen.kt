@@ -694,6 +694,11 @@ private fun Sheets(sheet: String?, state: LauncherState, close: () -> Unit) {
         null -> return
         "wallpaper" -> { close(); SystemActions.openWallpaperPicker(ctx); return }
         "a11y" -> { close(); SystemActions.openAccessibilitySettings(ctx); return }
+        "overlay" -> {
+            close()
+            runCatching { ctx.startActivity(Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:${ctx.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            return
+        }
         "notif" -> { close(); SystemActions.openNotificationAccess(ctx); return }
         "home" -> { close(); SystemSettingsLinks.defaultHome(ctx); return }
         "lockpreview" -> { close(); dev.rint.launcher.lock.LockActivity.show(ctx); return }
