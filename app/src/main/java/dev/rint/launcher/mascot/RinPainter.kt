@@ -45,8 +45,8 @@ class RinPainter {
 
     private fun ensureShaders() {
         if (!shadersDirty) return
-        furShader = RadialGradient(-3f, -4f, 16f, intArrayOf(fur, fur, furShade), floatArrayOf(0f, 0.55f, 1f), Shader.TileMode.CLAMP)
-        hoodShader = LinearGradient(16f, 32f, 34f, 48f, intArrayOf(hoodLight, hood), null, Shader.TileMode.CLAMP)
+        furShader = RadialGradient(0f, 0f, 20f, intArrayOf(fur, fur, 0xFFEEF1FA.toInt()), floatArrayOf(0f, 0.8f, 1f), Shader.TileMode.CLAMP)
+        hoodShader = LinearGradient(16f, 32f, 34f, 48f, intArrayOf(0xFF15161C.toInt(), 0xFF0C0D12.toInt()), null, Shader.TileMode.CLAMP)
         shadersDirty = false
     }
 
@@ -90,7 +90,7 @@ class RinPainter {
     }
 
     private fun stroked(c: Canvas, path: Path, w: Float = 1.5f) {
-        outline.strokeWidth = w
+        outline.strokeWidth = w * 0.62f
         c.drawPath(path, outline)
     }
 
@@ -110,48 +110,71 @@ class RinPainter {
         inner.close()
     }
 
+    /** One side of the head outline (x mirrored by [s]), from the crown to the chin. */
+    private fun headSide(path: Path, s: Float, earFold: Float) {
+        val tipX = (13.6f - earFold * 3.5f) * s
+        val tipY = -20.5f + earFold * 8f + (if (earFold < 0) earFold * 2f else 0f)
+        path.lineTo(1.6f * s, -9.6f)
+        path.lineTo(3.8f * s, -13.4f)          // crown spike
+        path.lineTo(5.2f * s, -8.8f)
+        path.lineTo(tipX, tipY)                  // ear tip
+        path.lineTo(14.6f * s, -4.2f)            // ear base, outside
+        path.lineTo(14f * s, -1.2f)
+        path.lineTo(16.8f * s, 1.2f)             // upper cheek tuft
+        path.lineTo(14.6f * s, 3.6f)
+        path.lineTo(16.4f * s, 7.2f)             // lower cheek tuft
+        path.lineTo(12.4f * s, 7.8f)
+        path.lineTo(10f * s, 11.6f)              // little chin tuft
+        path.lineTo(7.4f * s, 10.2f)
+        path.quadTo(3.5f * s, 11.4f, 0f, 11.2f)
+    }
+
     private fun head(c: Canvas, p: RinParams, hx: Float, hy: Float) {
         c.save()
         c.translate(hx, hy)
         c.rotate(Math.toDegrees(p.tilt.toDouble()).toFloat())
-        buildEar(earL, innerL, -1f, p.earL)
-        buildEar(earR, innerR, 1f, p.earR)
-        // fluffy head: an ellipse with cheek tufts and a spiky crown
+        // the icon's silhouette: angular, spiky, with pointed ears
         headPath.reset()
-        headPath.addOval(-12.4f, -10.6f, 12.4f, 10.4f, Path.Direction.CW)
-        for (s in floatArrayOf(-1f, 1f)) {
-            val tmp = if (s < 0) tuftL else tuftR
-            tmp.reset()
-            tmp.moveTo(11.4f * s, 0f); tmp.quadTo(13.6f * s, 2.6f, 15.2f * s, 4.2f); tmp.quadTo(13.4f * s, 5f, 14f * s, 7.6f)
-            tmp.quadTo(11.6f * s, 7.8f, 9.6f * s, 9.6f); tmp.lineTo(7f * s, 7f); tmp.close()
-        }
-        val tmp = crown
-        tmp.reset(); tmp.moveTo(-5f, -8.8f); tmp.quadTo(-4.5f, -12f, -3f, -14.2f); tmp.quadTo(-1.2f, -11f, 0f, -9.4f)
-        tmp.quadTo(1.2f, -11.2f, 2.4f, -13.4f); tmp.quadTo(3.8f, -11f, 4.6f, -8.6f); tmp.close()
+        headPath.moveTo(0f, 11.2f)
+        // left side, chin → crown (reverse of the mirrored right side)
+        headPath.quadTo(-3.5f, 11.4f, -7.4f, 10.2f)
+        headPath.lineTo(-10f, 11.6f); headPath.lineTo(-12.4f, 7.8f); headPath.lineTo(-16.4f, 7.2f); headPath.lineTo(-14.6f, 3.6f)
+        headPath.lineTo(-16.8f, 1.2f); headPath.lineTo(-14f, -1.2f); headPath.lineTo(-14.6f, -4.2f)
+        val tipLX = -(13.6f - p.earL * 3.5f)
+        val tipLY = -20.5f + p.earL * 8f + (if (p.earL < 0) p.earL * 2f else 0f)
+        headPath.lineTo(tipLX, tipLY); headPath.lineTo(-5.2f, -8.8f)
+        headPath.lineTo(-2.2f, -9.4f); headPath.lineTo(-1.2f, -14.8f)   // tall crown spike
+        headPath.lineTo(0.2f, -9.8f)
+        headSide(headPath, 1f, p.earR)
+        headPath.close()
 
-        // outline pass (silhouette), then fills
-        stroked(c, earL, 2.2f); stroked(c, earR, 2.2f); stroked(c, headPath, 2.2f)
-        stroked(c, tuftL, 2.2f); stroked(c, tuftR, 2.2f); stroked(c, crown, 2.2f)
-        fill.color = fur; fill.shader = furShader
-        c.drawPath(earL, fill); c.drawPath(earR, fill)
-        fill.color = fur
-        fill.shader = LinearGradient(0f, -18f, 0f, -6f, lighter(accent, 0.35f), accent, Shader.TileMode.CLAMP)
-        c.drawPath(innerL, fill); c.drawPath(innerR, fill)
-        fill.shader = furShader
-        c.drawPath(headPath, fill); c.drawPath(tuftL, fill); c.drawPath(tuftR, fill); c.drawPath(crown, fill)
+        // inner ears
+        innerL.reset(); innerL.moveTo(-6.6f, -8.6f); innerL.lineTo(tipLX + 1.6f, tipLY + 4.2f); innerL.lineTo(-12.4f, -6.2f); innerL.close()
+        val tipRX = 13.6f - p.earR * 3.5f
+        val tipRY = -20.5f + p.earR * 8f + (if (p.earR < 0) p.earR * 2f else 0f)
+        innerR.reset(); innerR.moveTo(6.6f, -8.6f); innerR.lineTo(tipRX - 1.6f, tipRY + 4.2f); innerR.lineTo(12.4f, -6.2f); innerR.close()
+
+        // outline, then the lavender "extrusion" edge like the icon, then flat white
+        val depth = p.stance == Stance.HEAD || p.stance == Stance.PEEK
+        if (depth) { c.save(); c.translate(-1.1f, 1.1f); stroked(c, headPath, 1.5f); c.restore() }
+        stroked(c, headPath, 1.5f)
         fill.shader = null
-        // soft underside shade
-        fill.color = 0x22324066
-        c.drawOval(-10f, 5.5f, 10f, 10.6f, fill)
+        if (depth) {
+            fill.color = 0xFFB6BEE2.toInt()
+            c.save(); c.translate(-1.1f, 1.1f); c.drawPath(headPath, fill); c.restore()
+        }
         fill.color = fur
+        c.drawPath(headPath, fill)
+        fill.color = accent
+        c.drawPath(innerL, fill); c.drawPath(innerR, fill)
 
         if (p.blush > 0.05f) {
             fill.color = pink
             fill.alpha = (0x99 * p.blush.coerceIn(0f, 1f)).toInt()
-            c.drawOval(-10.3f, 3.6f, -6.1f, 5.8f, fill); c.drawOval(6.1f, 3.6f, 10.3f, 5.8f, fill)
+            c.drawOval(-11f, 4.4f, -7f, 6.4f, fill); c.drawOval(7f, 4.4f, 11f, 6.4f, fill)
             fill.alpha = 255
         }
-        eye(c, p, -5.6f); eye(c, p, 5.6f)
+        eye(c, p, -5.4f); eye(c, p, 5.4f)
         mouth(c, p)
         c.restore()
     }
@@ -164,19 +187,23 @@ class RinPainter {
         when (p.eyes) {
             Eyes.OPEN, Eyes.SHOCK, Eyes.MEH -> {
                 val shock = p.eyes == Eyes.SHOCK
-                val rx = if (shock) 3f else 2.7f
-                val ry = (if (shock) 3.4f else 4.1f) * p.eyeOpen.coerceIn(0f, 1f)
-                if (ry < 0.9f) { c.drawLine(cx - 2.3f, cy + 0.8f, cx + 2.3f, cy + 0.8f, line); return }
-                fill.color = fur
-                fill.shader = LinearGradient(0f, cy - ry, 0f, cy + ry, intArrayOf(ink, ink, lighter(accent, 0.1f)), floatArrayOf(0f, 0.55f, 1f), Shader.TileMode.CLAMP)
+                val rx = if (shock) 2.6f else 2.3f
+                val ry = (if (shock) 3.4f else 3.9f) * p.eyeOpen.coerceIn(0f, 1f)
+                val side = if (ex < 0) -1f else 1f
+                // the curved brow line hugging the outer top of each eye
+                tmp.reset()
+                tmp.moveTo(ex - 2.6f * side, cy - 4.9f)
+                tmp.quadTo(ex + 4.2f * side, cy - 6.6f, ex + 4.3f * side, cy + 2.6f)
+                line.color = ink; line.strokeWidth = 0.6f
+                c.drawPath(tmp, line)
+                if (ry < 0.9f) { line.strokeWidth = 1.1f; c.drawLine(cx - 2.2f, cy + 0.8f, cx + 2.2f, cy + 0.8f, line); return }
+                fill.shader = null; fill.color = ink
                 c.save()
-                if (p.eyes == Eyes.MEH) c.clipRect(cx - rx - 1, cy - 1.2f, cx + rx + 1, cy + ry + 1)
+                if (p.eyes == Eyes.MEH) c.clipRect(cx - rx - 1, cy - 1f, cx + rx + 1, cy + ry + 1)
                 c.drawOval(cx - rx, cy - ry, cx + rx, cy + ry, fill)
                 c.restore()
-                fill.shader = null; fill.color = fur
-                c.drawOval(cx - 1.75f, cy - ry * 0.72f, cx + 0.25f, cy - ry * 0.72f + 2.1f, fill)
-                c.drawCircle(cx + 1.05f, cy + ry * 0.35f, if (shock) 0.75f else 0.5f, fill)
-                if (p.eyes == Eyes.MEH) c.drawLine(cx - rx, cy - 1.2f, cx + rx, cy - 1.2f, line)
+                if (shock) { fill.color = fur; c.drawCircle(cx, cy, 0.9f, fill) }
+                if (p.eyes == Eyes.MEH) c.drawLine(cx - rx, cy - 1f, cx + rx, cy - 1f, line)
             }
             Eyes.HAPPY -> {
                 tmp.reset(); tmp.moveTo(cx - 2.5f, cy + 1.2f); tmp.quadTo(cx, cy - 2.6f, cx + 2.5f, cy + 1.2f)
@@ -221,44 +248,52 @@ class RinPainter {
         }
         // ω
         tmp.reset()
-        tmp.moveTo(-2.3f, 6f); tmp.quadTo(-1.2f, 8.2f, 0f, 6.3f); tmp.quadTo(1.2f, 8.2f, 2.3f, 6f)
-        line.color = 0xFF5C678C.toInt(); line.strokeWidth = 0.9f
+        tmp.moveTo(-2.2f, 6.4f); tmp.quadTo(-1.1f, 8.2f, 0f, 6.7f); tmp.quadTo(1.1f, 8.2f, 2.2f, 6.4f)
+        line.color = ink; line.strokeWidth = 0.55f
         c.drawPath(tmp, line)
-        fill.color = 0xFF5C678C.toInt(); c.drawOval(-0.8f, 4.6f, 0.8f, 5.6f, fill)
     }
 
     // ── body ───────────────────────────────────────────────
     private fun emblem(c: Canvas, x: Float, y: Float) {
         tmp.reset()
-        tmp.moveTo(x, y - 2.4f); tmp.quadTo(x + 0.35f, y - 0.35f, x + 2.4f, y); tmp.quadTo(x + 0.35f, y + 0.35f, x, y + 2.4f)
-        tmp.quadTo(x - 0.35f, y + 0.35f, x - 2.4f, y); tmp.quadTo(x - 0.35f, y - 0.35f, x, y - 2.4f)
+        tmp.moveTo(x, y - 1.9f); tmp.quadTo(x + 0.3f, y - 0.3f, x + 1.7f, y); tmp.quadTo(x + 0.3f, y + 0.3f, x, y + 1.9f)
+        tmp.quadTo(x - 0.3f, y + 0.3f, x - 1.7f, y); tmp.quadTo(x - 0.3f, y - 0.3f, x, y - 1.9f)
         fill.shader = null; fill.color = accent; c.drawPath(tmp, fill)
     }
 
     private fun body(c: Canvas, p: RinParams, dy: Float) {
         val by = p.bodyY + dy
         bodyPath.reset()
-        bodyPath.moveTo(15.5f, 35f + by)
-        bodyPath.quadTo(24f, 31f + by, 32.5f, 35f + by)
-        bodyPath.quadTo(34f, 42f + by, 33.2f, 47.2f + by)
-        bodyPath.quadTo(24f, 48.8f + by, 14.8f, 47.2f + by)
-        bodyPath.quadTo(14f, 42f + by, 15.5f, 35f + by)
+        bodyPath.moveTo(15f, 33.5f + by)
+        bodyPath.quadTo(24f, 30.5f + by, 33f, 33.5f + by)
+        bodyPath.quadTo(36.2f, 40f + by, 34.6f, 47.6f + by)
+        bodyPath.quadTo(24f, 49.6f + by, 13.4f, 47.6f + by)
+        bodyPath.quadTo(11.8f, 40f + by, 15f, 33.5f + by)
         bodyPath.close()
-        stroked(c, bodyPath, 2.2f)
+        stroked(c, bodyPath, 1.5f)
         fill.color = fur; fill.shader = hoodShader; c.drawPath(bodyPath, fill); fill.shader = null
-        // hood collar
-        fill.color = hoodLight; c.drawOval(15.5f, 32.4f + by, 32.5f, 36.6f + by, fill)
-        // pocket
-        line.color = 0xFF0E1019.toInt(); line.strokeWidth = 0.6f
-        c.drawLine(18.5f, 43.4f + by, 29.5f, 43.4f + by, line)
-        // zipper + pull
-        line.color = accent; line.strokeWidth = 0.9f
-        c.drawLine(24f, 35.6f + by, 24f, 47.4f + by, line)
-        fill.color = lighter(accent, 0.4f); c.drawRoundRect(23.5f, 36.2f + by, 25.8f, 38.2f + by, 0.5f, 0.5f, fill)
-        // drawstrings
-        line.color = 0xFFE9ECF5.toInt(); line.strokeWidth = 0.6f
-        c.drawLine(21.6f, 35.8f + by, 21.2f, 39.6f + by, line); c.drawLine(26.4f, 35.8f + by, 26.8f, 39.6f + by, line)
-        emblem(c, 29f, 40.2f + by)
+        // the bunched, high collar the chin sinks into
+        tmp.reset()
+        tmp.moveTo(16.2f, 34.8f + by); tmp.quadTo(15.6f, 31f + by, 19.5f, 30.6f + by); tmp.quadTo(24f, 32.2f + by, 28.5f, 30.6f + by)
+        tmp.quadTo(32.4f, 31f + by, 31.8f, 34.8f + by); tmp.quadTo(24f, 37f + by, 16.2f, 34.8f + by); tmp.close()
+        stroked(c, tmp, 1.3f)
+        fill.color = 0xFF17181F.toInt(); c.drawPath(tmp, fill)
+        line.color = 0xFF2A2C36.toInt(); line.strokeWidth = 0.35f
+        c.drawLine(19.6f, 32.6f + by, 20.4f, 34.8f + by, line); c.drawLine(28.4f, 32.6f + by, 27.6f, 34.8f + by, line)
+        // kangaroo pocket with the hands tucked in (only when the arms are down)
+        if (p.armL < 0.05f && p.armR < 0.05f && !p.guitar) {
+            tmp.reset()
+            tmp.moveTo(16.6f, 45.6f + by); tmp.quadTo(17.2f, 40.4f + by, 20.4f, 39.8f + by)
+            tmp.lineTo(27.6f, 39.8f + by); tmp.quadTo(30.8f, 40.4f + by, 31.4f, 45.6f + by)
+            line.color = 0xFF2E313C.toInt(); line.strokeWidth = 0.5f
+            c.drawPath(tmp, line)
+        }
+        // zipper + rectangular pull
+        line.color = accent; line.strokeWidth = 0.8f
+        c.drawLine(24f, 35.4f + by, 24f, 44f + by, line)
+        line.strokeWidth = 0.5f
+        c.drawRect(23.2f, 37f + by, 24.8f, 38.4f + by, line)
+        emblem(c, 29.6f, 43.2f + by)
     }
 
     private fun legs(c: Canvas, p: RinParams) {
@@ -288,6 +323,7 @@ class RinPainter {
         val sy = 36f + p.bodyY + dy
         for (side in floatArrayOf(-1f, 1f)) {
             val raise = if (side < 0) p.armL else p.armR
+            if (!p.guitar && raise < 0.05f && (if (side < 0) p.armL else p.armR + p.armWave) < 0.05f) continue
             val wave = if (side < 0) 0f else p.armWave
             val sx = if (side < 0) 16f else 32f
             val a = (0.25f + raise * 2.4f + wave) * side
@@ -299,7 +335,7 @@ class RinPainter {
             }
             armPath.reset(); armPath.moveTo(sx, sy); armPath.lineTo(hx, hy)
             outline.strokeWidth = 6.2f; c.drawPath(armPath, outline)
-            line.color = if (side > 0) hood else hoodLight; line.strokeWidth = 4.4f
+            line.color = 0xFF15161C.toInt(); line.strokeWidth = 4.4f
             c.drawPath(armPath, line)
             paw(c, hx, hy)
         }
@@ -351,7 +387,7 @@ class RinPainter {
                 stroked(c, tailPath, 2.2f)
         fill.color = fur
         val tip = baseX + cos(-2.65f + p.tail + 1.3f) * 12.6f to baseY + sin(-2.65f + p.tail + 1.3f) * 14f - 3f
-        fill.shader = LinearGradient(tipStart.first, tipStart.second, tip.first, tip.second, intArrayOf(fur, accent, lighter(accent, 0.3f)), floatArrayOf(0f, 0.25f, 1f), Shader.TileMode.CLAMP)
+        fill.shader = LinearGradient(tipStart.first, tipStart.second, tip.first, tip.second, intArrayOf(fur, fur, accent, accent), floatArrayOf(0f, 0.3f, 0.3f, 1f), Shader.TileMode.CLAMP)
         c.drawPath(tailPath, fill)
         fill.shader = null
     }
@@ -384,7 +420,7 @@ class RinPainter {
         }
                 stroked(c, tailPath, 2.2f)
         fill.color = fur
-        fill.shader = LinearGradient(9f, 50f, 38f, 48f, intArrayOf(fur, fur, accent), floatArrayOf(0f, 0.6f, 0.8f), Shader.TileMode.CLAMP)
+        fill.shader = LinearGradient(9f, 50f, 38f, 48f, intArrayOf(fur, fur, accent, accent), floatArrayOf(0f, 0.68f, 0.68f, 1f), Shader.TileMode.CLAMP)
         c.drawPath(tailPath, fill); fill.shader = null
     }
 }

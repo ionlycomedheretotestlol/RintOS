@@ -50,9 +50,49 @@ val LocalBackdrop = staticCompositionLocalOf<Backdrop?> { null }
 @Composable
 fun rememberBackdrop(): Backdrop? {
     val l = LocalRint.current.cfg.look
+    if (l.wallpaper == WallpaperMode.PHOTO) return rememberPhotoBackdrop(l.photoVersion)
     if (l.wallpaper != WallpaperMode.ART) return null
     val full = ImageBitmap.imageResource(l.art.res())
-    return remember(full) {
+    return remember(full) { makeBackdrop(full) }
+}
+
+/** The user's own photo wallpaper, decoded off the main thread at screen size. */
+@Composable
+private fun rememberPhotoBackdrop(version: Long): Backdrop? {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val state = androidx.compose.runtime.produceState<Backdrop?>(null, version) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching {
+                val f = PhotoWallpaper.file(ctx)
+                if (!f.exists()) return@runCatching null
+                val bmp = android.graphics.BitmapFactory.decodeFile(f.path) ?: return@runCatching null
+                makeBackdrop(bmp.asImageBitmap())
+            }.getOrNull()
+        }
+    }
+    return state.value
+}
+
+/** Stores the picked photo as a screen-sized JPEG inside the app (no permission needed later). */
+object PhotoWallpaper {
+    fun file(ctx: android.content.Context) = java.io.File(ctx.filesDir, "wallpaper.jpg")
+
+    fun save(ctx: android.content.Context, uri: android.net.Uri): Boolean = runCatching {
+        val dm = ctx.resources.displayMetrics
+        val target = maxOf(dm.widthPixels, dm.heightPixels).coerceAtMost(2400)
+        val src = android.graphics.ImageDecoder.createSource(ctx.contentResolver, uri)
+        val bmp = android.graphics.ImageDecoder.decodeBitmap(src) { dec, info, _ ->
+            val big = maxOf(info.size.width, info.size.height)
+            if (big > target) { val k = target.toFloat() / big; dec.setTargetSize((info.size.width * k).toInt(), (info.size.height * k).toInt()) }
+            dec.allocator = android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE
+        }
+        file(ctx).outputStream().use { bmp.compress(Bitmap.CompressFormat.JPEG, 92, it) }
+        true
+    }.getOrDefault(false)
+}
+
+private fun makeBackdrop(full: ImageBitmap): Backdrop {
+    return run {
         val src = full.asAndroidBitmap()
         val w = 120
         val h = (src.height * w.toFloat() / src.width).roundToInt()

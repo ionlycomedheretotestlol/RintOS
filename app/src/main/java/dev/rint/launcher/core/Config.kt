@@ -30,7 +30,7 @@ data class RintConfig(
 
 enum class ThemeMode { AUTO, LIGHT, DARK, AMOLED }
 enum class UiFont { INTER, SYSTEM, PIXEL, TERMINAL, SERIF, MONO }
-enum class WallpaperMode { ART, SYSTEM, SOLID, GRADIENT, MESH }
+enum class WallpaperMode { ART, SYSTEM, SOLID, GRADIENT, MESH, PHOTO }
 enum class WallpaperArt { TIDE, PIXEL_NIGHT, PAPER }
 
 @Serializable
@@ -53,6 +53,7 @@ data class Look(
     val showNavBar: Boolean = true,
     val textShadow: Boolean = true,
     val grain: Float = 0f,
+    val photoVersion: Long = 0,
 )
 
 enum class PageTransition { SLIDE, CUBE, STACK, ZOOM, FLIP, FADE, CAROUSEL, TILT }

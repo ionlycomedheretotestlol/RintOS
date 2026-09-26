@@ -483,7 +483,7 @@ fun Wallpaper() {
     val l = look.cfg.look
     Box(Modifier.fillMaxSize()) {
         when (l.wallpaper) {
-            WallpaperMode.ART -> {
+            WallpaperMode.ART, WallpaperMode.PHOTO -> {
                 val bd = LocalBackdrop.current ?: dev.rint.launcher.ui.rememberBackdrop()
                 if (bd != null) androidx.compose.foundation.Image(
                     bd.full, null, Modifier.fillMaxSize(),
