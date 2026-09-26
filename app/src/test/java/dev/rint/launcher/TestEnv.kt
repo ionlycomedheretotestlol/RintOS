@@ -66,6 +66,7 @@ object TestEnv {
         set(app, "apps", repo)
         set(app, "music", MusicEngine(app, scope))
         set(app, "assistant", dev.rint.launcher.assistant.AgentEngine(app, scope))
+        runCatching { CrashLog.clear(app) }
         RintApp::class.java.getDeclaredField("instance").apply { isAccessible = true }.set(null, app)
         return app
     }

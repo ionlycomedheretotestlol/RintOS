@@ -174,9 +174,10 @@ fun RinSprite(
     talk: Float = 0f,
     animated: Boolean = true,
     timeOffset: Float = 0f,
+    forcePixel: Boolean? = null,
 ) {
     val look = dev.rint.launcher.ui.LocalRintOrNull.current
-    val pixel = look?.cfg?.mascot?.style == dev.rint.launcher.core.MascotStyle.PIXEL
+    val pixel = forcePixel ?: (look?.cfg?.mascot?.style == dev.rint.launcher.core.MascotStyle.PIXEL)
     val accent = look?.cfg?.mascot?.color?.toInt() ?: look?.colors?.accent?.toArgb() ?: 0xFF3B7CFF.toInt()
     val params = remember { RinParams() }
     val painter = remember { RinPainter() }

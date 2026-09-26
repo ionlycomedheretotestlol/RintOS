@@ -71,7 +71,7 @@ import kotlin.random.Random
 
 private val BAR = Score.BAR.toFloat()
 private val BEAT = Score.BEAT.toFloat()
-private val BLUE = Color(RINT_BLUE.toInt())
+private var BLUE = Color(RINT_BLUE.toInt())
 private val INK = Color(0xFF020308)
 private val RED_SPLIT = Color(0xFFFF2D55)
 private val CYAN_SPLIT = Color(0xFF00E5FF)
@@ -143,6 +143,7 @@ fun IntroCinematic(synth: IntroSynth, onDone: () -> Unit) {
  */
 @Composable
 internal fun Film(time: () -> Float) {
+    dev.rint.launcher.ui.LocalRintOrNull.current?.let { BLUE = it.colors.accent }
     val bar by remember { derivedStateOf { barOf(time()) } }
     val density = LocalDensity.current.density
     Box(Modifier.fillMaxSize().background(INK)) {
@@ -162,7 +163,7 @@ internal fun Film(time: () -> Float) {
                 Score.Part.BOOT -> if (bar < Score.BOOT + 2) BootScene(time) else WordmarkScene(time)
                 Score.Part.BUILD -> TaglineScene(time)
                 Score.Part.DROP -> MontageScene(time)
-                Score.Part.LIFT -> BarrageScene(time)
+                Score.Part.LIFT -> if (bar < Score.LIFT + 2) EvolutionScene(time) else BarrageScene(time)
                 Score.Part.SILENCE -> SilenceScene(time)
                 else -> RinScene(time)
             }
@@ -292,14 +293,15 @@ internal fun HeartScene(time: () -> Float) {
 internal fun BootScene(time: () -> Float) {
     val t = time() - bars(Score.BOOT)
     val lines = listOf(
-        0.05f to "> rint --boot --no-limits",
-        BEAT to "  [ ok ] pixels",
-        BEAT * 2 to "  [ ok ] personality",
-        BEAT * 3 to "  [ ok ] ${Schema.optionCount} settings",
-        BEAT * 4 to "  [ ok ] a fox-cat named Rin",
-        BEAT * 5 to "  [ !! ] boredom not found",
-        BEAT * 6 to "  [ ok ] your taste",
-        BEAT * 7 to "  launching.",
+        0.05f to "> git log --since=day-one",
+        BEAT * 0.5f to "  FishinOS. QuotOS. ThatOS. TrulyOS.",
+        BEAT * 1.5f to "  [ ok ] finally: RintOS",
+        BEAT * 2.5f to "  [ !! ] build 1: crashed",
+        BEAT * 3.2f to "  [ !! ] build 2: crashed harder",
+        BEAT * 4f to "  [ ok ] Rin: 48 pixels → a whole cat",
+        BEAT * 5f to "  [ ok ] ${Schema.optionCount} settings, 0 compromises",
+        BEAT * 6f to "  [ ok ] tested. and tested. and tested.",
+        BEAT * 7f to "  releasing v1.0",
     )
     Box(Modifier.fillMaxSize()) {
         // shockwave from the BRAAM
@@ -381,7 +383,7 @@ internal fun WordmarkScene(time: () -> Float) {
         val t = time() - bars(Score.BOOT + 2)
         val sub = clamp01((t - 2.1f) / 0.5f)
         Text(
-            "a launcher for android. and for you.",
+            "version 1.0 — it's finally here.",
             fontFamily = RintFonts.Pixel, fontSize = 12.sp, color = Color.White.copy(alpha = 0.85f * sub * (1f - easeIn((t - BAR * 1.75f) * 4))),
             textAlign = TextAlign.Center, letterSpacing = 1.sp,
             modifier = Modifier.align(Alignment.Center).padding(top = 150.dp).graphicsLayer { translationY = (1 - sub) * 30f },
@@ -398,9 +400,9 @@ private fun DrawScope.rotateBlock(x: Float, y: Float, s: Float, deg: Float, c: C
 // ───────────────────────────── bars 6–9: words slam in, countdown ─────────────────────────────
 
 private val phrases = listOf(
-    listOf("this" to false, "is" to false, "your" to true, "phone." to false),
-    listOf("make" to false, "it" to false, "look" to false, "like you." to true),
-    listOf("every." to false, "single." to false, "pixel." to true, "yours." to false),
+    listOf("it" to false, "took" to false, "a" to false, "while." to true),
+    listOf("so" to false, "many" to false, "crashes." to true, "fixed." to false),
+    listOf("this" to false, "is" to false, "version" to false, "1.0" to true),
 )
 
 @Composable
@@ -570,12 +572,10 @@ internal fun MontageScene(time: () -> Float) {
 @Composable
 internal fun BarrageScene(time: () -> Float) {
     val features = listOf(
-        "live synced lyrics", "widgets you can touch", "a notch that's yours", "${Schema.optionCount}+ settings",
-        "an AI that uses your phone", "10 lock screens", "icon packs + 10 shapes", "a real music player",
-        "gestures for everything", "a calculator. on your home.", "one-tap presets", "no ads. no tracking.",
-        "blocky tty clocks", "a pet that remembers", "it's free.", "…and one more thing",
+        "Rin, your AI, hold home", "songs play right in the widget", "${Schema.optionCount}+ settings", "10 lock screens",
+        "your own photo & live wallpapers", "battery saver dot mode", "no ads. no tracking. free.", "…and one more thing",
     )
-    val beatIdx by remember { derivedStateOf { ((time() - bars(Score.LIFT)) / BEAT).toInt() } }
+    val beatIdx by remember { derivedStateOf { ((time() - bars(Score.LIFT + 2)) / BEAT).toInt() } }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         Canvas(Modifier.fillMaxSize()) {
             val t = time() - bars(Score.LIFT)
@@ -601,7 +601,7 @@ internal fun BarrageScene(time: () -> Float) {
                 val side = if (i % 2 == 0) -1f else 1f
                 Box(
                     Modifier.align(Alignment.Center).graphicsLayer {
-                        val beat = (time() - bars(Score.LIFT)) / BEAT
+                        val beat = (time() - bars(Score.LIFT + 2)) / BEAT
                         val q = (beat - i) / 2.6f
                         val z = easeOut(q)
                         val s = 0.3f + 1.9f * z
@@ -680,7 +680,7 @@ internal fun RinScene(time: () -> Float) {
             val k = kickOf(time())
             val ground = size.height * 0.7f
             // wordmark towering behind him, breathing with the kick
-            val word = "RINTOS"
+            val word = "1.0"
             val cell = size.width * 0.9f / blockWidth(word)
             val w = blockWidth(word) * cell
             val rise = easeOutBack((tt - 0.3f) / 0.8f)
@@ -727,14 +727,68 @@ internal fun RinScene(time: () -> Float) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             val bubble = when {
-                t in 2.7f..4.3f -> "hi. I'm Rin."
-                t in 4.3f..6.2f -> "this phone? yours now."
+                t in 2.7f..4.3f -> "it's finally here."
+                t in 4.3f..6.2f -> "RintOS 1.0. we made it."
                 t >= 6.2f -> "let's make it yours →"
                 else -> null
             }
             Box(Modifier.height(44.dp)) { bubble?.let { SpeechBubble(it) } }
             Spacer(Modifier.height(8.dp))
             RinSprite(pose, rinSize)
+        }
+        Text(
+            "RintOS 1.0 · made with way too much love by Carrot", fontFamily = RintFonts.Pixel, fontSize = 9.sp, color = Color.White,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 36.dp, start = 16.dp, end = 16.dp)
+                .graphicsLayer { alpha = clamp01((time() - bars(Score.FINAL) - 3f) / 1f) * 0.7f },
+        )
+    }
+}
+
+// ───────────────────────────── bars 18–19: how far he's come ─────────────────────────────
+
+@Composable
+internal fun EvolutionScene(time: () -> Float) {
+    val t = time() - bars(Score.LIFT)
+    val beat = (t / BEAT).toInt()
+    val stages = listOf(
+        Triple("v0.1", "48 × 56 pixels", Pose.FRONT),
+        Triple("v0.9", "survived the crash era", Pose.SHOCK),
+        Triple("v1.0", "him.", Pose.CHEER),
+    )
+    Box(Modifier.fillMaxSize()) {
+        Canvas(Modifier.fillMaxSize()) {
+            val k = kickOf(time())
+            drawCircle(Brush.radialGradient(listOf(BLUE.copy(alpha = 0.2f + 0.2f * k), Color.Transparent), center, size.maxDimension * 0.6f), size.maxDimension * 0.6f, center)
+        }
+        Text(
+            if (beat < 6) "the evolution of Rin" else "look how far he's come.", fontFamily = RintFonts.Inter, fontWeight = FontWeight.Black, fontSize = 30.sp,
+            color = Color.White, textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 90.dp, start = 20.dp, end = 20.dp),
+        )
+        androidx.compose.foundation.layout.Row(
+            Modifier.align(Alignment.Center).fillMaxWidth().padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.Bottom,
+        ) {
+            stages.forEachIndexed { i, (ver, cap, pose) ->
+                val appear = beat >= i * 2
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.graphicsLayer {
+                        val since = time() - bars(Score.LIFT) - i * 2 * BEAT
+                        val e = easeOutBack(since / 0.35f)
+                        alpha = if (appear) clamp01(since / 0.1f) else 0f
+                        scaleX = 0.4f + 0.6f * e; scaleY = scaleX
+                        translationY = (1f - clamp01(e)) * 80f - (if (beat >= 6) abs(sin(time() * 9f + i)) * 18f else 0f)
+                    },
+                ) {
+                    Text(ver, fontFamily = RintFonts.Pixel, fontSize = 14.sp, color = if (i == 2) BLUE else Color.White)
+                    Spacer(Modifier.height(6.dp))
+                    RinSprite(pose, if (i == 2) 120.dp else 92.dp, forcePixel = i == 0)
+                    Spacer(Modifier.height(6.dp))
+                    Text(cap, fontFamily = RintFonts.Inter, fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f), textAlign = TextAlign.Center)
+                }
+            }
         }
     }
 }

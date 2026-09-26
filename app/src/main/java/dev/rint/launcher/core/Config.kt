@@ -230,7 +230,7 @@ data class MascotCfg(
     val name: String = "Rin",
     val presence: MascotPresence = MascotPresence.NORMAL,
     val size: Float = 1f,
-    val sleepsAtNight: Boolean = true,
+    val sleepsAtNight: Boolean = false,
     val reactsToCharging: Boolean = false,
     val inMusic: Boolean = true,
     val wanders: Boolean = false,

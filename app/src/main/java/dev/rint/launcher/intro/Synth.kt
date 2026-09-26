@@ -177,7 +177,7 @@ class IntroSynth {
     private var aArp = 0.0; private var aArpCut = 0.0; private var aSub = 0.0; private var aPluck = 0.0
     private var aKick = 0.0; private var aHats = 0; private var aClap = 0.0; private var aSaws = 0.0
     private var aLead = 0.0; private var aLeadCut = 0.0; private var aLeadOct = 0
-    private var aRiser = -1.0; private var aRoll = -1.0; private var aSwell = 0.0
+    private var aRiser = -1.0; private var aRoll = -1.0; private var aSwell = 0.0; private var aChoir = 0.0
 
     private fun full(energy: Double) {
         aPad = 0.75; aPadCut = 0.14; aArp = 0.8; aArpCut = 0.22; aSub = 0.55; aPluck = 1.0
@@ -191,7 +191,7 @@ class IntroSynth {
     private fun arrange(bar: Int, pb: Double, time: Double) {
         aPad = 0.0; aPadCut = 0.05; aDrone = 0.0; aHeart = 0.0; aArp = 0.0; aArpCut = 0.1; aSub = 0.0; aPluck = 0.0
         aKick = 0.0; aHats = 0; aClap = 0.0; aSaws = 0.0; aLead = 0.0; aLeadCut = 0.2; aLeadOct = 0
-        aRiser = -1.0; aRoll = -1.0; aSwell = 0.0
+        aRiser = -1.0; aRoll = -1.0; aSwell = 0.0; aChoir = 0.0
         when (mode) {
             Mode.TIMELINE -> when (Score.part(bar)) {
                 Score.Part.HEART -> {
@@ -221,6 +221,7 @@ class IntroSynth {
                 Score.Part.DROP -> full(1.0)
                 Score.Part.LIFT -> {
                     full(1.25)
+                    aChoir = 0.8
                     aLeadOct = if (bar >= 20) 12 else 0
                     if (bar >= 20) aRiser = (time - 20 * BAR) / (2 * BAR)
                     if (bar == 21) {
@@ -235,6 +236,7 @@ class IntroSynth {
                 }
                 Score.Part.FINAL -> {
                     full(1.1)
+                    aChoir = 1.0
                     if (bar == Score.END - 1) { aHats = if (pb < 0.5) 2 else 0; aClap = 0.0 }
                 }
                 Score.Part.AFTER -> chill()
@@ -247,7 +249,7 @@ class IntroSynth {
                 aKick = if (p < 0.5) 0.7 else 0.0
                 aLead = 0.5; aLeadCut = 0.05 + 0.2 * p
             }
-            Mode.DROP -> full(1.2)
+            Mode.DROP -> { full(1.2); aChoir = 1.0 }
             Mode.STOP -> Unit
         }
     }
@@ -267,6 +269,7 @@ class IntroSynth {
     private val sawPh = DoubleArray(9); private var sawLpL = 0.0; private var sawLpR = 0.0
     private val leadPh = DoubleArray(3); private var leadLp1 = 0.0; private var leadLp2 = 0.0
     private val braamPh = DoubleArray(9); private var braamLp = 0.0
+    private val choirPh = DoubleArray(3); private val cLow = DoubleArray(2); private val cBand = DoubleArray(2)
     private var hatLp = 0.0; private var clapLp = 0.0; private var riserLp = 0.0; private var riserPh = 0.0
     private var crashLpL = 0.0; private var crashLpR = 0.0; private var impLp = 0.0; private var swellLp = 0.0
 
@@ -322,6 +325,8 @@ class IntroSynth {
         }
         val ci = if (mode == Mode.TIMELINE && bar < Score.BOOT) 0 else ((bar - anchor) % 4 + 4) % 4
         val chord = CHORDS[ci]
+        // the truck-driver key change: everything up a whole step for the 1.0 finale
+        val tr = if ((mode == Mode.TIMELINE && bar >= Score.FINAL) || mode == Mode.DROP) 2 else 0
 
         var l = 0.0; var r = 0.0
         var sendRev = 0.0; var sendDly = 0.0
@@ -332,7 +337,7 @@ class IntroSynth {
         if (aPad > 0) {
             var pl = 0.0; var pr = 0.0
             for (v in 0 until 3) {
-                val f = FREQ[chord[v]]
+                val f = FREQ[chord[v] + tr]
                 padPh[v * 2] = (padPh[v * 2] + f * 0.996 / SR) % 1.0
                 padPh[v * 2 + 1] = (padPh[v * 2 + 1] + f * 1.004 / SR) % 1.0
                 pl += saw(padPh[v * 2]); pr += saw(padPh[v * 2 + 1])
@@ -366,7 +371,7 @@ class IntroSynth {
         // arp: 16ths over chord tones, ping-ponging across the stereo field
         if (aArp > 0) {
             val note = chord[ARP[six % 8]] + 12 + if ((six / 8) % 2 == 1) 12 else 0
-            arpPh = (arpPh + FREQ[note] / SR) % 1.0
+            arpPh = (arpPh + FREQ[note + tr] / SR) % 1.0
             val sq = (if (arpPh < 0.5) 1.0 else -1.0) * exp(-inSix * 4.5)
             arpLp += aArpCut * (sq - arpLp)
             val g = arpLp * 0.11 * aArp
@@ -376,7 +381,7 @@ class IntroSynth {
         }
 
         // sub bass (ducked) + plucked offbeat bass
-        val root = ROOTS[ci]
+        val root = ROOTS[ci] + tr
         if (aSub > 0) {
             subPh = (subPh + FREQ[root - 12] / SR) % 1.0
             val s = sin(TAU * subPh) * 0.42 * aSub * duck
@@ -399,7 +404,7 @@ class IntroSynth {
                 val env = exp(-st * 7) * (1 - exp(-st * 400))
                 var sl = 0.0; var sr = 0.0
                 for (v in 0 until 3) {
-                    val f = FREQ[chord[v] + 12]
+                    val f = FREQ[chord[v] + 12 + tr]
                     for (d in 0 until 3) {
                         val k = v * 3 + d
                         sawPh[k] = (sawPh[k] + f * (0.993 + 0.007 * d) / SR) % 1.0
@@ -416,6 +421,27 @@ class IntroSynth {
             }
         }
 
+        // choir: saws through two vowel formants ("aah"), slow and huge
+        if (aChoir > 0) {
+            var x = 0.0
+            for (v in 0 until 3) {
+                choirPh[v] = (choirPh[v] + FREQ[chord[v] + 12 + tr] * (1 + 0.004 * sin(TAU * (4.8 + v * 0.3) * time)) / SR) % 1.0
+                x += saw(choirPh[v])
+            }
+            x /= 3
+            var y = 0.0
+            for (k in 0 until 2) {
+                val fc = if (k == 0) 760.0 else 1180.0
+                val f = 2 * sin(PI * fc / SR)
+                cLow[k] += f * cBand[k]
+                val high = x - cLow[k] - 0.22 * cBand[k]
+                cBand[k] += f * high
+                y += cBand[k] * (if (k == 0) 1.0 else 0.6)
+            }
+            val g = y * 0.09 * aChoir * (0.6 + 0.4 * duck)
+            l += g * 1.1; r += g * 0.9; sendRev += g * 0.8
+        }
+
         // lead hook
         if (aLead > 0) {
             val step = eighth % 8
@@ -429,7 +455,7 @@ class IntroSynth {
                 val gate = if (st < len) 1.0 else exp(-(st - len) * 60)
                 val env = (st / 0.006).coerceAtMost(1.0) * (0.72 + 0.28 * exp(-st * 9)) * gate
                 val vib = 1 + 0.005 * sin(TAU * 5.6 * time) * (st * 4).coerceAtMost(1.0)
-                val f = FREQ[note + aLeadOct] * vib
+                val f = FREQ[note + aLeadOct + tr] * vib
                 leadPh[0] = (leadPh[0] + f * 0.997 / SR) % 1.0
                 leadPh[1] = (leadPh[1] + f * 1.003 / SR) % 1.0
                 leadPh[2] = (leadPh[2] + f * 0.5 / SR) % 1.0
@@ -517,7 +543,7 @@ class IntroSynth {
             var s = 0.0
             for (v in 0 until 3) for (d in 0 until 3) {
                 val k = v * 3 + d
-                braamPh[k] = (braamPh[k] + FREQ[BRAAM[v]] * (0.994 + 0.006 * d) / SR) % 1.0
+                braamPh[k] = (braamPh[k] + FREQ[BRAAM[v] + tr] * (0.994 + 0.006 * d) / SR) % 1.0
                 s += saw(braamPh[k])
             }
             braamLp += (0.015 + 0.22 * exp(-tBraam * 2.2)) * (s / 9 - braamLp)
