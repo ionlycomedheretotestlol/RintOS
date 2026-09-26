@@ -35,6 +35,10 @@ import dev.rint.launcher.widgets.SysWidgets
 import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        const val EXTRA_ACTION = "dev.rint.launcher.ACTION"
+    }
+
     private var state: LauncherState? = null
     private var resumed = false
     private var lastBlur = -1
@@ -59,6 +63,7 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(cfg.look.showStatusBar, cfg.look.showNavBar, cfg.onboarded) { applyBars(cfg.look.showStatusBar || !cfg.onboarded, cfg.look.showNavBar || !cfg.onboarded) }
 
             BackHandler { st.dismissTop() }
+            LaunchedEffect(Unit) { consumeAction(intent) }
 
             RintTheme(cfg) {
                 CompositionLocalProvider(LocalWindowFx provides fx) {
@@ -94,8 +99,17 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Runs a gesture action handed over by the lock screen after unlocking. */
+    private fun consumeAction(i: Intent?) {
+        val raw = i?.getStringExtra(EXTRA_ACTION) ?: return
+        i.removeExtra(EXTRA_ACTION)
+        val b = runCatching { dev.rint.launcher.core.RintJson.decodeFromString(dev.rint.launcher.core.Binding.serializer(), raw) }.getOrNull() ?: return
+        state?.run(this, b)
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        if (intent.hasExtra(EXTRA_ACTION)) { consumeAction(intent); return }
         val st = state ?: return
         val isHome = intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_HOME)
         if (!isHome) return

@@ -16,6 +16,8 @@ class RintApp : Application() {
         private set
     lateinit var music: MusicEngine
         private set
+    lateinit var assistant: dev.rint.launcher.assistant.AgentEngine
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -25,6 +27,8 @@ class RintApp : Application() {
         apps.setRenames(stores.config.value.renamedApps)
         apps.setIconPack(stores.config.value.icons.iconPack)
         music = MusicEngine(this, scope)
+        assistant = dev.rint.launcher.assistant.AgentEngine(this, scope)
+        dev.rint.launcher.lock.LockActivity.install(this)
     }
 
     companion object {

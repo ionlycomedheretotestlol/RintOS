@@ -5,7 +5,12 @@ import android.provider.AlarmClock
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import dev.rint.launcher.ui.lighten
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeCap
@@ -49,10 +55,13 @@ import java.util.Locale
 
 @Composable
 fun rememberNow(everyMs: Long = 1000): Calendar {
-    val now by produceState(Calendar.getInstance(), everyMs) {
-        while (true) {
-            value = Calendar.getInstance()
+    // Only tick while visible; resuming refreshes immediately.
+    val active = dev.rint.launcher.ui.rememberForeground() && !dev.rint.launcher.ui.LocalCovered.current
+    val now by produceState(Calendar.getInstance(), everyMs, active) {
+        value = Calendar.getInstance()
+        while (active) {
             delay(everyMs - System.currentTimeMillis() % everyMs)
+            value = Calendar.getInstance()
         }
     }
     return now
@@ -87,6 +96,27 @@ fun ClockWidget(ctx: WidgetCtx) {
     val look = LocalRint.current
     val c = look.cfg.clock
     val context = LocalContext.current
+    if (ctx.w <= 2 && ctx.h >= 2) {
+        // compact card: weekday, the time, the date — the iOS widget rhythm
+        val now = rememberNow(60_000)
+        Column(
+            Modifier.fillMaxSize()
+                .clickable(remember { MutableInteractionSource() }, null) {
+                    runCatching { context.startActivity(Intent(AlarmClock.ACTION_SHOW_ALARMS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                }
+                .padding(16.dp),
+        ) {
+            Text(SimpleDateFormat("EEEE", Locale.getDefault()).format(now.time).uppercase(), color = look.colors.accent.lighten(),
+                fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 1.sp)
+            Spacer(Modifier.weight(1f))
+            val fits = if (c.style == ClockStyle.STACKED || c.style == ClockStyle.WORDS) ClockStyle.THIN else c.style
+            ClockFace(c.copy(style = fits, align = Align.START, seconds = false), Modifier.fillMaxWidth().height(52.dp), compact = true)
+            Spacer(Modifier.height(4.dp))
+            Text(SimpleDateFormat("d MMMM", Locale.getDefault()).format(now.time), color = Color.White.copy(alpha = 0.75f),
+                fontFamily = look.font, fontWeight = FontWeight.Medium, fontSize = 13.sp)
+        }
+        return
+    }
     Column(
         Modifier
             .fillMaxSize()
@@ -101,18 +131,32 @@ fun ClockWidget(ctx: WidgetCtx) {
             Align.END -> Alignment.End
         },
     ) {
+        val now = rememberNow(60_000)
+        if (c.greeting && ctx.h >= 2) {
+            val hour = now.get(Calendar.HOUR_OF_DAY)
+            Text(
+                when (hour) { in 5..11 -> "good morning"; in 12..17 -> "good afternoon"; in 18..22 -> "good evening"; else -> "late night mode" }.uppercase(),
+                fontFamily = RintFonts.Pixel, fontSize = 10.sp, letterSpacing = 2.sp,
+                color = look.colors.accent.lighten(),
+                style = TextStyle(shadow = Shadow(look.colors.accent.copy(alpha = 0.8f), Offset.Zero, 16f)),
+            )
+            Spacer(Modifier.height(4.dp))
+        }
         ClockFace(c, Modifier.weight(1f).fillMaxWidth(), compact = ctx.h <= 1)
         if (c.showDate && ctx.h >= 2) {
-            val now = rememberNow(60_000)
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
                 SimpleDateFormat(c.dateFormat, Locale.getDefault()).format(now.time),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(Color.White.copy(alpha = 0.14f))
+                    .border(1.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(50))
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
                 style = TextStyle(
-                    fontFamily = if (c.style == ClockStyle.BLOCKS || c.style == ClockStyle.PIXEL) RintFonts.Pixel else look.font,
+                    fontFamily = if (c.style == ClockStyle.PIXEL) RintFonts.Pixel else look.font,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White.copy(alpha = 0.92f),
-                    shadow = Shadow(Color.Black.copy(alpha = 0.5f), Offset(0f, 2f), 8f),
+                    color = Color.White,
                 ),
             )
         }
@@ -139,14 +183,28 @@ fun ClockFace(c: ClockCfg, modifier: Modifier = Modifier, compact: Boolean = fal
     when (c.style) {
         ClockStyle.BLOCKS -> Canvas(modifier) {
             val units = blockWidth(text)
-                val cell = minOf(size.width / units, size.height / 5f) * c.size.coerceIn(0.4f, 1.2f)
-                val w = units * cell
-                val x = when (c.align) {
-                    Align.START -> 0f
-                    Align.CENTER -> (size.width - w) / 2
-                    Align.END -> size.width - w
-                }
-                drawBlocks(text, color, cell, origin = Offset(x, (size.height - cell * 5) / 2), colonAlpha = colon, shadow = Color.Black.copy(alpha = 0.28f))
+            val cell = minOf(size.width * 0.84f / units, size.height / 5f) * c.size.coerceIn(0.4f, 1.2f)
+            val w = units * cell
+            val x = when (c.align) {
+                Align.START -> 0f
+                Align.CENTER -> (size.width - w) / 2
+                Align.END -> size.width - w
+            }
+            val y = (size.height - cell * 5) / 2
+            if (c.glow) {
+                val center = Offset(x + w / 2, y + cell * 2.5f)
+                val r = w * 0.62f
+                drawOval(
+                    Brush.radialGradient(listOf(look.colors.accent.copy(alpha = 0.45f), Color.Transparent), center, r),
+                    topLeft = Offset(center.x - r, center.y - r * 0.55f),
+                    size = androidx.compose.ui.geometry.Size(r * 2, r * 1.1f),
+                )
+            }
+            drawBlocks(
+                text, color, cell, origin = Offset(x, y), colonAlpha = colon,
+                shadow = Color.Black.copy(alpha = 0.22f),
+                bottomColor = if (c.glow && tint == null && !c.useAccent) look.colors.accent.lighten() else null,
+            )
         }
         ClockStyle.THIN, ClockStyle.PIXEL -> Text(
             text,
@@ -154,8 +212,8 @@ fun ClockFace(c: ClockCfg, modifier: Modifier = Modifier, compact: Boolean = fal
             textAlign = align,
             style = TextStyle(
                 fontFamily = if (c.style == ClockStyle.PIXEL) RintFonts.Pixel else look.font,
-                fontWeight = if (c.style == ClockStyle.PIXEL) FontWeight.Normal else FontWeight.Normal,
-                fontSize = ((if (compact) 40 else 76) * c.size).sp,
+                fontSize = ((if (compact) 42 else 76) * c.size).sp,
+            fontWeight = FontWeight.SemiBold,
                 letterSpacing = (if (c.style == ClockStyle.THIN) (-2).sp else 0.sp),
                 color = color,
                 shadow = shadow,

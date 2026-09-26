@@ -88,12 +88,12 @@ fun RintTheme(cfg: RintConfig, content: @Composable () -> Unit) {
             dark = true,
             accent = accent,
             onAccent = if (accent.luminance() > 0.55f) Color.Black else Color.White,
-            bg = if (amoled) Color.Black else Color(0xFF070A14),
-            panel = (if (amoled) Color.Black else Color(0xFF0E1322)).copy(alpha = a),
-            panelStrong = if (amoled) Color(0xFF050505) else Color(0xFF111728),
+            bg = if (amoled) Color.Black else Color(0xFF08090E),
+            panel = (if (amoled) Color.Black else Color(0xFF1B1E29)).copy(alpha = a),
+            panelStrong = if (amoled) Color(0xFF0E0E10) else Color(0xFF16181F),
             text = Color(0xFFF4F6FF),
-            subtext = Color(0xFF9AA3BF),
-            stroke = Color.White.copy(alpha = 0.09f),
+            subtext = Color(0xFF9A9FAE),
+            stroke = Color.White.copy(alpha = 0.14f),
         ) else RintColors(
             dark = false,
             accent = accent,
@@ -134,7 +134,9 @@ fun RintTheme(cfg: RintConfig, content: @Composable () -> Unit) {
             labelLarge = base.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
         ),
     ) {
-        CompositionLocalProvider(LocalRint provides look, content = content)
+        CompositionLocalProvider(LocalRint provides look) {
+            CompositionLocalProvider(LocalBackdrop provides rememberBackdrop(), content = content)
+        }
     }
 }
 

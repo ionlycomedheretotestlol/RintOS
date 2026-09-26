@@ -1,6 +1,7 @@
 package dev.rint.launcher.widgets
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Battery5Bar
 import androidx.compose.material.icons.rounded.Calculate
 import androidx.compose.material.icons.rounded.CalendarMonth
@@ -49,6 +50,7 @@ object WidgetRegistry {
         WidgetSpec("clock", "Clock", "Blocky tty clock and 6 other faces", Icons.Rounded.Schedule, listOf(4 to 2, 4 to 1, 2 to 2, 4 to 3)) { ClockWidget(it) },
         WidgetSpec("music", "Rint Music", "A real player with live synced lyrics", Icons.Rounded.MusicNote, listOf(4 to 2, 4 to 3, 2 to 2)) { MusicWidget(it) },
         WidgetSpec("pet", "Rin", "Pet him. Feed him. He remembers.", Icons.Rounded.Pets, listOf(2 to 2, 4 to 2)) { PetWidget(it) },
+        WidgetSpec("ask", "Ask Rin", "Your AI assistant, one tap away", Icons.Rounded.AutoAwesome, listOf(4 to 1, 2 to 2, 2 to 1)) { AskRinWidget(it) },
         WidgetSpec("notes", "Sticky note", "Type right on your home screen", Icons.Rounded.StickyNote2, listOf(2 to 2, 4 to 2, 2 to 3, 4 to 3)) { NotesWidget(it) },
         WidgetSpec("todo", "Checklist", "Tick things off without opening an app", Icons.Rounded.Checklist, listOf(2 to 3, 4 to 3, 2 to 2, 4 to 4)) { ChecklistWidget(it) },
         WidgetSpec("timer", "Focus timer", "Pomodoro with a ring you can spin", Icons.Rounded.Timer, listOf(2 to 2, 4 to 2)) { TimerWidget(it) },

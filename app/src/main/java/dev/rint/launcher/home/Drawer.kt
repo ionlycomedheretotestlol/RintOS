@@ -103,6 +103,8 @@ import dev.rint.launcher.ui.RintFonts
 import dev.rint.launcher.ui.RintSprings
 import dev.rint.launcher.ui.itemGestures
 import dev.rint.launcher.ui.pressable
+import dev.rint.launcher.ui.glass
+import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.launch
 
 @Composable
@@ -178,7 +180,11 @@ fun AppDrawer(state: LauncherState, modifier: Modifier = Modifier) {
                 val s = lerp(0.94f, 1f, p)
                 scaleX = s; scaleY = s
             }
-            .background(look.colors.bg.copy(alpha = cfg.drawer.opacity * p))
+            .then(
+                if (dev.rint.launcher.ui.LocalBackdrop.current != null)
+                    Modifier.glass(androidx.compose.ui.graphics.RectangleShape, edge = false).background(Color.Black.copy(alpha = 0.18f + 0.3f * (cfg.drawer.opacity - 0.5f).coerceAtLeast(0f)))
+                else Modifier.background(look.colors.bg.copy(alpha = cfg.drawer.opacity))
+            )
             .nestedScroll(closeConnection)
     ) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
@@ -223,6 +229,7 @@ fun SearchField(
     onGo: () -> Unit,
     modifier: Modifier = Modifier,
     readOnlyClick: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     val look = LocalRint.current
     val style = look.cfg.home.searchStyle
@@ -264,6 +271,7 @@ fun SearchField(
             )
         }
         if (query.isNotEmpty()) Icon(Icons.Rounded.Close, null, tint = look.colors.subtext, modifier = Modifier.size(20.dp).clickable { onQuery("") })
+        trailing?.invoke()
     }
     if (style == SearchBarStyle.UNDERLINE) Box(modifier.fillMaxWidth().height(2.dp).background(look.colors.accent))
 }
@@ -444,6 +452,7 @@ private fun Results(state: LauncherState, hits: List<Hit>, query: String) {
                 is Hit.Contact -> Triple(Icons.Rounded.Person, h.name, h.number ?: "contact")
                 is Hit.Setting -> Triple(Icons.Rounded.Tune, h.title, "jump to settings")
                 is Hit.Music -> Triple(Icons.Rounded.MusicNote, "play “$query”", "with live lyrics in Rint Music")
+                is Hit.Ask -> Triple(Icons.Rounded.Search, "ask ${look.cfg.mascot.name}: “$query”", "your AI assistant can answer or do it for you")
                 is Hit.Web -> Triple(Icons.Rounded.Public, "search the web for “$query”", look.cfg.search.engine.name.lowercase())
                 else -> Triple(Icons.Rounded.Search, "", "")
             }
@@ -452,6 +461,7 @@ private fun Results(state: LauncherState, hits: List<Hit>, query: String) {
                     is Hit.Contact -> runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, h.uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
                     is Hit.Setting -> { state.settingsSection = h.section; state.settingsOpen = true }
                     is Hit.Music -> MusicOverlay.show(search = true)
+                    is Hit.Ask -> { dev.rint.launcher.assistant.AssistantOverlay.show(); dev.rint.launcher.RintApp.instance.assistant.ask(query) }
                     is Hit.Web -> Searcher.openWeb(ctx, look.cfg.search, query)
                     else -> Unit
                 }

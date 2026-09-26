@@ -206,13 +206,11 @@ private fun BatteryGlyph(level: Int, charging: Boolean) {
 
 @Composable
 private fun Equalizer(color: Color) {
-    val t = rememberInfiniteTransition(label = "eq")
-    val bars = (0 until 4).map { i ->
-        t.animateFloat(0.25f, 1f, infiniteRepeatable(tween(380 + i * 110, easing = LinearEasing), RepeatMode.Reverse), label = "b$i")
-    }
+    val t = dev.rint.launcher.ui.rememberAmbientClock()
     Row(Modifier.height(16.dp), verticalAlignment = Alignment.Bottom) {
-        bars.forEach { b ->
-            Box(Modifier.padding(horizontal = 1.5.dp).width(3.dp).fillMaxHeight(b.value).clip(RoundedCornerShape(2.dp)).background(color))
+        for (i in 0 until 4) {
+            val v = 0.25f + 0.75f * kotlin.math.abs(kotlin.math.sin(t * (4.1f + i * 1.3f) + i))
+            Box(Modifier.padding(horizontal = 1.5.dp).width(3.dp).fillMaxHeight(v).clip(RoundedCornerShape(2.dp)).background(color))
         }
     }
 }

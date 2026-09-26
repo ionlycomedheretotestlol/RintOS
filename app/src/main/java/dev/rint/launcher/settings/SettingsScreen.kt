@@ -120,7 +120,6 @@ fun SettingsScreen(state: LauncherState) {
     BackHandler { if (sheet != null) sheet = null else state.dismissTop() }
 
     Box(Modifier.fillMaxSize().background(look.colors.bg)) {
-        AliveBackdrop()
         AnimatedContent(
             targetState = state.settingsSection,
             label = "settings",
@@ -138,80 +137,113 @@ fun SettingsScreen(state: LauncherState) {
 }
 
 @Composable
-private fun AliveBackdrop() {
-    val look = LocalRint.current
-    val t = rememberInfiniteTransition(label = "bd")
-    val p by t.animateFloat(0f, 1f, infiniteRepeatable(tween(14_000, easing = LinearEasing), RepeatMode.Reverse), label = "p")
-    Canvas(Modifier.fillMaxWidth().height(420.dp)) {
-        val c1 = Offset(size.width * (0.2f + 0.6f * p), size.height * 0.2f)
-        val c2 = Offset(size.width * (0.9f - 0.5f * p), size.height * 0.55f)
-        drawCircle(Brush.radialGradient(listOf(look.colors.accent.copy(alpha = 0.35f), Color.Transparent), c1, size.width * 0.7f), size.width * 0.7f, c1)
-        drawCircle(Brush.radialGradient(listOf(look.colors.accent.copy(alpha = 0.18f), Color.Transparent), c2, size.width * 0.6f), size.width * 0.6f, c2)
-        drawRect(Brush.verticalGradient(listOf(Color.Transparent, look.colors.bg), startY = size.height * 0.4f))
-    }
-}
-
-@Composable
 private fun Home(state: LauncherState, query: String, onQuery: (String) -> Unit, onAction: (String) -> Unit) {
     val look = LocalRint.current
     val cfg = look.cfg
     LazyColumn(Modifier.fillMaxSize().statusBarsPadding().imePadding(), contentPadding = PaddingValues(bottom = 60.dp)) {
         item {
-            Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("RINTOS", fontFamily = RintFonts.Pixel, fontSize = 11.sp, color = look.colors.accent)
-                    Text("Make it yours.", fontFamily = look.font, fontWeight = FontWeight.ExtraBold, fontSize = 34.sp, color = look.colors.text)
-                    Text("${Schema.optionCount} things you can change. every one live.", fontFamily = look.font, fontSize = 13.sp, color = look.colors.subtext)
-                }
-                val bob = rememberInfiniteTransition(label = "rin")
-                val y by bob.animateFloat(0f, 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "y")
-                RinSprite(Pose.SIT, 76.dp, Modifier.graphicsLayer { translationY = -y * 8f })
+            Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 16.dp, top = 18.dp), verticalAlignment = Alignment.Bottom) {
+                Text("Settings", fontFamily = look.font, fontWeight = FontWeight.ExtraBold, fontSize = 34.sp, color = look.colors.text, modifier = Modifier.weight(1f))
+                RinSprite(Pose.SIT, 56.dp)
             }
         }
         item { SettingsSearch(query, onQuery) }
         if (query.isNotBlank()) {
             val q = query.lowercase()
-            val found = Schema.sections.flatMap { s -> s.opts.filter { it !is Opt.Header && (it.title.lowercase().contains(q) || it.desc?.lowercase()?.contains(q) == true) }.map { s to it } }
+            val found = Schema.sections.flatMap { sec -> sec.opts.filter { it !is Opt.Header && (it.title.lowercase().contains(q) || it.desc?.lowercase()?.contains(q) == true) }.map { sec to it } }
             if (found.isEmpty()) item {
                 Text("nothing called “$query” — yet.", color = look.colors.subtext, fontFamily = look.font, modifier = Modifier.padding(24.dp))
             }
-            itemsIndexed(found) { i, (s, o) ->
-                dev.rint.launcher.ui.AnimatedEntrance(i) {
-                    Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                        Text(s.title.uppercase(), fontFamily = RintFonts.Pixel, fontSize = 8.sp, color = s.tint, modifier = Modifier.padding(start = 6.dp))
-                        OptionCard(o, cfg, onAction)
-                    }
+            found.groupBy { it.first }.forEach { (sec, pairs) ->
+                item {
+                    GroupLabel(sec.title)
+                    GroupCard { pairs.forEachIndexed { i, (_, o) -> if (i > 0) RowDivider(); OptionRow(o, cfg, onAction) } }
                 }
             }
             return@LazyColumn
         }
-        item { LivePreview() }
         item {
-            Text("PRESETS", fontFamily = RintFonts.Pixel, fontSize = 10.sp, color = look.colors.subtext, modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 8.dp))
+            GroupCard(Modifier.padding(top = 4.dp)) {
+                Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(58.dp).clip(CircleShape).background(look.colors.accent), contentAlignment = Alignment.Center) { RinSprite(Pose.HEAD, 46.dp) }
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("RintOS", fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 19.sp, color = look.colors.text)
+                        Text("${Schema.optionCount} settings · every one applies live", fontFamily = look.font, fontSize = 13.sp, color = look.colors.subtext)
+                    }
+                }
+                RowDivider()
+                Box(Modifier.padding(12.dp)) { LivePreview() }
+            }
+        }
+        item {
+            GroupLabel("Presets")
             Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Presets.all.forEach { PresetCard(it) }
             }
         }
-        item {
-            Text("EVERYTHING", fontFamily = RintFonts.Pixel, fontSize = 10.sp, color = look.colors.subtext, modifier = Modifier.padding(start = 20.dp, top = 24.dp, bottom = 8.dp))
-        }
-        val rows = Schema.sections.chunked(2)
-        itemsIndexed(rows) { i, pair ->
-            Row(Modifier.padding(horizontal = 16.dp, vertical = 5.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                pair.forEachIndexed { j, s ->
-                    dev.rint.launcher.ui.AnimatedEntrance(i * 2 + j, Modifier.weight(1f)) {
-                        SectionTile(s, Modifier.fillMaxWidth()) { state.settingsSection = s.id }
+        val groups = listOf(
+            "Look" to listOf("look", "icons", "labels", "home", "dock", "clock"),
+            "Features" to listOf("ai", "music", "lock", "notch", "mascot"),
+            "Behavior" to listOf("drawer", "search", "gestures", "motion"),
+            "System" to listOf("system", "backup"),
+        )
+        groups.forEach { (title, ids) ->
+            item {
+                GroupLabel(title)
+                GroupCard {
+                    ids.mapNotNull { Schema.find(it) }.forEachIndexed { i, sec ->
+                        if (i > 0) RowDivider(inset = 60.dp)
+                        SectionRow(sec) { state.settingsSection = sec.id }
                     }
-                    if (pair.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
         }
         item {
             Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                RinSprite(Pose.SLEEP, 64.dp)
-                Text("RintOS 0.1 · made with too much love", fontFamily = RintFonts.Pixel, fontSize = 9.sp, color = look.colors.subtext)
+                RinSprite(Pose.SLEEP, 56.dp)
+                Text("RintOS 0.2", fontFamily = RintFonts.Pixel, fontSize = 9.sp, color = look.colors.subtext)
             }
         }
+    }
+}
+
+@Composable
+private fun GroupLabel(text: String) {
+    val look = LocalRint.current
+    Text(text.uppercase(), fontFamily = look.font, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, letterSpacing = 0.5.sp, color = look.colors.subtext,
+        modifier = Modifier.padding(start = 32.dp, top = 24.dp, bottom = 8.dp))
+}
+
+@Composable
+private fun GroupCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    val look = LocalRint.current
+    Column(modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(look.colors.panelStrong)) { content() }
+}
+
+@Composable
+private fun RowDivider(inset: androidx.compose.ui.unit.Dp = 16.dp) {
+    val look = LocalRint.current
+    Box(Modifier.padding(start = inset).fillMaxWidth().height(0.6.dp).background(look.colors.stroke))
+}
+
+@Composable
+private fun SectionRow(s: Section, onClick: () -> Unit) {
+    val look = LocalRint.current
+    val v = rememberHaptic()
+    Row(
+        Modifier.fillMaxWidth().pressable(PressEffect.NONE) { Haptics.tick(v); onClick() }.padding(horizontal = 14.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(32.dp).clip(RoundedCornerShape(9.dp)).background(s.tint), contentAlignment = Alignment.Center) {
+            Icon(s.icon, null, tint = Color.White, modifier = Modifier.size(19.dp))
+        }
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(s.title, fontFamily = look.font, fontWeight = FontWeight.Medium, fontSize = 16.sp, color = look.colors.text)
+            Text(s.blurb, fontFamily = look.font, fontSize = 12.sp, color = look.colors.subtext, maxLines = 1)
+        }
+        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = look.colors.subtext.copy(alpha = 0.6f))
     }
 }
 
@@ -229,27 +261,6 @@ private fun SettingsSearch(q: String, onQuery: (String) -> Unit) {
             BasicTextField(q, onQuery, singleLine = true, textStyle = TextStyle(color = look.colors.text, fontFamily = look.font, fontSize = 15.sp), cursorBrush = SolidColor(look.colors.accent), modifier = Modifier.fillMaxWidth())
         }
         if (q.isNotEmpty()) Icon(Icons.Rounded.Close, null, tint = look.colors.subtext, modifier = Modifier.size(18.dp).clickable { onQuery("") })
-    }
-}
-
-@Composable
-private fun SectionTile(s: Section, modifier: Modifier, onClick: () -> Unit) {
-    val look = LocalRint.current
-    val v = rememberHaptic()
-    Column(
-        modifier
-            .clip(RoundedCornerShape(look.cfg.look.corner.dp))
-            .background(Brush.linearGradient(listOf(s.tint.copy(alpha = 0.22f), look.colors.panel)))
-            .border(1.dp, s.tint.copy(alpha = 0.25f), RoundedCornerShape(look.cfg.look.corner.dp))
-            .pressable(PressEffect.BOUNCE) { Haptics.tap(v); onClick() }
-            .padding(16.dp)
-    ) {
-        Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(s.tint), contentAlignment = Alignment.Center) {
-            Icon(s.icon, null, tint = Color.White, modifier = Modifier.size(22.dp))
-        }
-        Spacer(Modifier.height(14.dp))
-        Text(s.title, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = look.colors.text, maxLines = 1)
-        Text(s.blurb, fontFamily = look.font, fontSize = 12.sp, color = look.colors.subtext, maxLines = 2, minLines = 2, lineHeight = 15.sp)
     }
 }
 
@@ -311,16 +322,30 @@ private fun LivePreview() {
 private fun SectionPage(s: Section, state: LauncherState, onAction: (String) -> Unit) {
     val look = LocalRint.current
     val cfg = look.cfg
+    // split into iOS-style groups at each header
+    val groups = remember(s) {
+        val out = ArrayList<Pair<String?, List<Opt>>>()
+        var title: String? = null
+        var cur = ArrayList<Opt>()
+        s.opts.forEach { o ->
+            if (o is Opt.Header) {
+                if (cur.isNotEmpty()) out += title to cur
+                title = o.title; cur = ArrayList()
+            } else cur += o
+        }
+        if (cur.isNotEmpty()) out += title to cur
+        out
+    }
     LazyColumn(Modifier.fillMaxSize().statusBarsPadding().imePadding(), contentPadding = PaddingValues(bottom = 80.dp)) {
         item {
-            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(44.dp).clip(CircleShape).background(look.colors.panel).pressable(PressEffect.BOUNCE) { state.settingsSection = null }, contentAlignment = Alignment.Center) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, "back", tint = look.colors.text)
-                }
+            Row(Modifier.padding(horizontal = 8.dp, vertical = 6.dp).pressable(PressEffect.SHRINK) { state.settingsSection = null }.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, "back", tint = look.colors.accent, modifier = Modifier.size(22.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Settings", color = look.colors.accent, fontFamily = look.font, fontSize = 16.sp)
             }
             Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(52.dp).clip(RoundedCornerShape(16.dp)).background(s.tint), contentAlignment = Alignment.Center) {
-                    Icon(s.icon, null, tint = Color.White, modifier = Modifier.size(28.dp))
+                Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(s.tint), contentAlignment = Alignment.Center) {
+                    Icon(s.icon, null, tint = Color.White, modifier = Modifier.size(26.dp))
                 }
                 Spacer(Modifier.width(14.dp))
                 Column {
@@ -328,26 +353,25 @@ private fun SectionPage(s: Section, state: LauncherState, onAction: (String) -> 
                     Text(s.blurb, fontFamily = look.font, fontSize = 13.sp, color = look.colors.subtext)
                 }
             }
-            Spacer(Modifier.height(10.dp))
-            if (s.id in listOf("look", "icons", "labels", "home", "dock", "clock", "notch")) LivePreview()
+            if (s.id in listOf("look", "icons", "labels", "home", "dock", "clock", "notch")) Box(Modifier.padding(top = 16.dp)) { LivePreview() }
         }
-        itemsIndexed(s.opts) { i, o ->
-            dev.rint.launcher.ui.AnimatedEntrance(i) {
-                Box(Modifier.padding(horizontal = 16.dp, vertical = 5.dp)) { OptionCard(o, cfg, onAction) }
+        groups.forEachIndexed { gi, (title, opts) ->
+            item(key = "g$gi") {
+                if (title != null) GroupLabel(title) else Spacer(Modifier.height(18.dp))
+                GroupCard {
+                    opts.forEachIndexed { i, o ->
+                        if (i > 0) RowDivider()
+                        OptionRow(o, cfg, onAction)
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun OptionCard(o: Opt, cfg: RintConfig, onAction: (String) -> Unit) {
-    val look = LocalRint.current
-    if (o is Opt.Header) {
-        Text(o.title.uppercase(), fontFamily = RintFonts.Pixel, fontSize = 10.sp, color = look.colors.accent, modifier = Modifier.padding(start = 6.dp, top = 18.dp, bottom = 2.dp))
-        return
-    }
-    val shape = RoundedCornerShape((look.cfg.look.corner * 0.75f).dp)
-    Column(Modifier.fillMaxWidth().clip(shape).background(look.colors.panel).border(1.dp, look.colors.stroke, shape).padding(16.dp)) {
+private fun OptionRow(o: Opt, cfg: RintConfig, onAction: (String) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 13.dp)) {
         when (o) {
             is Opt.Toggle -> ToggleRow(o, cfg)
             is Opt.Slider -> SliderRow(o, cfg)
@@ -356,6 +380,8 @@ private fun OptionCard(o: Opt, cfg: RintConfig, onAction: (String) -> Unit) {
             is Opt.TextField -> TextRow(o, cfg)
             is Opt.Gesture -> GestureRow(o, cfg)
             is Opt.Action -> ActionRow(o, onAction)
+            is Opt.GestureList -> GestureListRow(o, cfg)
+            is Opt.Secret -> SecretRow(o)
             is Opt.Header -> Unit
         }
     }
@@ -562,6 +588,97 @@ private fun GestureRow(o: Opt.Gesture, cfg: RintConfig) {
 }
 
 @Composable
+private fun GestureListRow(o: Opt.GestureList, cfg: RintConfig) {
+    val look = LocalRint.current
+    val list = o.get(cfg)
+    var editing by remember { mutableStateOf(-1) }
+    Title(o) { Text("${list.size}/${o.max}", fontFamily = RintFonts.Terminal, fontSize = 20.sp, color = look.colors.accent) }
+    Spacer(Modifier.height(10.dp))
+    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        list.forEachIndexed { i, b ->
+            Box(
+                Modifier.size(48.dp).clip(CircleShape)
+                    .background(if (editing == i) look.colors.accent else look.colors.text.copy(alpha = 0.1f))
+                    .clickable { editing = if (editing == i) -1 else i },
+                contentAlignment = Alignment.Center,
+            ) {
+                when (b.action) {
+                    GestureAction.ASSISTANT -> RinSprite(Pose.HEAD, 30.dp)
+                    GestureAction.LAUNCH_APP -> b.app?.let { AppIconView(it, 30.dp, showBadge = false) }
+                    else -> Icon(dev.rint.launcher.lock.actionIcon(b.action), null, tint = if (editing == i) look.colors.onAccent else look.colors.text)
+                }
+            }
+        }
+        if (list.size < o.max) Pill("+ add") {
+            store.update { c -> o.set(c, list + Binding(GestureAction.FLASHLIGHT)) }
+            editing = list.size
+        }
+    }
+    val b = list.getOrNull(editing) ?: return
+    Spacer(Modifier.height(10.dp))
+    Text("SHORTCUT ${editing + 1}", fontFamily = RintFonts.Pixel, fontSize = 9.sp, color = look.colors.subtext)
+    Spacer(Modifier.height(6.dp))
+    fun setAt(nb: Binding?) = store.update { c ->
+        val cur = o.get(c).toMutableList()
+        if (editing in cur.indices) { if (nb == null) cur.removeAt(editing) else cur[editing] = nb }
+        o.set(c, cur)
+    }
+    GestureAction.entries.filter { it != GestureAction.NONE }.chunked(3).forEach { row ->
+        Row(Modifier.padding(vertical = 3.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            row.forEach { a -> Pill(pretty(a.name), selected = a == b.action) { setAt(Binding(a, b.app)) } }
+        }
+    }
+    if (b.action == GestureAction.LAUNCH_APP) {
+        val apps by RintApp.instance.apps.apps.collectAsState()
+        LazyColumn(Modifier.heightIn(max = 220.dp).padding(top = 6.dp)) {
+            items(apps, key = { it.key }) { e ->
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { setAt(Binding(GestureAction.LAUNCH_APP, e.key)) }
+                        .background(if (e.key == b.app) look.colors.accent.copy(alpha = 0.15f) else Color.Transparent).padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AppIconView(e.key, 28.dp)
+                    Spacer(Modifier.width(10.dp))
+                    Text(e.label, color = look.colors.text, fontFamily = look.font, fontSize = 14.sp)
+                }
+            }
+        }
+    }
+    Spacer(Modifier.height(6.dp))
+    Pill("remove") { setAt(null); editing = -1 }
+}
+
+@Composable
+private fun SecretRow(o: Opt.Secret) {
+    val look = LocalRint.current
+    val stores = RintApp.instance.stores
+    val saved = stores.secret(o.name)
+    var text by remember { mutableStateOf("") }
+    var editing by remember { mutableStateOf(saved == null) }
+    Title(o) {
+        if (saved != null) Text("•••• " + saved.takeLast(4), fontFamily = RintFonts.Terminal, fontSize = 18.sp, color = look.colors.accent)
+    }
+    Spacer(Modifier.height(8.dp))
+    if (editing) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            BasicTextField(
+                text, { text = it },
+                singleLine = true,
+                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                textStyle = TextStyle(color = look.colors.text, fontFamily = RintFonts.Terminal, fontSize = 18.sp),
+                cursorBrush = SolidColor(look.colors.accent),
+                modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(look.colors.text.copy(alpha = 0.06f)).padding(12.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Pill("save", selected = true) { stores.setSecret(o.name, text); text = ""; editing = false }
+        }
+    } else Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Pill("change") { editing = true }
+        Pill("remove") { stores.setSecret(o.name, ""); editing = true }
+    }
+}
+
+@Composable
 private fun ActionRow(o: Opt.Action, onAction: (String) -> Unit) {
     val look = LocalRint.current
     Box(Modifier.pressable(PressEffect.SHRINK) { onAction(o.id) }) {
@@ -579,6 +696,12 @@ private fun Sheets(sheet: String?, state: LauncherState, close: () -> Unit) {
         "a11y" -> { close(); SystemActions.openAccessibilitySettings(ctx); return }
         "notif" -> { close(); SystemActions.openNotificationAccess(ctx); return }
         "home" -> { close(); SystemSettingsLinks.defaultHome(ctx); return }
+        "lockpreview" -> { close(); dev.rint.launcher.lock.LockActivity.show(ctx); return }
+        "voicetest" -> {
+            close()
+            RintApp.instance.assistant.speak("hi! I'm Rin. this is my voice. pretty cool, right?")
+            return
+        }
         "guide" -> { close(); state.settingsOpen = false; state.guideStep = 0; return }
         "intro" -> { close(); state.settingsOpen = false; stores.config.update { it.copy(onboarded = false) }; return }
         "resetlook" -> { close(); stores.config.update { Presets.all.first().apply(it) }; state.say("fresh look applied"); return }

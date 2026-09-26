@@ -71,6 +71,15 @@ class IntroSynth {
         thread = Thread({ loop(t) }, "rint-synth").apply { priority = Thread.MAX_PRIORITY; start() }
     }
 
+    /** Pausing the track also freezes the intro timeline (it follows the playback head). */
+    fun pause() {
+        runCatching { track?.pause() }
+    }
+
+    fun resume() {
+        runCatching { track?.play() }
+    }
+
     /** Seconds since the start as heard by the listener (follows the playback head). */
     fun seconds(): Double = track?.let { it.playbackHeadPosition.toDouble() / SR } ?: 0.0
 

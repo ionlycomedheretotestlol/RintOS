@@ -2,6 +2,8 @@ package dev.rint.launcher.settings
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Apps
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.Dock
 import androidx.compose.material.icons.rounded.Gesture
@@ -18,7 +20,11 @@ import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.ViewDay
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import dev.rint.launcher.core.AiProvider
 import dev.rint.launcher.core.Align
+import dev.rint.launcher.core.LockStyle
+import dev.rint.launcher.core.UnlockAnim
+import dev.rint.launcher.core.VoiceEngine
 import dev.rint.launcher.core.Binding
 import dev.rint.launcher.core.ClockStyle
 import dev.rint.launcher.core.DockStyle
@@ -43,6 +49,7 @@ import dev.rint.launcher.core.SearchBarStyle
 import dev.rint.launcher.core.SearchEngine
 import dev.rint.launcher.core.ThemeMode
 import dev.rint.launcher.core.UiFont
+import dev.rint.launcher.core.WallpaperArt
 import dev.rint.launcher.core.WallpaperMode
 
 typealias Get<T> = (RintConfig) -> T
@@ -59,6 +66,8 @@ sealed class Opt(val title: String, val desc: String?) {
     class TextField(title: String, desc: String? = null, val get: Get<String>, val set: Set<String>) : Opt(title, desc)
     class Gesture(title: String, desc: String? = null, val get: Get<Binding>, val set: Set<Binding>) : Opt(title, desc)
     class Action(title: String, desc: String? = null, val id: String) : Opt(title, desc)
+    class GestureList(title: String, desc: String? = null, val max: Int, val get: Get<List<Binding>>, val set: Set<List<Binding>>) : Opt(title, desc)
+    class Secret(title: String, desc: String? = null, val name: String) : Opt(title, desc)
     class Header(title: String) : Opt(title, null)
 }
 
@@ -84,6 +93,7 @@ object Schema {
             Opt.Toggle("Show navigation bar", get = { it.look.showNavBar }, set = { c, v -> c.copy(look = c.look.copy(showNavBar = v)) }),
             Opt.Header("Wallpaper"),
             Opt.Choice("Wallpaper", "system, or one RintOS paints for you", WallpaperMode.entries, get = { it.look.wallpaper }, set = { c, v -> c.copy(look = c.look.copy(wallpaper = v)) }),
+            Opt.Choice("Artwork", "RintOS's own wallpapers (used when Wallpaper = art)", WallpaperArt.entries, get = { it.look.art }, set = { c, v -> c.copy(look = c.look.copy(art = v, wallpaper = WallpaperMode.ART)) }),
             Opt.Action("Pick system wallpaper", id = "wallpaper"),
             Opt.ColorPick("Solid color", get = { it.look.solidColor }, set = { c, v -> c.copy(look = c.look.copy(solidColor = v)) }),
             Opt.ColorPick("Gradient start", get = { it.look.gradientA }, set = { c, v -> c.copy(look = c.look.copy(gradientA = v)) }),
@@ -222,6 +232,48 @@ object Schema {
             Opt.Action("Choose music app", id = "musicapp"),
             Opt.Slider("Lyrics offset", "nudge if lyrics run early/late", -3000f..3000f, steps = 23, fmt = { "%+.2fs".format(it / 1000) },
                 get = { it.music.offsetMs.toFloat() }, set = { c, v -> c.copy(music = c.music.copy(offsetMs = v.toLong())) }),
+        )),
+        Section("lock", "Lock screen", "10 styles, 10 shortcuts, unlock effects", Icons.Rounded.Lock, Color(0xFF00B894), listOf(
+            Opt.Toggle("RintOS lock screen", "shows over the system lock screen (your PIN/fingerprint still protects the phone). needs the RintOS gesture helper in Accessibility.",
+                get = { it.lock.enabled }, set = { c, v -> c.copy(lock = c.lock.copy(enabled = v)) }),
+            Opt.Action("Preview it", id = "lockpreview"),
+            Opt.Choice("Style", values = LockStyle.entries, get = { it.lock.style }, set = { c, v -> c.copy(lock = c.lock.copy(style = v)) }),
+            Opt.GestureList("Shortcuts", "up to 10. camera & flashlight work without unlocking", 10, get = { it.lock.shortcuts }, set = { c, v -> c.copy(lock = c.lock.copy(shortcuts = v)) }),
+            Opt.Choice("Unlock effect", values = UnlockAnim.entries, get = { it.lock.unlockAnim }, set = { c, v -> c.copy(lock = c.lock.copy(unlockAnim = v)) }),
+            Opt.Toggle("Notification icons", get = { it.lock.notifications }, set = { c, v -> c.copy(lock = c.lock.copy(notifications = v)) }),
+            Opt.Toggle("Music controls", get = { it.lock.music }, set = { c, v -> c.copy(lock = c.lock.copy(music = v)) }),
+            Opt.Toggle("Rin keeps you company", get = { it.lock.rin }, set = { c, v -> c.copy(lock = c.lock.copy(rin = v)) }),
+            Opt.Toggle("Battery", get = { it.lock.battery }, set = { c, v -> c.copy(lock = c.lock.copy(battery = v)) }),
+            Opt.Toggle("Accent-colored clock", get = { it.lock.accentClock }, set = { c, v -> c.copy(lock = c.lock.copy(accentClock = v)) }),
+            Opt.Slider("Wallpaper dim", range = 0f..0.9f, fmt = ::pct, get = { it.lock.dim }, set = { c, v -> c.copy(lock = c.lock.copy(dim = v)) }),
+            Opt.TextField("Message", "e.g. “if found, call 555-0100”", get = { it.lock.message }, set = { c, v -> c.copy(lock = c.lock.copy(message = v.take(80))) }),
+        )),
+        Section("ai", "Rin assistant", "AI that talks, sees & taps for you", Icons.Rounded.AutoAwesome, Color(0xFF8E7CFF), listOf(
+            Opt.Choice("Brain", "which AI powers Rin", AiProvider.entries, label = { when (it) { AiProvider.GEMINI -> "gemini"; AiProvider.GROQ -> "groq"; AiProvider.CLAUDE -> "claude"; AiProvider.OPENROUTER -> "openrouter" } },
+                get = { it.ai.provider }, set = { c, v -> c.copy(ai = c.ai.copy(provider = v)) }),
+            Opt.Header("API keys (stored only on this phone)"),
+            Opt.Secret("Gemini API key", "free at aistudio.google.com — also unlocks Rin's voice", "GEMINI"),
+            Opt.Secret("Groq API key", "console.groq.com", "GROQ"),
+            Opt.Secret("Claude API key", "console.anthropic.com", "CLAUDE"),
+            Opt.Secret("OpenRouter API key", "openrouter.ai/keys", "OPENROUTER"),
+            Opt.Header("Models (type any model name)"),
+            Opt.TextField("Gemini model", get = { it.ai.model(AiProvider.GEMINI) }, set = { c, v -> c.copy(ai = c.ai.copy(models = c.ai.models + (AiProvider.GEMINI.name to v.trim()))) }),
+            Opt.TextField("Groq model", "pick a vision model so Rin can see screenshots", get = { it.ai.model(AiProvider.GROQ) }, set = { c, v -> c.copy(ai = c.ai.copy(models = c.ai.models + (AiProvider.GROQ.name to v.trim()))) }),
+            Opt.TextField("Claude model", get = { it.ai.model(AiProvider.CLAUDE) }, set = { c, v -> c.copy(ai = c.ai.copy(models = c.ai.models + (AiProvider.CLAUDE.name to v.trim()))) }),
+            Opt.TextField("OpenRouter model", get = { it.ai.model(AiProvider.OPENROUTER) }, set = { c, v -> c.copy(ai = c.ai.copy(models = c.ai.models + (AiProvider.OPENROUTER.name to v.trim()))) }),
+            Opt.Header("Voice"),
+            Opt.Toggle("Rin talks out loud", "needs a Gemini API key (free tier)", get = { it.ai.voice }, set = { c, v -> c.copy(ai = c.ai.copy(voice = v)) }),
+            Opt.Choice("Voice engine", "Android's built-in voice is the offline fallback", VoiceEngine.entries, get = { it.ai.voiceEngine }, set = { c, v -> c.copy(ai = c.ai.copy(voiceEngine = v)) }),
+            Opt.TextField("Gemini voice", "Kore, Puck, Leda, Zephyr, Aoede, Charon…", get = { it.ai.voiceName }, set = { c, v -> c.copy(ai = c.ai.copy(voiceName = v.trim())) }),
+            Opt.TextField("Gemini speech model", get = { it.ai.ttsModel }, set = { c, v -> c.copy(ai = c.ai.copy(ttsModel = v.trim())) }),
+            Opt.Toggle("Hands-free conversation", "Rin listens again after answering", get = { it.ai.handsFree }, set = { c, v -> c.copy(ai = c.ai.copy(handsFree = v)) }),
+            Opt.Action("Test Rin's voice", id = "voicetest"),
+            Opt.Header("Phone control"),
+            Opt.Toggle("Let Rin operate the phone", "screenshots, taps, typing, swipes — only while doing a task you asked for", get = { it.ai.automation }, set = { c, v -> c.copy(ai = c.ai.copy(automation = v)) }),
+            Opt.Toggle("Ask before risky steps", "sending, buying, deleting, posting", get = { it.ai.confirmRisky }, set = { c, v -> c.copy(ai = c.ai.copy(confirmRisky = v)) }),
+            Opt.Slider("Max steps per task", range = 5f..60f, steps = 10, fmt = { "${it.toInt()}" }, get = { it.ai.maxSteps.toFloat() }, set = { c, v -> c.copy(ai = c.ai.copy(maxSteps = v.toInt())) }),
+            Opt.TextField("Extra personality", "e.g. “answer like a pirate”", get = { it.ai.personality }, set = { c, v -> c.copy(ai = c.ai.copy(personality = v.take(300))) }),
+            Opt.Action("Turn on phone control (Accessibility)", id = "a11y"),
         )),
         Section("motion", "Motion", "speed, bounce, app opening", Icons.Rounded.Speed, Color(0xFF36D399), listOf(
             Opt.Slider("Animation speed", range = 0.25f..3f, fmt = ::x, get = { it.motion.speed }, set = { c, v -> c.copy(motion = c.motion.copy(speed = v)) }),

@@ -47,6 +47,8 @@ class RintNotificationListener : NotificationListenerService() {
 }
 
 class RintAccessibility : AccessibilityService() {
+    private var bubble: dev.rint.launcher.assistant.AgentBubble? = null
+
     override fun onServiceConnected() {
         instance = this
     }
@@ -55,8 +57,23 @@ class RintAccessibility : AccessibilityService() {
     override fun onInterrupt() = Unit
 
     override fun onDestroy() {
+        bubble?.remove()
+        bubble = null
         instance = null
         super.onDestroy()
+    }
+
+    /** Floating Rin bubble shown over other apps while the assistant works. */
+    fun bubble(): dev.rint.launcher.assistant.AgentBubble =
+        bubble ?: dev.rint.launcher.assistant.AgentBubble(this).also { bubble = it }
+
+    fun hideBubble() {
+        bubble?.remove()
+        bubble = null
+    }
+
+    fun setOverlayVisible(visible: Boolean) {
+        bubble?.setVisible(visible)
     }
 
     companion object {

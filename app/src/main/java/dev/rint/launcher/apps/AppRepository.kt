@@ -217,6 +217,27 @@ class AppRepository(private val context: Context, private val scope: CoroutineSc
         runCatching { launcherApps?.startShortcut(s, null, null) }
     }
 
+    /** The apps people reach for most, found by role rather than by name, then alphabetical fill. */
+    fun defaultHomeApps(exclude: Collection<String>, count: Int): List<String> {
+        val pm = context.packageManager
+        val roles = listOf(
+            Intent.CATEGORY_APP_CALENDAR, Intent.CATEGORY_APP_GALLERY, Intent.CATEGORY_APP_MAPS, Intent.CATEGORY_APP_EMAIL,
+            Intent.CATEGORY_APP_CONTACTS, Intent.CATEGORY_APP_MUSIC, Intent.CATEGORY_APP_CALCULATOR, Intent.CATEGORY_APP_FILES,
+            Intent.CATEGORY_APP_WEATHER, Intent.CATEGORY_APP_MARKET,
+        ).map { Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, it) } + listOf(
+            Intent(android.provider.AlarmClock.ACTION_SHOW_ALARMS),
+            Intent(android.provider.Settings.ACTION_SETTINGS),
+        )
+        val all = _apps.value
+        val picked = LinkedHashSet<String>()
+        roles.forEach { intent ->
+            val pkg = runCatching { pm.resolveActivity(intent, 0)?.activityInfo?.packageName }.getOrNull() ?: return@forEach
+            all.firstOrNull { it.packageName == pkg && it.key !in exclude }?.let { picked += it.key }
+        }
+        all.forEach { if (picked.size < count && it.key !in exclude) picked += it.key }
+        return picked.take(count)
+    }
+
     fun defaultDock(): List<String> {
         val pm = context.packageManager
         val intents = listOf(

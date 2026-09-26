@@ -16,6 +16,7 @@ sealed interface Hit {
     data class Convert(val text: String) : Hit
     data class Web(val query: String) : Hit
     data class Music(val query: String) : Hit
+    data class Ask(val query: String) : Hit
     data class Setting(val section: String, val title: String) : Hit
     data class Contact(val name: String, val uri: Uri, val number: String?) : Hit
 }
@@ -63,6 +64,8 @@ object SettingsIndex {
         "mascot" to "mascot rin pet",
         "music" to "music lyrics player",
         "motion" to "animation speed bounce motion",
+        "lock" to "lock screen unlock shortcuts",
+        "ai" to "ai assistant rin gemini groq claude openrouter voice automation api key",
         "search" to "search engine calculator",
         "backup" to "backup restore export import reset",
     )
@@ -91,6 +94,7 @@ object Searcher {
             .filter { (_, words) -> words.split(' ').any { it.startsWith(query.lowercase()) } }
             .take(2)
             .forEach { (id, _) -> out += Hit.Setting(id, "Rint settings · $id") }
+        if (query.length > 3) out += Hit.Ask(query)
         out += Hit.Music(query)
         if (cfg.webFallback) out += Hit.Web(query)
         return out

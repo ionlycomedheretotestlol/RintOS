@@ -90,12 +90,8 @@ fun RinSprite(pose: Pose, size: Dp, modifier: Modifier = Modifier, flip: Boolean
 /** Head that bobs to the beat. [bpm] drives the tempo; [active] eases the motion in/out. */
 @Composable
 fun BobbingHead(active: Boolean, size: Dp, modifier: Modifier = Modifier, bpm: Float = 104f) {
-    val t = rememberInfiniteTransition(label = "bob")
-    val phase by t.animateFloat(
-        0f, 1f,
-        infiniteRepeatable(tween((60_000f / bpm).toInt(), easing = LinearEasing), RepeatMode.Restart),
-        label = "p",
-    )
+    // Advances only while bobbing and visible, so an idle head costs nothing.
+    val phase = (dev.rint.launcher.ui.rememberAmbientClock(active) * bpm / 60f) % 1f
     val amount = remember { Animatable(0f) }
     LaunchedEffect(active) { amount.animateTo(if (active) 1f else 0f, spring(dampingRatio = 0.7f)) }
     val s = sin(phase * 2 * Math.PI).toFloat()

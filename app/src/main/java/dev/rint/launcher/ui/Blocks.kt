@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.Dp
 object BlockFont {
     private val digits = mapOf(
         '0' to listOf("###", "#.#", "#.#", "#.#", "###"),
-        '1' to listOf("..#", "..#", "..#", "..#", "..#"),
+        '1' to listOf(".#.", "##.", ".#.", ".#.", "###"),
         '2' to listOf("###", "..#", "###", "#..", "###"),
         '3' to listOf("###", "..#", "###", "..#", "###"),
         '4' to listOf("#.#", "#.#", "###", "..#", "..#"),
@@ -75,6 +75,7 @@ fun DrawScope.drawBlocks(
     origin: Offset = Offset.Zero,
     colonAlpha: Float = 1f,
     shadow: Color? = null,
+    bottomColor: Color? = null,
 ) {
     var x = origin.x
     text.forEach { ch ->
@@ -86,7 +87,8 @@ fun DrawScope.drawBlocks(
                     val tl = Offset(x + col * cell + gap / 2, origin.y + row * cell + gap / 2)
                     val sz = Size(cell - gap, cell - gap)
                     if (shadow != null) drawRoundRect(shadow, tl + Offset(cell * 0.14f, cell * 0.14f), sz, CornerRadius(cell * 0.12f))
-                    drawRoundRect(color.copy(alpha = color.alpha * a), tl, sz, CornerRadius(cell * 0.12f))
+                    val c = if (bottomColor != null) androidx.compose.ui.graphics.lerp(color, bottomColor, row / 4f) else color
+                    drawRoundRect(c.copy(alpha = c.alpha * a), tl, sz, CornerRadius(cell * 0.12f))
                 }
             }
         }

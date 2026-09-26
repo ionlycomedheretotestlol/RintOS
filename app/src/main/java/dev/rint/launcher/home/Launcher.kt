@@ -43,7 +43,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
@@ -82,10 +85,16 @@ import dev.rint.launcher.music.MusicOverlay
 import dev.rint.launcher.music.MusicPlayerScreen
 import dev.rint.launcher.settings.SettingsScreen
 import dev.rint.launcher.ui.AppIconView
+import dev.rint.launcher.ui.LocalCovered
+import dev.rint.launcher.ui.LocalBackdrop
+import dev.rint.launcher.ui.rememberAmbientClock
 import dev.rint.launcher.ui.Haptics
 import dev.rint.launcher.ui.LocalRint
 import dev.rint.launcher.ui.RintFonts
 import dev.rint.launcher.ui.RintSprings
+import dev.rint.launcher.ui.pressable
+import dev.rint.launcher.ui.glass
+import androidx.compose.material.icons.rounded.Search
 import dev.rint.launcher.ui.color
 import dev.rint.launcher.widgets.WidgetRegistry
 import dev.rint.launcher.widgets.rememberBattery
@@ -106,17 +115,24 @@ fun seedLayoutIfNeeded() {
     val stores = RintApp.instance.stores
     val repo = RintApp.instance.apps
     if (stores.layout.value.seeded || repo.apps.value.isEmpty()) return
+    val dock = repo.defaultDock()
+    val cols = stores.config.value.home.columns
+    val apps = repo.defaultHomeApps(dock, cols * 4).mapIndexed { i, key ->
+        HomeItem(page = 0, x = i % cols, y = 2 + i / cols, kind = ItemKind.APP, app = key)
+    }
     stores.layout.replace(
         dev.rint.launcher.core.HomeLayout(
             pages = 2,
             seeded = true,
-            dock = repo.defaultDock(),
+            dock = dock,
             items = listOf(
-                HomeItem(page = 0, x = 0, y = 0, w = 4, h = 2, kind = ItemKind.WIDGET, widget = "clock"),
-                HomeItem(page = 0, x = 0, y = 2, w = 4, h = 2, kind = ItemKind.WIDGET, widget = "music"),
-                HomeItem(page = 1, x = 0, y = 0, w = 2, h = 2, kind = ItemKind.WIDGET, widget = "pet"),
-                HomeItem(page = 1, x = 2, y = 0, w = 2, h = 2, kind = ItemKind.WIDGET, widget = "notes"),
-                HomeItem(page = 1, x = 0, y = 2, w = 4, h = 3, kind = ItemKind.WIDGET, widget = "todo"),
+                HomeItem(page = 0, x = 0, y = 0, w = 2, h = 2, kind = ItemKind.WIDGET, widget = "clock"),
+                HomeItem(page = 0, x = 2, y = 0, w = 2, h = 2, kind = ItemKind.WIDGET, widget = "music"),
+            ) + apps + listOf(
+                HomeItem(page = 1, x = 0, y = 0, w = 4, h = 1, kind = ItemKind.WIDGET, widget = "ask"),
+                HomeItem(page = 1, x = 0, y = 1, w = 2, h = 2, kind = ItemKind.WIDGET, widget = "pet"),
+                HomeItem(page = 1, x = 2, y = 1, w = 2, h = 2, kind = ItemKind.WIDGET, widget = "notes"),
+                HomeItem(page = 1, x = 0, y = 3, w = 4, h = 3, kind = ItemKind.WIDGET, widget = "todo"),
             ),
         )
     )
@@ -174,7 +190,16 @@ fun Launcher(state: LauncherState) {
         }
     }
 
+    // Opaque overlays (settings, music, assistant) fully hide home: stop composing it so nothing
+    // behind them animates or recomposes. A fully open drawer only pauses ambient motion.
+    val opaque = state.settingsOpen || MusicOverlay.open || dev.rint.launcher.assistant.AssistantOverlay.open
+    var hidden by remember { mutableStateOf(false) }
+    LaunchedEffect(opaque) { if (opaque) { delay(450); hidden = true } else hidden = false }
+    val covered = hidden || (state.drawer.value >= 0.999f && state.drawer.targetValue >= 1f)
+
     Box(Modifier.fillMaxSize()) {
+      CompositionLocalProvider(LocalCovered provides covered) {
+       if (!hidden) {
         Wallpaper()
 
         Box(
@@ -190,7 +215,7 @@ fun Launcher(state: LauncherState) {
         ) {
             Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
                 val notchSpace = if (cfg.notch.enabled) (cfg.notch.height + cfg.notch.offsetY).dp else 0.dp
-                Spacer(Modifier.height((cfg.home.topMargin.dp + notchSpace * 0.4f)))
+                Spacer(Modifier.height(cfg.home.topMargin.dp + notchSpace))
                 if (cfg.home.searchBar == SearchBarPos.TOP) HomeSearchBar(state)
                 HorizontalPager(
                     state = pager,
@@ -215,6 +240,8 @@ fun Launcher(state: LauncherState) {
                 bottomInset = with(LocalDensity.current) { (WindowInsets.navigationBars.getBottom(this) / density).dp } + cfg.dock.height.dp + 18.dp,
             )
         }
+       }
+      }
 
         // Only compose the drawer while it's visible (or an app is being dragged out of it),
         // otherwise its invisible layer would swallow every touch on the home screen.
@@ -235,6 +262,9 @@ fun Launcher(state: LauncherState) {
         AnimatedVisibility(MusicOverlay.open, enter = fadeIn() + slideInVertically { it / 3 }, exit = fadeOut() + slideOutVertically { it / 3 }) {
             MusicPlayerScreen(onClose = { MusicOverlay.open = false })
         }
+        AnimatedVisibility(dev.rint.launcher.assistant.AssistantOverlay.open, enter = fadeIn() + slideInVertically { it / 4 }, exit = fadeOut() + slideOutVertically { it / 4 }) {
+            dev.rint.launcher.assistant.AssistantScreen(state)
+        }
         Toast(state)
         if (state.guideStep >= 0) dev.rint.launcher.intro.GuideOverlay(state)
     }
@@ -242,7 +272,28 @@ fun Launcher(state: LauncherState) {
 
 @Composable
 private fun HomeSearchBar(state: LauncherState) {
-    val cfg = LocalRint.current.cfg
+    val look = LocalRint.current
+    val cfg = look.cfg
+    if (cfg.home.searchStyle == dev.rint.launcher.core.SearchBarStyle.COMPACT) {
+        // iOS-style: a small centered "Search" pill, with Rin one tap away beside it
+        Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.height(34.dp).glass(RoundedCornerShape(50)).pressable(dev.rint.launcher.core.PressEffect.SHRINK) { state.openDrawer(search = true) }
+                    .padding(horizontal = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Search, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(cfg.home.searchHint, color = Color.White, fontFamily = look.font, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 13.sp)
+            }
+            Spacer(Modifier.width(8.dp))
+            Box(
+                Modifier.size(34.dp).glass(CircleShape).pressable(dev.rint.launcher.core.PressEffect.BOUNCE) { dev.rint.launcher.assistant.AssistantOverlay.show() },
+                contentAlignment = Alignment.Center,
+            ) { RinSprite(Pose.HEAD, 26.dp) }
+        }
+        return
+    }
     SearchField(
         query = "",
         onQuery = {},
@@ -250,6 +301,11 @@ private fun HomeSearchBar(state: LauncherState) {
         onGo = {},
         readOnlyClick = { state.openDrawer(search = true) },
         modifier = Modifier.padding(horizontal = (cfg.home.sideMargin + 4).dp, vertical = 8.dp),
+        trailing = {
+            RinSprite(Pose.HEAD, 34.dp, Modifier.pressable(dev.rint.launcher.core.PressEffect.BOUNCE) {
+                dev.rint.launcher.assistant.AssistantOverlay.show()
+            })
+        },
     )
 }
 
@@ -424,6 +480,13 @@ fun Wallpaper() {
     val l = look.cfg.look
     Box(Modifier.fillMaxSize()) {
         when (l.wallpaper) {
+            WallpaperMode.ART -> {
+                val bd = LocalBackdrop.current ?: dev.rint.launcher.ui.rememberBackdrop()
+                if (bd != null) androidx.compose.foundation.Image(
+                    bd.full, null, Modifier.fillMaxSize(),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                )
+            }
             WallpaperMode.SYSTEM -> Unit
             WallpaperMode.SOLID -> Box(Modifier.fillMaxSize().background(l.solidColor.color()))
             WallpaperMode.GRADIENT -> Canvas(Modifier.fillMaxSize()) {
@@ -436,18 +499,27 @@ fun Wallpaper() {
                 drawRect(Brush.linearGradient(listOf(l.gradientA.color(), l.gradientB.color()), Offset(cx - dx, cy - dy), Offset(cx + dx, cy + dy)))
             }
             WallpaperMode.MESH -> {
-                val t = rememberInfiniteTransition(label = "mesh")
-                val p by t.animateFloat(0f, (2 * Math.PI).toFloat(), infiniteRepeatable(tween(40_000, easing = LinearEasing), RepeatMode.Restart), label = "p")
+                // "Aurora": four soft light blobs drifting over a deep gradient. Driven by the
+                // ambient clock so it stops moving whenever you can't see it.
+                val p = rememberAmbientClock() * (2f * Math.PI.toFloat() / 48f)
                 Canvas(Modifier.fillMaxSize()) {
-                    drawRect(l.gradientA.color())
-                    val blobs = listOf(look.colors.accent to 0f, l.gradientB.color() to 2.1f, look.colors.accent.copy(alpha = 0.6f) to 4.2f)
-                    blobs.forEach { (c, ph) ->
+                    drawRect(Brush.verticalGradient(listOf(l.gradientA.color(), Color(0xFF050818))))
+                    val blobs = listOf(
+                        Triple(look.colors.accent, 0f, 0.62f),
+                        Triple(l.gradientB.color(), 2.1f, 0.58f),
+                        Triple(l.gradientC.color(), 4.2f, 0.45f),
+                        Triple(Color(0xFFFF6FB5), 5.3f, 0.22f),
+                    )
+                    blobs.forEachIndexed { i, (c, ph, a) ->
                         val center = Offset(
-                            size.width * (0.5f + 0.35f * cos(p + ph)),
-                            size.height * (0.5f + 0.3f * sin(p * 0.7f + ph)),
+                            size.width * (0.5f + 0.38f * cos(p * (1f + i * 0.13f) + ph)),
+                            size.height * (0.42f + 0.32f * sin(p * (0.7f + i * 0.09f) + ph)),
                         )
-                        drawCircle(Brush.radialGradient(listOf(c.copy(alpha = 0.55f), Color.Transparent), center, size.maxDimension * 0.55f), size.maxDimension * 0.55f, center)
+                        val r = size.maxDimension * (0.5f + 0.06f * sin(p * 1.3f + ph))
+                        drawCircle(Brush.radialGradient(listOf(c.copy(alpha = a), Color.Transparent), center, r), r, center)
                     }
+                    // gentle vignette so icons and text stay readable
+                    drawRect(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.12f), Color.Transparent, Color.Black.copy(alpha = 0.35f))))
                 }
             }
         }

@@ -128,8 +128,8 @@ fun IntroFlow(onFinished: () -> Unit) {
     DisposableEffect(lifecycle) {
         val obs = LifecycleEventObserver { _, e ->
             when (e) {
-                Lifecycle.Event.ON_STOP -> synth.muted = true
-                Lifecycle.Event.ON_START -> synth.muted = userMuted
+                Lifecycle.Event.ON_STOP -> synth.pause()
+                Lifecycle.Event.ON_START -> synth.resume()
                 else -> Unit
             }
         }

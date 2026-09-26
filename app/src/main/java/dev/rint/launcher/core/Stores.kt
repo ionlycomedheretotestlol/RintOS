@@ -138,10 +138,15 @@ class Stores(dir: File, scope: CoroutineScope) {
     val layout = JsonStore(File(dir, "rint_layout.json"), HomeLayout.serializer(), { HomeLayout() }, scope)
     val widgets = JsonStore(File(dir, "rint_widgets.json"), WidgetStateSerializer, { emptyMap() }, scope)
 
+    /** API keys. Never part of export/import, and the app opts out of cloud backup. */
+    val secrets = JsonStore(File(dir, "rint_secrets.json"), WidgetStateSerializer, { emptyMap() }, scope)
+    fun secret(name: String): String? = secrets.value[name]?.takeIf { it.isNotBlank() }
+    fun setSecret(name: String, v: String) = secrets.update { if (v.isBlank()) it - name else it + (name to v.trim()) }
+
     fun widgetState(id: String): String? = widgets.value[id]
     fun setWidgetState(id: String, v: String) = widgets.update { it + (id to v) }
 
     fun flushAll() {
-        config.flush(); layout.flush(); widgets.flush()
+        config.flush(); layout.flush(); widgets.flush(); secrets.flush()
     }
 }

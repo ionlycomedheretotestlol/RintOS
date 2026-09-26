@@ -44,6 +44,7 @@ import dev.rint.launcher.ui.Haptics
 import dev.rint.launcher.ui.ItemGestureCallbacks
 import dev.rint.launcher.ui.LocalRint
 import dev.rint.launcher.ui.itemGestures
+import dev.rint.launcher.ui.glass
 import kotlin.math.abs
 
 @Composable
@@ -59,7 +60,7 @@ fun Dock(state: LauncherState, dockKeys: List<String>, modifier: Modifier = Modi
     var width by remember { mutableFloatStateOf(1f) }
     val shape = RoundedCornerShape(d.corner.dp)
     val bg = when (d.style) {
-        DockStyle.GLASS -> Modifier.clip(shape).background(look.colors.panel.copy(alpha = d.opacity)).border(1.dp, look.colors.stroke, shape)
+        DockStyle.GLASS -> Modifier.glass(shape, tint = d.opacity / 0.55f)
         DockStyle.SOLID -> Modifier.clip(shape).background(look.colors.panelStrong.copy(alpha = (d.opacity + 0.3f).coerceAtMost(1f)))
         DockStyle.FLOATING -> Modifier.clip(shape).background(Color.Black.copy(alpha = d.opacity * 0.6f))
         DockStyle.LINE -> Modifier.border(0.dp, Color.Transparent)

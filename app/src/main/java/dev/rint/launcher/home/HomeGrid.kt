@@ -128,7 +128,7 @@ private fun HomeWidget(item: HomeItem, state: LauncherState, cellW: Dp, cellH: D
     val v = LocalView.current
     var bounds by remember { mutableStateOf(Rect.Zero) }
     val spec = WidgetRegistry.find(item.widget)
-    val framed = item.kind == ItemKind.SYSTEM_WIDGET || spec?.type != "clock"
+    val framed = item.kind == ItemKind.SYSTEM_WIDGET || spec?.type != "clock" || item.w <= 2
     Box(
         Modifier
             .fillMaxSize()

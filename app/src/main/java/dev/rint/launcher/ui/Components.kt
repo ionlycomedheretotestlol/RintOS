@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
@@ -82,10 +83,8 @@ fun Panel(
     val look = LocalRint.current
     val s = shape ?: RoundedCornerShape(look.cfg.look.corner.dp)
     Box(
-        modifier
-            .clip(s)
-            .background(if (strong) look.colors.panelStrong else look.colors.panel)
-            .border(1.dp, look.colors.stroke, s),
+        if (strong) modifier.clip(s).background(look.colors.panelStrong).border(0.8.dp, look.colors.stroke, s)
+        else modifier.glass(s, tint = look.cfg.look.panelOpacity / 0.6f),
         content = content,
     )
 }

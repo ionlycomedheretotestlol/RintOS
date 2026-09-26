@@ -54,21 +54,32 @@ class Screenshots {
         maxPercentDifference = 1.0,
     )
 
-    private val wallpaperCfg = RintConfig(onboarded = true, guideSeen = true).let {
-        it.copy(look = it.look.copy(wallpaper = WallpaperMode.MESH))
-    }
+    private val wallpaperCfg = RintConfig(onboarded = true, guideSeen = true)
 
     private fun shot(cfg: RintConfig = wallpaperCfg, content: @Composable () -> Unit) {
         TestEnv.install(paparazzi.context, cfg)
         dev.rint.launcher.ui.RintSprings.reduce = true
         paparazzi.snapshot {
-            RintTheme(RintApp.instance.stores.config.value) {
-                Box(Modifier.fillMaxSize().background(Color(0xFF03050B))) { content() }
+            androidx.compose.runtime.CompositionLocalProvider(androidx.activity.compose.LocalActivityResultRegistryOwner provides fakeRegistry) {
+                RintTheme(RintApp.instance.stores.config.value) {
+                    Box(Modifier.fillMaxSize().background(Color(0xFF03050B))) { content() }
+                }
             }
         }
     }
 
     private val bar = IntroSynth.BAR.toFloat()
+
+    private val fakeRegistry = object : androidx.activity.result.ActivityResultRegistryOwner {
+        override val activityResultRegistry = object : androidx.activity.result.ActivityResultRegistry() {
+            override fun <I, O> onLaunch(
+                requestCode: Int,
+                contract: androidx.activity.result.contract.ActivityResultContract<I, O>,
+                input: I,
+                options: androidx.core.app.ActivityOptionsCompat?,
+            ) = Unit
+        }
+    }
 
     @Test fun intro_1_boot() = shot { BootScene(3.3f) }
     @Test fun intro_2_wordmark() = shot { WordmarkScene(2.6f, 0.6f) }
@@ -140,6 +151,36 @@ class Screenshots {
         }
     }
 
+    private fun lock(style: dev.rint.launcher.core.LockStyle) = shot(wallpaperCfg.copy(lock = wallpaperCfg.lock.copy(style = style, message = "if found, call 555-0100"))) {
+        RintApp.instance.music.seedForPreview(NowPlaying(Track("Pixel Heart", "Rin & The Blocks", "", 214_000), playing = true, positionMs = 61_000, source = Source.APP))
+        dev.rint.launcher.lock.LockScreen(onUnlock = {}, onShortcut = {})
+    }
+
+    @Test fun lock_classic() = lock(dev.rint.launcher.core.LockStyle.CLASSIC)
+    @Test fun lock_blocks() = lock(dev.rint.launcher.core.LockStyle.BLOCKS)
+    @Test fun lock_poster() = lock(dev.rint.launcher.core.LockStyle.POSTER)
+    @Test fun lock_terminal() = lock(dev.rint.launcher.core.LockStyle.TERMINAL)
+    @Test fun lock_music() = lock(dev.rint.launcher.core.LockStyle.MUSIC)
+    @Test fun lock_rin() = lock(dev.rint.launcher.core.LockStyle.RIN)
+
+    @Test fun assistant_chat() = shot {
+        val e = RintApp.instance.assistant
+        RintApp.instance.stores.setSecret("GEMINI", "test-key")
+        e.chat.clear()
+        e.chat += dev.rint.launcher.assistant.ChatItem(dev.rint.launcher.assistant.ChatRole.USER, "open YouTube and search lofi beats")
+        e.chat += dev.rint.launcher.assistant.ChatItem(dev.rint.launcher.assistant.ChatRole.STEP, "opening YouTube")
+        e.chat += dev.rint.launcher.assistant.ChatItem(dev.rint.launcher.assistant.ChatRole.STEP, "tapping element 4")
+        e.chat += dev.rint.launcher.assistant.ChatItem(dev.rint.launcher.assistant.ChatRole.STEP, "typing “lofi beats”")
+        e.chat += dev.rint.launcher.assistant.ChatItem(dev.rint.launcher.assistant.ChatRole.RIN, "done! lofi beats are up. want me to play the first one?")
+        dev.rint.launcher.assistant.AssistantScreen(remember { LauncherState(CoroutineScope(Dispatchers.Unconfined)) })
+    }
+
+    @Test fun assistant_empty() = shot {
+        RintApp.instance.stores.setSecret("GEMINI", "test-key")
+        RintApp.instance.assistant.chat.clear()
+        dev.rint.launcher.assistant.AssistantScreen(remember { LauncherState(CoroutineScope(Dispatchers.Unconfined)) })
+    }
+
     @Test fun widgets_gallery() = shot {
         Column(
             Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF0B1226), Color(0xFF1B2F6B)))).padding(12.dp),
@@ -160,6 +201,7 @@ class Screenshots {
             Row(Modifier.fillMaxWidth().height(84.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 W("counter", 2, 1, Modifier.weight(1f)); W("torch", 2, 1, Modifier.weight(1f))
             }
+            W("ask", 4, 1, Modifier.fillMaxWidth().height(76.dp))
         }
     }
 

@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">RintOS</string>
     <string name="accessibility_label">RintOS gestures</string>
-    <string name="accessibility_desc">Lets RintOS lock your screen and open recents from home-screen gestures. RintOS never reads screen content.</string>
+    <string name="accessibility_desc">Powers RintOS gestures (double-tap to lock, recents), shows the RintOS lock screen, and lets Rin, your assistant, see and operate the screen — but only while you have asked Rin to do a task. Nothing is read or sent anywhere when Rin is idle.</string>
 </resources>

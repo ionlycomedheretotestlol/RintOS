@@ -45,6 +45,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.FlashlightOff
 import androidx.compose.material.icons.rounded.FlashlightOn
 import androidx.compose.material.icons.rounded.Pause
@@ -56,6 +57,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
@@ -690,3 +692,29 @@ fun CalendarWidget(ctx: WidgetCtx) {
     }
 }
 
+
+// ─────────────────────────── Ask Rin ───────────────────────────
+
+@Composable
+fun AskRinWidget(ctx: WidgetCtx) {
+    val look = LocalRint.current
+    val speaking by dev.rint.launcher.RintApp.instance.assistant.voiceOut.speaking.collectAsState()
+    val level by dev.rint.launcher.RintApp.instance.assistant.voiceOut.level.collectAsState()
+    val open = { dev.rint.launcher.assistant.AssistantOverlay.show() }
+    val mode = if (speaking) dev.rint.launcher.assistant.HeadMode.TALKING else dev.rint.launcher.assistant.HeadMode.IDLE
+    if (ctx.h >= 2) {
+        Column(Modifier.fillMaxSize().clickable { open() }.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            dev.rint.launcher.assistant.RinTalkingHead(mode, level, 64.dp)
+            Text("ask ${look.cfg.mascot.name}", fontFamily = RintFonts.Pixel, fontSize = 11.sp, color = look.colors.text)
+        }
+    } else {
+        Row(Modifier.fillMaxSize().clickable { open() }.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            RinSprite(if (speaking) Pose.HAPPY else Pose.HEAD, 40.dp)
+            Spacer(Modifier.width(10.dp))
+            Text(if (ctx.w >= 4) "ask ${look.cfg.mascot.name} anything…" else "ask ${look.cfg.mascot.name}", fontFamily = look.font, fontSize = 15.sp, color = look.colors.subtext, modifier = Modifier.weight(1f), maxLines = 1)
+            if (ctx.w >= 3) Box(Modifier.size(36.dp).clip(CircleShape).background(look.colors.accent), contentAlignment = Alignment.Center) {
+                Icon(androidx.compose.material.icons.Icons.Rounded.Mic, null, tint = look.colors.onAccent, modifier = Modifier.size(20.dp))
+            }
+        }
+    }
+}

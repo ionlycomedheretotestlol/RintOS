@@ -73,6 +73,7 @@ class LauncherState(val scope: CoroutineScope) {
             renaming != null -> renaming = null
             appMenu != null -> appMenu = null
             widgetMenu != null -> widgetMenu = null
+            dev.rint.launcher.assistant.AssistantOverlay.open -> dev.rint.launcher.assistant.AssistantOverlay.open = false
             homeMenu != null -> homeMenu = null
             MusicOverlay.open -> MusicOverlay.open = false
             widgetPicker -> widgetPicker = false
@@ -108,6 +109,10 @@ class LauncherState(val scope: CoroutineScope) {
             GestureAction.WIDGETS -> widgetPicker = true
             GestureAction.FIRST_PAGE -> pendingPage = 0
             GestureAction.MASCOT -> say("${RintApp.instance.stores.config.value.mascot.name} says hi :3")
+            GestureAction.CAMERA -> runCatching {
+                ctx.startActivity(android.content.Intent(android.provider.MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
+            GestureAction.ASSISTANT -> dev.rint.launcher.assistant.AssistantOverlay.show()
             GestureAction.LAUNCH_APP -> RintApp.instance.apps.find(b.app)?.let { RintApp.instance.apps.launch(it) }
                 ?: say("pick an app for this gesture in settings")
         }

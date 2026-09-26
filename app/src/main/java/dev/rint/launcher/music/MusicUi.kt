@@ -107,6 +107,7 @@ import dev.rint.launcher.ui.LocalRint
 import dev.rint.launcher.ui.RintFonts
 import dev.rint.launcher.ui.pressable
 import dev.rint.launcher.ui.rememberHaptic
+import dev.rint.launcher.ui.lighten
 import dev.rint.launcher.widgets.WidgetCtx
 import kotlinx.coroutines.delay
 
@@ -159,7 +160,7 @@ fun Artwork(np: NowPlaying?, modifier: Modifier = Modifier, placeholderIcon: Boo
     when {
         np?.art != null -> Image(np.art.asImageBitmap(), null, modifier, contentScale = ContentScale.Crop)
         np?.track?.artUrl != null -> AsyncImage(np.track.artUrl, null, modifier, contentScale = ContentScale.Crop)
-        else -> Box(modifier.background(Brush.linearGradient(listOf(look.colors.accent, Color(0xFF0A0E1E)))), contentAlignment = Alignment.Center) {
+        else -> Box(modifier.background(look.colors.accent), contentAlignment = Alignment.Center) {
             if (placeholderIcon) Icon(Icons.Rounded.MusicNote, null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.fillMaxSize(0.4f))
         }
     }
@@ -174,6 +175,39 @@ fun MusicWidget(ctx: WidgetCtx) {
     val pos = rememberPosition(np, look.cfg.music.offsetMs)
     val v = rememberHaptic()
     LaunchedEffect(Unit) { engine.start() }
+
+    if (ctx.w < 3) {
+        // compact 2x2 card: artwork, title, the live lyric line, one big play button
+        Column(
+            Modifier.fillMaxSize().clickable(remember { MutableInteractionSource() }, null) { MusicOverlay.show(search = np == null) }.padding(14.dp),
+        ) {
+            Row(verticalAlignment = Alignment.Top) {
+                Box(Modifier.size(52.dp).clip(RoundedCornerShape(12.dp))) { Artwork(np, Modifier.fillMaxSize()) }
+                Spacer(Modifier.weight(1f))
+                Box(
+                    Modifier.size(34.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.9f))
+                        .pressable(PressEffect.BOUNCE) { Haptics.tap(v); if (np == null) MusicOverlay.show(search = true) else engine.toggle() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(if (np?.playing == true) Icons.Rounded.Pause else if (np == null) Icons.Rounded.Search else Icons.Rounded.PlayArrow, null,
+                        tint = Color.Black, modifier = Modifier.size(20.dp))
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            val cur = np
+            if (cur == null) {
+                Text("Rint Music", color = Color.White, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text("search any song", color = Color.White.copy(alpha = 0.7f), fontFamily = look.font, fontSize = 12.sp)
+            } else {
+                val line = lyrics?.let { l -> l.lines.getOrNull(l.indexAt(pos))?.text }
+                Text(line ?: cur.track.title, color = if (line != null) look.colors.accent.lighten() else Color.White,
+                    fontFamily = if (line != null) lyricFont(look.cfg.music.lyricsFont, look.font) else look.font,
+                    fontWeight = FontWeight.Bold, fontSize = if (line != null) 17.sp else 15.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 18.sp)
+                Text(cur.track.artist, color = Color.White.copy(alpha = 0.7f), fontFamily = look.font, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+        return
+    }
 
     Row(
         Modifier
