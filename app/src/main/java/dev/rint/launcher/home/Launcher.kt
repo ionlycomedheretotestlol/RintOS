@@ -57,6 +57,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -542,5 +543,14 @@ fun Wallpaper() {
             }
         }
         if (l.wallpaperDim > 0f) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = l.wallpaperDim)))
+        if (l.grain > 0f) {
+            val noise = remember {
+                val n = 128
+                val px = IntArray(n * n) { val v = kotlin.random.Random(it * 7919).nextInt(256); (0xFF shl 24) or (v shl 16) or (v shl 8) or v }
+                android.graphics.Bitmap.createBitmap(px, n, n, android.graphics.Bitmap.Config.ARGB_8888).asImageBitmap()
+            }
+            val brush = remember(noise) { androidx.compose.ui.graphics.ShaderBrush(androidx.compose.ui.graphics.ImageShader(noise, androidx.compose.ui.graphics.TileMode.Repeated, androidx.compose.ui.graphics.TileMode.Repeated)) }
+            Canvas(Modifier.fillMaxSize()) { drawRect(brush, alpha = l.grain, blendMode = androidx.compose.ui.graphics.BlendMode.Overlay) }
+        }
     }
 }

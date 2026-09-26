@@ -55,6 +55,12 @@ data class Look(
     val textShadow: Boolean = true,
     val grain: Float = 0f,
     val photoVersion: Long = 0,
+    val customColors: Boolean = false,
+    val bgColor: Long = 0xFF08090EL,
+    val panelColor: Long = 0xFF1B1E29L,
+    val textColor: Long = 0xFFF4F6FFL,
+    val subtextColor: Long = 0xFF9A9FAEL,
+    val secondAccent: Long = 0xFFFF6FB5L,
 )
 
 enum class PageTransition { SLIDE, CUBE, STACK, ZOOM, FLIP, FADE, CAROUSEL, TILT }

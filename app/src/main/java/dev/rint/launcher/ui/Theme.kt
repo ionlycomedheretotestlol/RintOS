@@ -108,7 +108,15 @@ fun RintTheme(cfg: RintConfig, content: @Composable () -> Unit) {
             subtext = Color(0xFF5B6380),
             stroke = Color.Black.copy(alpha = 0.08f),
         )
-        RintLook(cfg, colors, RintFonts.of(cfg.look.font))
+        val l = cfg.look
+        val finalColors = if (!l.customColors) colors else colors.copy(
+            bg = l.bgColor.color(),
+            panel = l.panelColor.color().copy(alpha = a),
+            panelStrong = l.panelColor.color(),
+            text = l.textColor.color(),
+            subtext = l.subtextColor.color(),
+        )
+        RintLook(cfg, finalColors, RintFonts.of(cfg.look.font))
     }
     val scheme = if (look.colors.dark) darkColorScheme(
         primary = look.colors.accent,
