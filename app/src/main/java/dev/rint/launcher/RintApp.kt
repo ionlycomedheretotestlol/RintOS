@@ -9,7 +9,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
 class RintApp : Application() {
-    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    /** Background failures are recorded for the crash report instead of killing the launcher. */
+    val scope = CoroutineScope(
+        SupervisorJob() + Dispatchers.Main.immediate +
+            kotlinx.coroutines.CoroutineExceptionHandler { _, e -> CrashLog.record(this, e, fatal = false) }
+    )
     lateinit var stores: Stores
         private set
     lateinit var apps: AppRepository
@@ -22,6 +26,7 @@ class RintApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        CrashLog.install(this)
         stores = Stores(filesDir, scope)
         apps = AppRepository(this, scope)
         apps.setRenames(stores.config.value.renamedApps)

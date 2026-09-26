@@ -118,9 +118,11 @@ class LauncherState(val scope: CoroutineScope) {
         }
     }
 
-    fun addWidget(type: String, w: Int, h: Int, page: Int) {
+    fun addWidget(type: String, wIn: Int, hIn: Int, page: Int) {
         val stores = RintApp.instance.stores
         val cfg = stores.config.value.home
+        val w = wIn.coerceIn(1, cfg.columns)
+        val h = hIn.coerceIn(1, cfg.rows)
         val layout = stores.layout.value
         val spot = layout.firstFree(w, h, cfg.columns, cfg.rows, page) ?: layout.firstFree(w, h, cfg.columns, cfg.rows, 0)
         if (spot == null) {

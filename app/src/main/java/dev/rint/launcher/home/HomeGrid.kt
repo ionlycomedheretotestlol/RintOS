@@ -185,8 +185,8 @@ fun LauncherState.finishDrag() {
     if (gridRect == Rect.Zero) return
     val cw = gridRect.width / cols
     val ch = gridRect.height / rows
-    val tx = ((d.pos.x - gridRect.left + cw / 2) / cw).toInt().coerceIn(0, cols - d.w)
-    val ty = ((d.pos.y - gridRect.top + ch / 2) / ch).toInt().coerceIn(0, rows - d.h)
+    val tx = ((d.pos.x - gridRect.left + cw / 2) / cw).toInt().coerceIn(0, (cols - d.w).coerceAtLeast(0))
+    val ty = ((d.pos.y - gridRect.top + ch / 2) / ch).toInt().coerceIn(0, (rows - d.h).coerceAtLeast(0))
     stores.layout.update { l ->
         val base = if (d.fromDock) l.copy(dock = l.dock.filterNot { it == d.appKey }) else l
         when {

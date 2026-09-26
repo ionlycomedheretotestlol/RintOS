@@ -71,6 +71,11 @@ private val numberWords = listOf(
     "twelve", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven",
 )
 
+/** User-typed patterns can be half-finished ("EEE d Q") — never let them take the home screen down. */
+fun safeDateFormat(pattern: String): SimpleDateFormat =
+    runCatching { SimpleDateFormat(pattern, Locale.getDefault()).also { it.format(java.util.Date()) } }
+        .getOrElse { SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()) }
+
 fun timeInWords(h24: Int, m: Int): String {
     val rounded = ((m + 2) / 5) * 5
     val hour = if (rounded > 30) (h24 + 1) % 12 else h24 % 12
@@ -146,7 +151,7 @@ fun ClockWidget(ctx: WidgetCtx) {
         if (c.showDate && ctx.h >= 2) {
             Spacer(Modifier.height(8.dp))
             Text(
-                SimpleDateFormat(c.dateFormat, Locale.getDefault()).format(now.time),
+                safeDateFormat(c.dateFormat).format(now.time),
                 modifier = Modifier
                     .clip(RoundedCornerShape(50))
                     .background(Color.White.copy(alpha = 0.14f))

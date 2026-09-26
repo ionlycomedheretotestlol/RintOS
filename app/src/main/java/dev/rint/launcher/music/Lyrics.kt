@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.provider.MediaStore
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -71,7 +72,9 @@ private fun get(url: String, timeout: Int = 7000): String? = runCatching {
 private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
 
 object LyricsService {
-    private val memory = HashMap<String, Lyrics?>()
+    // widget, notch, lock screen and player all ask at once: share one lookup per song
+    private val memory = java.util.Collections.synchronizedMap(HashMap<String, Lyrics?>())
+    private val inFlight = java.util.concurrent.ConcurrentHashMap<String, kotlinx.coroutines.Deferred<Lyrics?>>()
 
     fun parseLrc(text: String): List<LyricLine> {
         val tag = Regex("""\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?]""")
@@ -119,11 +122,19 @@ object LyricsService {
         .replace(Regex("""\s+-\s+(Remaster|Live|Radio Edit).*$""", RegexOption.IGNORE_CASE), "")
         .trim()
 
-    suspend fun fetch(ctx: Context, t: Track): Lyrics? = withContext(Dispatchers.IO) {
+    @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
+    suspend fun fetch(ctx: Context, t: Track): Lyrics? {
+        val key = "${clean(t.title).lowercase()}|${clean(t.artist.split(",", "&", " x ", " feat").first()).lowercase()}"
+        if (memory.containsKey(key)) return memory[key]
+        val job = inFlight.computeIfAbsent(key) {
+            kotlinx.coroutines.GlobalScope.async(Dispatchers.IO) { runCatching { load(ctx, t, key) }.getOrNull() }
+        }
+        return try { job.await() } finally { inFlight.remove(key, job) }
+    }
+
+    private suspend fun load(ctx: Context, t: Track, key: String): Lyrics? = withContext(Dispatchers.IO) {
         val title = clean(t.title)
         val artist = clean(t.artist.split(",", "&", " x ", " feat").first())
-        val key = "${title.lowercase()}|${artist.lowercase()}"
-        memory[key]?.let { return@withContext it }
         val cacheFile = File(ctx.cacheDir, "lyrics/${key.hashCode()}.json")
         runCatching {
             if (cacheFile.exists()) return@withContext json.decodeFromString(Lyrics.serializer(), cacheFile.readText())

@@ -167,7 +167,7 @@ fun PetWidget(ctx: WidgetCtx) {
                     ctx.set("love", (love + 1).toString())
                     hearts += System.nanoTime() to Random.nextFloat()
                     scope.launch {
-                        reaction = Pose.HAPPY
+                        reaction = if (love % 3 == 2) Pose.CHEER else Pose.JUMP
                         bounce.snapTo(1f)
                         bounce.animateTo(0f, spring(dampingRatio = 0.3f, stiffness = Spring.StiffnessMedium))
                         delay(900)
@@ -219,7 +219,7 @@ fun PetWidget(ctx: WidgetCtx) {
                             Haptics.confirm(v)
                             ctx.set("fed", System.currentTimeMillis().toString())
                             scope.launch {
-                                reaction = Pose.JUMP
+                                reaction = Pose.CHEER
                                 bounce.snapTo(1f)
                                 bounce.animateTo(0f, spring(dampingRatio = 0.35f))
                                 delay(700)
@@ -287,7 +287,7 @@ fun ChecklistWidget(ctx: WidgetCtx) {
         }
         Spacer(Modifier.height(6.dp))
         LazyColumn(Modifier.weight(1f)) {
-            itemsIndexed(todos, key = { i, t -> "$i${t.second}" }) { i, (checked, label) ->
+            itemsIndexed(todos, key = { i, _ -> i }) { i, (checked, label) ->
                 val p by animateFloatAsState(if (checked) 1f else 0f, spring(dampingRatio = 0.5f), label = "c")
                 Row(
                     Modifier
@@ -609,7 +609,7 @@ fun rememberBattery(): BatteryState {
                 )
             }
         }
-        context.registerReceiver(rx, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        androidx.core.content.ContextCompat.registerReceiver(context, rx, IntentFilter(Intent.ACTION_BATTERY_CHANGED), androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
         onDispose { runCatching { context.unregisterReceiver(rx) } }
     }
     return state

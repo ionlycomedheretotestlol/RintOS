@@ -19,3 +19,7 @@
 -dontwarn com.github.victools.jsonschema.**
 -dontwarn java.lang.reflect.AnnotatedType
 -dontwarn java.lang.reflect.AnnotatedParameterizedType
+# Jackson's Kotlin module reads Kotlin metadata reflectively (Claude provider in release builds).
+-keep class kotlin.Metadata { *; }
+-keep class kotlin.reflect.** { *; }
+-dontwarn kotlin.reflect.**

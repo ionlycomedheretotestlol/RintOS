@@ -107,14 +107,14 @@ private fun Scrim(onDismiss: () -> Unit, content: @Composable () -> Unit) {
 
 @Composable
 private fun PopCard(anchorX: Float, anchorY: Float, content: @Composable () -> Unit) {
-    val a = remember { Animatable(0f) }
+    val a = remember { Animatable(if (RintSprings.reduce) 1f else 0f) }
     LaunchedEffect(Unit) { a.animateTo(1f, RintSprings.pop()) }
     val density = LocalDensity.current
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val w = with(density) { 250.dp.toPx() }
         val maxW = with(density) { maxWidth.toPx() }
         val maxH = with(density) { maxHeight.toPx() }
-        val x = (anchorX - w / 2).coerceIn(24f, maxW - w - 24f)
+        val x = (anchorX - w / 2).coerceIn(0f, (maxW - w).coerceAtLeast(0f))
         val below = anchorY < maxH * 0.55f
         Box(
             Modifier
@@ -330,7 +330,7 @@ fun WidgetPicker(state: LauncherState) {
     val ctx = LocalContext.current
     var tab by remember { mutableStateOf(0) }
     var chosen by remember { mutableStateOf<String?>(null) }
-    val a = remember { Animatable(0f) }
+    val a = remember { Animatable(if (RintSprings.reduce) 1f else 0f) }
     LaunchedEffect(Unit) { a.animateTo(1f, RintSprings.sheet()) }
     Scrim({ state.widgetPicker = false }) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {

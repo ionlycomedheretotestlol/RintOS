@@ -98,7 +98,7 @@ class LockActivity : ComponentActivity() {
                 }
             }
             receiver = rx
-            ctx.registerReceiver(rx, IntentFilter(Intent.ACTION_SCREEN_OFF))
+            androidx.core.content.ContextCompat.registerReceiver(ctx, rx, IntentFilter(Intent.ACTION_SCREEN_OFF), androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
         }
 
         fun show(c: Context) {

@@ -135,7 +135,7 @@ fun WeatherWidget(ctx: WidgetCtx) {
             return@Box
         }
         val (name, temp, code, feels, hi, lo) = parts
-        val (desc, icon) = describe(code.toInt())
+        val (desc, icon) = describe(code.toIntOrNull() ?: -1)
         Row(Modifier.fillMaxSize().clickable { editing = true; draft = city }, verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, tint = look.colors.accent, modifier = Modifier.size(if (ctx.h >= 2) 48.dp else 28.dp))
             Spacer(Modifier.width(12.dp))

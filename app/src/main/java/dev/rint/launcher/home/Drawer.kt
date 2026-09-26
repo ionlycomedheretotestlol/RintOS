@@ -129,7 +129,7 @@ fun AppDrawer(state: LauncherState, modifier: Modifier = Modifier) {
     val visible = remember(all, cfg.hiddenApps, cfg.drawer.sort) {
         val base = all.filter { it.key !in cfg.hiddenApps }
         when (cfg.drawer.sort) {
-            DrawerSort.ALPHA -> base
+            DrawerSort.ALPHA -> base.sortedBy { it.label.lowercase() }
             DrawerSort.INSTALL_DATE -> base.sortedByDescending { it.installTime }
             DrawerSort.MOST_USED -> base.sortedByDescending { RintApp.instance.apps.launchCounts[it.key] ?: 0 }
             DrawerSort.COLOR -> base.sortedBy { e ->
@@ -388,6 +388,7 @@ private fun AlphabetList(state: LauncherState, apps: List<AppEntry>) {
                 .fillMaxHeight()
                 .width(28.dp)
                 .pointerInput(letters) {
+                    if (letters.isEmpty()) return@pointerInput
                     detectVerticalDragGestures(onDragEnd = { active = null }) { ch, _ ->
                         val i = (ch.position.y / size.height * letters.size).toInt().coerceIn(0, letters.lastIndex)
                         val l = letters[i]

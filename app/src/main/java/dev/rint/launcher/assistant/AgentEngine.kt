@@ -140,6 +140,7 @@ class AgentEngine(private val ctx: Context, private val scope: CoroutineScope) {
                 if (bubbleShown) RintAccessibility.instance?.bubble()?.status(reply.text.trim().take(120), busy = reply.calls.isNotEmpty())
             }
             if (reply.calls.isEmpty()) {
+                if (bubbleShown) RintAccessibility.instance?.bubble()?.mood(dev.rint.launcher.mascot.Pose.HAPPY)
                 if (reply.text.isNotBlank()) talk(reply.text)
                 turnDone.tryEmit(Unit)
                 return
@@ -153,7 +154,7 @@ class AgentEngine(private val ctx: Context, private val scope: CoroutineScope) {
     private fun step(label: String) {
         status = label
         chat += ChatItem(ChatRole.STEP, label)
-        if (bubbleShown) RintAccessibility.instance?.bubble()?.status(label)
+        if (bubbleShown) RintAccessibility.instance?.bubble()?.apply { status(label); mood(dev.rint.launcher.mascot.Pose.THINK) }
     }
 
     private fun showBubble() {

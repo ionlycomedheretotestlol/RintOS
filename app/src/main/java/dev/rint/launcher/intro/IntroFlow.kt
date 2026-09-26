@@ -506,7 +506,7 @@ internal fun Permissions(onDone: () -> Unit) {
     }
     val roleLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { tick++ }
     val permLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { tick++ }
-    val rm = ctx.getSystemService(RoleManager::class.java)
+    val rm = runCatching { ctx.getSystemService(RoleManager::class.java) }.getOrNull()
     fun has(p: String) = ContextCompat.checkSelfPermission(ctx, p) == PackageManager.PERMISSION_GRANTED
     val audioPerm = if (Build.VERSION.SDK_INT >= 33) Manifest.permission.READ_MEDIA_AUDIO else Manifest.permission.READ_EXTERNAL_STORAGE
 

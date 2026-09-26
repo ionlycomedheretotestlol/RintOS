@@ -1,6 +1,5 @@
 package dev.rint.launcher.mascot
 
-import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -10,7 +9,6 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,16 +34,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.rint.launcher.R
 import dev.rint.launcher.core.MascotPresence
 import dev.rint.launcher.ui.Haptics
 import dev.rint.launcher.ui.LocalRint
@@ -57,56 +51,6 @@ import java.util.Calendar
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
-
-enum class Pose(@DrawableRes val res: Int) {
-    FRONT(R.drawable.rin_front),
-    BACK(R.drawable.rin_back),
-    FACE_LEFT(R.drawable.rin_face_left),
-    FACE_RIGHT(R.drawable.rin_face_right),
-    HEAD(R.drawable.rin_head),
-    HAPPY(R.drawable.rin_happy),
-    MEH(R.drawable.rin_meh),
-    SHOCK(R.drawable.rin_shock),
-    DROWSY(R.drawable.rin_drowsy),
-    WALK(R.drawable.rin_walk),
-    SIT(R.drawable.rin_sit),
-    JUMP(R.drawable.rin_jump),
-    CROUCH(R.drawable.rin_crouch),
-    SLEEP(R.drawable.rin_sleep),
-}
-
-@Composable
-fun RinSprite(pose: Pose, size: Dp, modifier: Modifier = Modifier, flip: Boolean = false) {
-    Image(
-        bitmap = ImageBitmap.imageResource(pose.res),
-        contentDescription = null,
-        filterQuality = FilterQuality.None,
-        modifier = modifier
-            .size(size)
-            .graphicsLayer { if (flip) scaleX = -1f },
-    )
-}
-
-/** Head that bobs to the beat. [bpm] drives the tempo; [active] eases the motion in/out. */
-@Composable
-fun BobbingHead(active: Boolean, size: Dp, modifier: Modifier = Modifier, bpm: Float = 104f) {
-    // Advances only while bobbing and visible, so an idle head costs nothing.
-    val phase = (dev.rint.launcher.ui.rememberAmbientClock(active) * bpm / 60f) % 1f
-    val amount = remember { Animatable(0f) }
-    LaunchedEffect(active) { amount.animateTo(if (active) 1f else 0f, spring(dampingRatio = 0.7f)) }
-    val s = sin(phase * 2 * Math.PI).toFloat()
-    RinSprite(
-        pose = if (active) Pose.HAPPY else Pose.HEAD,
-        size = size,
-        modifier = modifier.graphicsLayer {
-            rotationZ = s * 9f * amount.value
-            translationY = -kotlin.math.abs(s) * 10f * amount.value
-            val squash = 1f + 0.05f * amount.value * kotlin.math.abs(s)
-            scaleX = squash
-            scaleY = 2f - squash
-        },
-    )
-}
 
 @Composable
 fun SpeechBubble(text: String, modifier: Modifier = Modifier) {
@@ -139,6 +83,7 @@ fun RinDirector(
     val v = rememberHaptic()
     var scene by remember { mutableStateOf(Scene.NONE) }
     var bubble by remember { mutableStateOf<String?>(null) }
+    var reaction by remember { mutableStateOf(Pose.JUMP) }
     var greeted by remember { mutableIntStateOf(-1) }
     val x = remember { Animatable(0f) }
     val y = remember { Animatable(1f) }
@@ -214,6 +159,7 @@ fun RinDirector(
             scope.launch {
                 val prev = scene
                 scene = Scene.HAPPY
+                reaction = listOf(Pose.JUMP, Pose.CHEER, Pose.DANCE, Pose.WAVE).random()
                 bubble = listOf("hi!", ":3", "hehe", "boop", "!!").random()
                 delay(1400)
                 bubble = null
@@ -222,12 +168,12 @@ fun RinDirector(
             }
         }
         val pose = when (scene) {
-            Scene.PEEK -> Pose.DROWSY
+            Scene.PEEK -> Pose.WAVE
             Scene.WALK -> Pose.WALK
             Scene.SLEEP -> Pose.SLEEP
-            Scene.CHARGE -> Pose.SIT
-            Scene.HAPPY -> Pose.HAPPY
-            Scene.NONE -> Pose.HEAD
+            Scene.CHARGE -> Pose.CHEER
+            Scene.HAPPY -> reaction
+            Scene.NONE -> Pose.FRONT
         }
         val baseX = when (scene) {
             Scene.WALK -> x.value * w - sizePx / 2

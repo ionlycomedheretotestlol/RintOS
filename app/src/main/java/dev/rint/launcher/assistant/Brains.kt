@@ -138,7 +138,13 @@ class GeminiBrain(private val key: String, private val model: String) : Brain {
             if (tools.isNotEmpty()) put("tools", buildJsonArray {
                 add(buildJsonObject {
                     put("functionDeclarations", buildJsonArray {
-                        tools.forEach { t -> add(buildJsonObject { put("name", t.name); put("description", t.description); put("parameters", t.schema) }) }
+                        tools.forEach { t ->
+                            add(buildJsonObject {
+                                put("name", t.name); put("description", t.description)
+                                // Gemini rejects object schemas with no properties
+                                if (t.properties.isNotEmpty()) put("parameters", t.schema)
+                            })
+                        }
                     })
                 })
             })

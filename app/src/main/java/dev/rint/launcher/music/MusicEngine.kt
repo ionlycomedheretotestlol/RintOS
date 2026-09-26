@@ -219,10 +219,11 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
         val p = MediaPlayer()
         player = p
         _now.value = NowPlaying(track = track, source = Source.LOCAL, waiting = true)
-        p.setDataSource(context, track.localUri!!)
         p.setOnPreparedListener { it.start(); publishLocal() }
         p.setOnCompletionListener { publishLocal() }
-        p.prepareAsync()
+        p.setOnErrorListener { _, _, _ -> stopLocal(); _now.value = null; true }
+        val ok = runCatching { p.setDataSource(context, track.localUri!!); p.prepareAsync() }.isSuccess
+        if (!ok) { stopLocal(); _now.value = null; return }
         waitJob?.cancel()
         waitJob = scope.launch {
             while (player === p) {

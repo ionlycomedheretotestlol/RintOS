@@ -91,12 +91,11 @@ fun RinTalkingHead(mode: HeadMode, level: Float, size: Dp, modifier: Modifier = 
     val accent = LocalRint.current.colors.accent
     val t = rememberAmbientClock()
     val lv by animateFloatAsState(level, label = "lv")
-    val blink = mode == HeadMode.IDLE && (t % 4.2f) > 4.04f
     val pose = when (mode) {
-        HeadMode.TALKING -> if (lv > 0.12f && (t * 9f).toInt() % 2 == 0) Pose.HAPPY else Pose.HEAD
-        HeadMode.THINKING -> Pose.MEH
-        HeadMode.LISTENING -> Pose.HEAD
-        HeadMode.IDLE -> if (blink) Pose.HAPPY else Pose.HEAD
+        HeadMode.TALKING -> Pose.TALK
+        HeadMode.THINKING -> Pose.THINK
+        HeadMode.LISTENING -> Pose.LISTEN
+        HeadMode.IDLE -> Pose.HEAD
     }
     Box(modifier.size(size * 1.6f), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
@@ -116,19 +115,8 @@ fun RinTalkingHead(mode: HeadMode, level: Float, size: Dp, modifier: Modifier = 
                 HeadMode.IDLE -> Unit
             }
         }
-        RinSprite(pose, size, Modifier.graphicsLayer {
-            when (mode) {
-                HeadMode.TALKING -> {
-                    translationY = -lv * 12f
-                    scaleY = 1f - 0.07f * lv
-                    scaleX = 1f + 0.04f * lv
-                    rotationZ = sin(t * 7f) * 5f * lv
-                }
-                HeadMode.THINKING -> rotationZ = -8f + sin(t * 2f) * 3f
-                HeadMode.LISTENING -> rotationZ = sin(t * 3f) * 3f
-                HeadMode.IDLE -> { val b = 1f + 0.025f * sin(t * 1.6f); scaleX = b; scaleY = b }
-            }
-        })
+        // the rig lip-syncs to [lv] itself; the layer just adds a little bounce
+        RinSprite(pose, size, Modifier.graphicsLayer { translationY = -lv * 6f }, talk = lv)
     }
 }
 
