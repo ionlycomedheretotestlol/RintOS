@@ -194,7 +194,7 @@ private fun Home(state: LauncherState, query: String, onQuery: (String) -> Unit,
         }
         val groups = listOf(
             "Look" to listOf("look", "icons", "labels", "home", "dock", "clock"),
-            "Features" to listOf("ai", "music", "lock", "notch", "mascot"),
+            "Features" to listOf("ai", "music", "lock", "notch", "mascot", "power", "danger"),
             "Behavior" to listOf("drawer", "search", "gestures", "motion"),
             "System" to listOf("system", "backup"),
         )
@@ -212,7 +212,7 @@ private fun Home(state: LauncherState, query: String, onQuery: (String) -> Unit,
         item {
             Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 RinSprite(Pose.SLEEP, 56.dp)
-                Text("RintOS 0.2", fontFamily = RintFonts.Pixel, fontSize = 9.sp, color = look.colors.subtext)
+                Text("RintOS 1.0", fontFamily = RintFonts.Pixel, fontSize = 9.sp, color = look.colors.subtext)
             }
         }
     }
@@ -704,6 +704,13 @@ private fun Sheets(sheet: String?, state: LauncherState, close: () -> Unit) {
         null -> return
         "wallpaper" -> { close(); SystemActions.openWallpaperPicker(ctx); return }
         "photo" -> { close(); PhotoPickRequest.launch?.invoke(); return }
+        "assistant" -> {
+            close()
+            val i = Intent(android.provider.Settings.ACTION_VOICE_INPUT_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            runCatching { ctx.startActivity(i) }.onFailure { runCatching { ctx.startActivity(Intent(android.provider.Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } }
+            return
+        }
+        "saver" -> { close(); state.settingsOpen = false; dev.rint.launcher.system.BatteryWatch.saver.value = true; return }
         "live" -> {
             close()
             stores.config.update { it.copy(look = it.look.copy(wallpaper = dev.rint.launcher.core.WallpaperMode.SYSTEM)) }

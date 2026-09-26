@@ -39,6 +39,7 @@ class RintNotificationListener : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         Badges.publish(runCatching { activeNotifications }.getOrNull())
+        sbn?.let { runCatching { RinAlerts.onNotification(this, it) } }
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {

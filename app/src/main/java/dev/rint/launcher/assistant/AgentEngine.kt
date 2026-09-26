@@ -53,6 +53,9 @@ class AgentEngine(private val ctx: Context, private val scope: CoroutineScope) {
         private set
     var status by mutableStateOf("")
         private set
+    /** True while Rin's floating panel is up and he's operating other apps. */
+    var operating by mutableStateOf(false)
+        private set
     val voiceOut = VoiceOut(ctx)
     val voiceIn = VoiceIn(ctx)
     private val history = ArrayList<Turn>()
@@ -79,6 +82,8 @@ class AgentEngine(private val ctx: Context, private val scope: CoroutineScope) {
         status = ""
         voiceOut.stop()
         RintAccessibility.instance?.hideBubble()
+        bubbleShown = false
+        operating = false
     }
 
     fun speak(text: String) {
@@ -122,7 +127,8 @@ class AgentEngine(private val ctx: Context, private val scope: CoroutineScope) {
                 busy = false
                 status = ""
                 if (bubbleShown) {
-                    scope.launch { delay(4500); if (!busy) { RintAccessibility.instance?.hideBubble(); bubbleShown = false } }
+                    RintAccessibility.instance?.bubble()?.status("done — anything else?", busy = false)
+                    scope.launch { delay(12000); if (!busy) { RintAccessibility.instance?.hideBubble(); bubbleShown = false; operating = false } }
                 }
             }
         }
@@ -137,7 +143,7 @@ class AgentEngine(private val ctx: Context, private val scope: CoroutineScope) {
             history += Turn.Assistant(reply.text, reply.calls, reply.raw)
             if (reply.text.isNotBlank()) {
                 chat += ChatItem(ChatRole.RIN, reply.text.trim())
-                if (bubbleShown) RintAccessibility.instance?.bubble()?.status(reply.text.trim().take(120), busy = reply.calls.isNotEmpty())
+                if (bubbleShown) RintAccessibility.instance?.bubble()?.say(reply.text.trim().take(220))
             }
             if (reply.calls.isEmpty()) {
                 if (bubbleShown) RintAccessibility.instance?.bubble()?.mood(dev.rint.launcher.mascot.Pose.HAPPY)
@@ -161,7 +167,12 @@ class AgentEngine(private val ctx: Context, private val scope: CoroutineScope) {
         val svc = RintAccessibility.instance ?: return
         if (!bubbleShown) {
             bubbleShown = true
-            svc.bubble().onStop = { stop() }
+            operating = true
+            svc.bubble().apply {
+                onStop = { stop() }
+                onClose = { stop(); bubbleShown = false; operating = false; svc.hideBubble() }
+                onSend = { text -> ask(text) }
+            }
         }
     }
 

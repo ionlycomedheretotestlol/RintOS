@@ -34,6 +34,7 @@ class RintApp : Application() {
         music = MusicEngine(this, scope)
         assistant = dev.rint.launcher.assistant.AgentEngine(this, scope)
         dev.rint.launcher.lock.LockActivity.install(this)
+        dev.rint.launcher.system.BatteryWatch.install(this)
     }
 
     companion object {

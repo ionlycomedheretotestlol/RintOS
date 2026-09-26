@@ -195,11 +195,24 @@ fun Launcher(state: LauncherState) {
     val opaque = state.settingsOpen || MusicOverlay.open || dev.rint.launcher.assistant.AssistantOverlay.open
     var hidden by remember { mutableStateOf(false) }
     LaunchedEffect(opaque) { if (opaque) { delay(450); hidden = true } else hidden = false }
-    val covered = hidden || (state.drawer.value >= 0.999f && state.drawer.targetValue >= 1f)
+    val saver by dev.rint.launcher.system.BatteryWatch.saver.collectAsState()
+    val morph by androidx.compose.animation.core.animateFloatAsState(
+        if (saver) 1f else 0f, androidx.compose.animation.core.tween(1100, easing = androidx.compose.animation.core.FastOutSlowInEasing), label = "saver",
+    )
+    val covered = hidden || morph >= 0.999f || (state.drawer.value >= 0.999f && state.drawer.targetValue >= 1f)
 
     Box(Modifier.fillMaxSize()) {
       CompositionLocalProvider(LocalCovered provides covered) {
-       if (!hidden) {
+       if (!hidden && morph < 0.999f) {
+        Box(Modifier.fillMaxSize().graphicsLayer {
+            // battery saver: the whole home screen shrinks into a single dot
+            if (morph > 0f) {
+                val k = morph * morph
+                scaleX = 1f - 0.985f * k; scaleY = scaleX
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(percent = (50 * morph).toInt().coerceAtMost(50))
+                clip = true
+            }
+        }) {
         Wallpaper()
 
         Box(
@@ -240,7 +253,9 @@ fun Launcher(state: LauncherState) {
                 bottomInset = with(LocalDensity.current) { (WindowInsets.navigationBars.getBottom(this) / density).dp } + cfg.dock.height.dp + 18.dp,
             )
         }
+        }
        }
+       if (morph > 0.9f) Box(Modifier.fillMaxSize().graphicsLayer { alpha = ((morph - 0.9f) / 0.1f).coerceIn(0f, 1f) }) { SaverHome() }
       }
 
         // Only compose the drawer while it's visible (or an app is being dragged out of it),

@@ -24,6 +24,7 @@ data class RintConfig(
     val music: MusicCfg = MusicCfg(),
     val lock: LockCfg = LockCfg(),
     val ai: AiCfg = AiCfg(),
+    val battery: BatteryCfg = BatteryCfg(),
     val hiddenApps: Set<String> = emptySet(),
     val renamedApps: Map<String, String> = emptyMap(),
 )
@@ -309,3 +310,11 @@ data class AiCfg(
         }
     }
 }
+
+@Serializable
+data class BatteryCfg(
+    val saver: Boolean = true,
+    val saverAt: Int = 15,
+    val alerts: Boolean = true,
+    val emergencyAlerts: Boolean = true,
+)

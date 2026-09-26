@@ -5,6 +5,7 @@ import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Backup
+import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material.icons.rounded.Dock
 import androidx.compose.material.icons.rounded.Gesture
 import androidx.compose.material.icons.rounded.GridView
@@ -281,6 +282,7 @@ object Schema {
             Opt.Slider("Max steps per task", range = 5f..60f, steps = 10, fmt = { "${it.toInt()}" }, get = { it.ai.maxSteps.toFloat() }, set = { c, v -> c.copy(ai = c.ai.copy(maxSteps = v.toInt())) }),
             Opt.TextField("Extra personality", "e.g. “answer like a pirate”", get = { it.ai.personality }, set = { c, v -> c.copy(ai = c.ai.copy(personality = v.take(300))) }),
             Opt.Action("Turn on phone control (Accessibility)", id = "a11y"),
+            Opt.Action("Make Rin your phone's assistant", "then hold the home button anywhere to talk to him", id = "assistant"),
         )),
         Section("motion", "Motion", "speed, bounce, app opening", Icons.Rounded.Speed, Color(0xFF36D399), listOf(
             Opt.Slider("Animation speed", range = 0.25f..3f, fmt = ::x, get = { it.motion.speed }, set = { c, v -> c.copy(motion = c.motion.copy(speed = v)) }),
@@ -294,6 +296,14 @@ object Schema {
             Opt.Action("Accessibility (lock / recents gestures)", id = "a11y"),
             Opt.Action("Replay the welcome guide", id = "guide"),
             Opt.Action("Replay the intro", id = "intro"),
+        )),
+        Section("power", "Battery & alerts", "saver mode, serious warnings only", Icons.Rounded.BatteryAlert, Color(0xFF34C759), listOf(
+            Opt.Toggle("Battery saver mode", "when battery gets low, home folds into a single dot: no widgets, almost no animation", get = { it.battery.saver }, set = { c, v -> c.copy(battery = c.battery.copy(saver = v)) }),
+            Opt.Slider("Turn on at", range = 5f..40f, steps = 6, fmt = { "${it.toInt()}%" }, get = { it.battery.saverAt.toFloat() }, set = { c, v -> c.copy(battery = c.battery.copy(saverAt = v.toInt())) }),
+            Opt.Toggle("Rin warns about low battery", "at saver mode, 5% and 1%", get = { it.battery.alerts }, set = { c, v -> c.copy(battery = c.battery.copy(alerts = v)) }),
+            Opt.Toggle("Emergency alerts", "Rin pops up for tornado, amber and other emergency broadcasts (needs notification access)", get = { it.battery.emergencyAlerts }, set = { c, v -> c.copy(battery = c.battery.copy(emergencyAlerts = v)) }),
+            Opt.Action("Allow Rin's popups over other apps", id = "overlay"),
+            Opt.Action("Try saver mode now", id = "saver"),
         )),
         Section("danger", "Dangerous", "do not press. seriously.", Icons.Rounded.Warning, Color(0xFFFF3B30), listOf(
             Opt.Action("Watch Rin play the guitar", "you have been warned", id = "guitar"),
