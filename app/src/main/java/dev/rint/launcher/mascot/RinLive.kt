@@ -31,7 +31,7 @@ import kotlin.math.sin
 enum class Pose(val headOnly: Boolean = false) {
     FRONT, BACK, FACE_LEFT, FACE_RIGHT,
     HEAD(true), HAPPY(true), MEH(true), SHOCK(true), DROWSY(true), LOVE(true), TALK(true), THINK(true), LISTEN(true), DANCE_HEAD(true),
-    WALK, SIT, JUMP, CROUCH, SLEEP, WAVE, DANCE, CHEER, GUITAR, GUITAR_SOLO,
+    WALK, SIT, JUMP, CROUCH, SLEEP, WAVE, DANCE, CHEER, GUITAR, GUITAR_SOLO, STRETCH, YAWN, CONFUSED, SHY, LAUGH, NOD,
 }
 
 private fun hash(n: Int): Float {
@@ -125,6 +125,34 @@ fun animateRin(pose: Pose, t: Float, talk: Float, p: RinParams) {
             p.legL = if (solo) max(0f, bob) * 0.6f else 0f
             p.hop = if (solo) abs(bob) * 1.2f else 0f
             p.earL = max(0f, bob) * 0.4f; p.earR = max(0f, -bob) * 0.4f
+        }
+        Pose.STRETCH -> {
+            val k = (sin(t * 1.6f) + 1f) / 2f
+            p.armL = 0.8f + 0.2f * k; p.armR = 0.8f + 0.2f * k; p.squash = 1f + 0.08f * k; p.eyes = Eyes.CLOSED
+            p.mouth = 0.2f * k; p.earL = -0.4f * k; p.earR = -0.4f * k; p.tail = sin(t * 3f) * 0.3f
+        }
+        Pose.YAWN -> {
+            val k = ((sin(t * 1.2f) + 1f) / 2f).let { it * it }
+            p.mouth = 0.25f + 0.75f * k; p.eyes = if (k > 0.4f) Eyes.CLOSED else Eyes.MEH; p.tilt = -0.08f * k
+            p.headY = -0.8f * k; p.earL = 0.5f * k; p.earR = 0.5f * k
+        }
+        Pose.CONFUSED -> {
+            p.tilt = 0.22f + sin(t * 1.4f) * 0.05f; p.lookX = -0.6f; p.lookY = -0.4f
+            p.earL = 0.4f; p.earR = -0.3f; p.tail = sin(t * 1.5f) * 0.15f
+        }
+        Pose.SHY -> {
+            p.blush = 1f; p.lookX = sin(t * 0.8f) * 0.8f; p.lookY = 0.8f; p.tilt = -0.1f
+            p.earL = 0.6f; p.earR = 0.6f; p.tail = sin(t * 5f) * 0.15f; p.legL = sin(t * 3f) * 0.2f
+        }
+        Pose.LAUGH -> {
+            val b = abs(sin(t * 13f))
+            p.eyes = Eyes.HAPPY; p.mouth = 0.5f + 0.4f * b; p.headY = -b * 1.1f; p.tilt = sin(t * 6.5f) * 0.08f
+            p.blush = 0.6f; p.tail = sin(t * 10f) * 0.4f; p.squash = 1f - 0.03f * b
+        }
+        Pose.NOD -> {
+            val b = sin(t * 7f)
+            p.headY = max(0f, b) * 1.4f; p.lookY = max(0f, b) * 0.6f; p.eyes = if (b > 0.5f) Eyes.HAPPY else Eyes.OPEN
+            p.tail = sin(t * 4f) * 0.25f
         }
         Pose.CHEER -> {
             p.armL = 1f; p.armR = 1f; p.armWave = sin(t * 14f) * 0.2f; p.eyes = Eyes.STAR; p.mouth = 0.6f

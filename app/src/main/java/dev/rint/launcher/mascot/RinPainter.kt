@@ -1,426 +1,425 @@
 package dev.rint.launcher.mascot
 
 import android.graphics.Canvas
-import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.RadialGradient
-import android.graphics.Shader
+import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.sin
-import kotlin.math.sqrt
 
 /**
- * Rin, drawn as smooth vector art from the same [RinParams] the animations drive.
- * Coordinates are the rig's 48×56 space; the caller scales the canvas.
- * Everything is allocated once, so a frame is just path building and fills.
+ * Rin as flat 2D cartoon art (thin ink lines, flat fills), drawn from [RinParams] every frame.
+ * Head-only poses get a subtle 2.5D edge like the app icon. Coordinates are the rig's
+ * 48×56 space (ground at y=55); the caller scales the canvas.
  */
 class RinPainter {
     var accent: Int = 0xFF3B7CFF.toInt()
-        set(v) { if (v != field) { field = v; shadersDirty = true } }
 
-    private var shadersDirty = true
-    private val ink = 0xFF101326.toInt()
+    private val ink = 0xFF0C0D12.toInt()
     private val fur = 0xFFFFFFFF.toInt()
-    private val furShade = 0xFFD9E0F2.toInt()
-    private val hood = 0xFF1C1F2C.toInt()
-    private val hoodLight = 0xFF2C3144.toInt()
-    private val pink = 0x99FF8FB3.toInt()
-    private val tongue = 0xFFFF7C9C.toInt()
-    private val mouthDark = 0xFF3A1428.toInt()
+    private val furShade = 0xFFE3E7F3.toInt()
+    private val depth = 0xFFB9C1E3.toInt()
+    private val hood = 0xFF121318.toInt()
+    private val hoodFold = 0xFF3C4050.toInt()
+    private val collar = 0xFF1A1B22.toInt()
+    private val pink = 0xFFFF9DBB.toInt()
     private val heart = 0xFFFF4F8B.toInt()
     private val star = 0xFFFFD84A.toInt()
 
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val line = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND }
-    private val outline = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeJoin = Paint.Join.ROUND; strokeCap = Paint.Cap.ROUND; color = 0xFF101326.toInt() }
+    private val edge = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND }
 
-    private val headPath = Path(); private val tuftL = Path(); private val tuftR = Path(); private val crown = Path(); private val earL = Path(); private val earR = Path(); private val innerL = Path(); private val innerR = Path()
-    private val bodyPath = Path(); private val tailPath = Path(); private val tailTip = Path(); private val tmp = Path(); private val tmp2 = Path()
-    private val legPath = Path(); private val armPath = Path(); private val pawPath = Path()
-
-    private var furShader: Shader? = null
-    private var hoodShader: Shader? = null
-
-    private fun ensureShaders() {
-        if (!shadersDirty) return
-        furShader = RadialGradient(0f, 0f, 20f, intArrayOf(fur, fur, 0xFFEEF1FA.toInt()), floatArrayOf(0f, 0.8f, 1f), Shader.TileMode.CLAMP)
-        hoodShader = LinearGradient(16f, 32f, 34f, 48f, intArrayOf(0xFF15161C.toInt(), 0xFF0C0D12.toInt()), null, Shader.TileMode.CLAMP)
-        shadersDirty = false
-    }
+    private val headPath = Path(); private val earInL = Path(); private val earInR = Path()
+    private val bodyPath = Path(); private val tailPath = Path(); private val tipPath = Path()
+    private val a = Path(); private val b = Path()
 
     private fun lighter(c: Int, k: Float): Int {
-        val r = (c shr 16 and 0xff); val g = (c shr 8 and 0xff); val b = (c and 0xff)
-        return (0xff shl 24) or ((r + (255 - r) * k).toInt() shl 16) or ((g + (255 - g) * k).toInt() shl 8) or (b + (255 - b) * k).toInt()
+        val r = (c shr 16 and 0xff); val g = (c shr 8 and 0xff); val bl = (c and 0xff)
+        return (0xff shl 24) or ((r + (255 - r) * k).toInt() shl 16) or ((g + (255 - g) * k).toInt() shl 8) or (bl + (255 - bl) * k).toInt()
     }
 
-    /** Draws Rin into [c], already scaled so one unit = one rig pixel. */
+    /** Ink outline behind a shape (half of it shows outside the fill). */
+    private fun ink(c: Canvas, path: Path, w: Float = 1.25f) {
+        edge.color = ink; edge.strokeWidth = w
+        c.drawPath(path, edge)
+    }
+
+    private fun solid(c: Canvas, path: Path, color: Int) {
+        fill.shader = null; fill.color = color
+        c.drawPath(path, fill)
+    }
+
+    private fun stroke(c: Canvas, path: Path, color: Int, w: Float) {
+        line.color = color; line.strokeWidth = w
+        c.drawPath(path, line)
+    }
+
     fun draw(c: Canvas, p: RinParams) {
-        ensureShaders()
         c.save()
-        if (p.squash != 1f) c.scale(1f / sqrt(p.squash), p.squash, 24f, RinRig.GROUND)
+        if (p.squash != 1f) c.scale(1f / kotlin.math.sqrt(p.squash), p.squash, 24f, RinRig.GROUND)
         when (p.stance) {
             Stance.STAND -> {
-                tail(c, p, 15f, 46.5f + p.bodyY)
+                tail(c, p)
                 legs(c, p)
-                body(c, p, 0f)
+                body(c, p)
                 if (p.guitar) guitar(c, p)
                 arms(c, p, 0f)
-                head(c, p, 24f + p.headX, 20f + p.headY + p.bodyY)
+                head(c, p, 24f + p.headX, 19.5f + p.headY + p.bodyY, false)
             }
             Stance.SIT -> {
                 tailSit(c, p)
                 bodySit(c, p)
                 if (p.guitar) guitar(c, p)
-                arms(c, p, 5f)
-                head(c, p, 24f + p.headX, 25f + p.headY + p.bodyY)
+                arms(c, p, 4.5f)
+                head(c, p, 24f + p.headX, 24.5f + p.headY + p.bodyY, false)
             }
-            Stance.HEAD, Stance.PEEK -> head(c, p, 24f + p.headX, 20f + p.headY)
+            Stance.HEAD, Stance.PEEK -> head(c, p, 24f + p.headX, 19.5f + p.headY, true)
         }
-        if (p.stance == Stance.PEEK) {
-            fill.shader = null; fill.color = fur
-            paw(c, 14f, 31.5f); paw(c, 34f, 31.5f)
-        }
+        if (p.stance == Stance.PEEK) { paw(c, 15f, 31.6f); paw(c, 33f, 31.6f) }
         if (p.sweat) {
-            tmp.reset(); tmp.moveTo(37.5f, 5f); tmp.quadTo(39.6f, 8.6f, 37.5f, 9.6f); tmp.quadTo(35.4f, 8.6f, 37.5f, 5f)
-            fill.shader = null; fill.color = lighter(accent, 0.45f); c.drawPath(tmp, fill)
+            a.reset(); a.moveTo(38f, 4.5f); a.quadTo(40.2f, 8.2f, 38f, 9.2f); a.quadTo(35.8f, 8.2f, 38f, 4.5f)
+            ink(c, a, 0.8f); solid(c, a, lighter(accent, 0.35f))
         }
         c.restore()
     }
 
-    private fun stroked(c: Canvas, path: Path, w: Float = 1.5f) {
-        outline.strokeWidth = w * 0.62f
-        c.drawPath(path, outline)
+    // ───────────────────────── head ─────────────────────────
+
+    private fun earTip(fold: Float, side: Float): Pair<Float, Float> {
+        val x = (12.6f - fold * 3.2f) * side
+        val y = -19.6f + fold * 8f + (if (fold < 0) fold * 1.5f else 0f)
+        return x to y
     }
 
-    // ── head ───────────────────────────────────────────────
-    private fun buildEar(dst: Path, inner: Path, side: Float, fold: Float) {
-        val tipX = (12.5f - fold * 3f) * side
-        val tipY = -19.5f + fold * 7f + (if (fold < 0) fold * 2f else 0f)
-        dst.reset()
-        dst.moveTo(2.2f * side, -8.2f)
-        dst.quadTo((tipX + 2.5f * side) * 0.55f, (tipY - 8.5f) * 0.5f, tipX, tipY)
-        dst.quadTo(12.8f * side, -12f, 11.8f * side, -4.5f)
-        dst.close()
-        inner.reset()
-        inner.moveTo(4.8f * side, -8f)
-        inner.quadTo((tipX + 3f * side) * 0.6f, (tipY - 6f) * 0.55f, tipX - 1.2f * side, tipY + 3.4f)
-        inner.quadTo(10.8f * side, -10.5f, 10.1f * side, -6.2f)
-        inner.close()
+    /** Round head with a few fluffy tufts, tall ears and a spiky little crown (the concept sheet). */
+    private fun buildHead(p: RinParams) {
+        val (lx, ly) = earTip(p.earL, -1f)
+        val (rx, ry) = earTip(p.earR, 1f)
+        val h = headPath
+        h.reset()
+        h.moveTo(0f, 10.6f)
+        h.quadTo(5f, 10.8f, 8.2f, 9.2f)
+        h.lineTo(10.6f, 11.2f)          // jaw tuft
+        h.lineTo(11f, 8f)
+        h.quadTo(12.8f, 6.6f, 13.4f, 5f)
+        h.lineTo(16.4f, 5.6f)           // cheek tuft
+        h.lineTo(13.9f, 2.4f)
+        h.quadTo(14.6f, -1.2f, 13.2f, -4.4f)
+        h.quadTo(14.9f, -11.5f, rx, ry) // right ear
+        h.quadTo(9.6f, -15.4f, 5.6f, -10.6f)
+        h.quadTo(4.2f, -11.4f, 2.8f, -11.5f)
+        h.lineTo(1.9f, -14.8f)          // crown tufts
+        h.lineTo(0.2f, -11.7f)
+        h.lineTo(-1.6f, -13.6f)
+        h.lineTo(-2.6f, -11.3f)
+        h.quadTo(-4.2f, -11.3f, -5.6f, -10.6f)
+        h.quadTo(-9.6f, -15.4f, lx, ly) // left ear
+        h.quadTo(-14.9f, -11.5f, -13.2f, -4.4f)
+        h.quadTo(-14.6f, -1.2f, -13.9f, 2.4f)
+        h.lineTo(-16.6f, 3.4f)          // cheek tuft
+        h.lineTo(-13.6f, 5.6f)
+        h.lineTo(-15.4f, 8.4f)          // lower cheek tuft
+        h.lineTo(-11.4f, 8.4f)
+        h.lineTo(-10.2f, 11.4f)         // jaw tuft
+        h.lineTo(-8.2f, 9.4f)
+        h.quadTo(-5f, 10.8f, 0f, 10.6f)
+        h.close()
+
+        // the blue lives along the outer edge of each ear
+        fun inner(path: Path, s: Float, tx: Float, ty: Float) {
+            path.reset()
+            path.moveTo(tx - 0.9f * s, ty + 2.6f)
+            path.quadTo(12.9f * s, -12f, 12.2f * s, -6.4f)
+            path.quadTo(10.6f * s, -8.2f, 9.6f * s, -9.6f)
+            path.quadTo(10.8f * s, -13f, tx - 0.9f * s, ty + 2.6f)
+            path.close()
+        }
+        inner(earInL, -1f, lx, ly)
+        inner(earInR, 1f, rx, ry)
     }
 
-    /** One side of the head outline (x mirrored by [s]), from the crown to the chin. */
-    private fun headSide(path: Path, s: Float, earFold: Float) {
-        val tipX = (13.6f - earFold * 3.5f) * s
-        val tipY = -20.5f + earFold * 8f + (if (earFold < 0) earFold * 2f else 0f)
-        path.lineTo(1.6f * s, -9.6f)
-        path.lineTo(3.8f * s, -13.4f)          // crown spike
-        path.lineTo(5.2f * s, -8.8f)
-        path.lineTo(tipX, tipY)                  // ear tip
-        path.lineTo(14.6f * s, -4.2f)            // ear base, outside
-        path.lineTo(14f * s, -1.2f)
-        path.lineTo(16.8f * s, 1.2f)             // upper cheek tuft
-        path.lineTo(14.6f * s, 3.6f)
-        path.lineTo(16.4f * s, 7.2f)             // lower cheek tuft
-        path.lineTo(12.4f * s, 7.8f)
-        path.lineTo(10f * s, 11.6f)              // little chin tuft
-        path.lineTo(7.4f * s, 10.2f)
-        path.quadTo(3.5f * s, 11.4f, 0f, 11.2f)
-    }
-
-    private fun head(c: Canvas, p: RinParams, hx: Float, hy: Float) {
+    private fun head(c: Canvas, p: RinParams, hx: Float, hy: Float, depth25: Boolean) {
         c.save()
         c.translate(hx, hy)
         c.rotate(Math.toDegrees(p.tilt.toDouble()).toFloat())
-        // the icon's silhouette: angular, spiky, with pointed ears
-        headPath.reset()
-        headPath.moveTo(0f, 11.2f)
-        // left side, chin → crown (reverse of the mirrored right side)
-        headPath.quadTo(-3.5f, 11.4f, -7.4f, 10.2f)
-        headPath.lineTo(-10f, 11.6f); headPath.lineTo(-12.4f, 7.8f); headPath.lineTo(-16.4f, 7.2f); headPath.lineTo(-14.6f, 3.6f)
-        headPath.lineTo(-16.8f, 1.2f); headPath.lineTo(-14f, -1.2f); headPath.lineTo(-14.6f, -4.2f)
-        val tipLX = -(13.6f - p.earL * 3.5f)
-        val tipLY = -20.5f + p.earL * 8f + (if (p.earL < 0) p.earL * 2f else 0f)
-        headPath.lineTo(tipLX, tipLY); headPath.lineTo(-5.2f, -8.8f)
-        headPath.lineTo(-2.2f, -9.4f); headPath.lineTo(-1.2f, -14.8f)   // tall crown spike
-        headPath.lineTo(0.2f, -9.8f)
-        headSide(headPath, 1f, p.earR)
-        headPath.close()
-
-        // inner ears
-        innerL.reset(); innerL.moveTo(-6.6f, -8.6f); innerL.lineTo(tipLX + 1.6f, tipLY + 4.2f); innerL.lineTo(-12.4f, -6.2f); innerL.close()
-        val tipRX = 13.6f - p.earR * 3.5f
-        val tipRY = -20.5f + p.earR * 8f + (if (p.earR < 0) p.earR * 2f else 0f)
-        innerR.reset(); innerR.moveTo(6.6f, -8.6f); innerR.lineTo(tipRX - 1.6f, tipRY + 4.2f); innerR.lineTo(12.4f, -6.2f); innerR.close()
-
-        // outline, then the lavender "extrusion" edge like the icon, then flat white
-        val depth = p.stance == Stance.HEAD || p.stance == Stance.PEEK
-        if (depth) { c.save(); c.translate(-1.1f, 1.1f); stroked(c, headPath, 1.5f); c.restore() }
-        stroked(c, headPath, 1.5f)
-        fill.shader = null
-        if (depth) {
-            fill.color = 0xFFB6BEE2.toInt()
-            c.save(); c.translate(-1.1f, 1.1f); c.drawPath(headPath, fill); c.restore()
+        c.scale(0.86f, 1.04f)
+        buildHead(p)
+        if (depth25) {
+            // 2.5D: a thick lavender side, like the app icon
+            for (k in 3 downTo 1) {
+                c.save(); c.translate(-0.4f * k, 0.4f * k)
+                if (k == 3) ink(c, headPath, 1.3f)
+                solid(c, headPath, depth)
+                c.restore()
+            }
         }
-        fill.color = fur
-        c.drawPath(headPath, fill)
-        fill.color = accent
-        c.drawPath(innerL, fill); c.drawPath(innerR, fill)
+        ink(c, headPath, 1.3f)
+        solid(c, headPath, fur)
+        if (!depth25) {
+            a.reset(); a.addOval(-9f, 6.6f, 9f, 10.8f, Path.Direction.CW)
+            c.save(); c.clipPath(headPath); solid(c, a, furShade); c.restore()
+        }
+        solid(c, earInL, accent); solid(c, earInR, accent)
+        a.reset(); a.moveTo(-6.6f, -9.4f); a.quadTo(-8.4f, -11.8f, -9.4f, -13.2f)
+        b.reset(); b.moveTo(6.6f, -9.4f); b.quadTo(8.4f, -11.8f, 9.4f, -13.2f)
+        stroke(c, a, ink, 0.45f); stroke(c, b, ink, 0.45f)
 
         if (p.blush > 0.05f) {
-            fill.color = pink
-            fill.alpha = (0x99 * p.blush.coerceIn(0f, 1f)).toInt()
-            c.drawOval(-11f, 4.4f, -7f, 6.4f, fill); c.drawOval(7f, 4.4f, 11f, 6.4f, fill)
+            fill.shader = null; fill.color = pink; fill.alpha = (150 * p.blush.coerceIn(0f, 1f)).toInt()
+            c.drawOval(-11.4f, 4.6f, -7.6f, 6.6f, fill); c.drawOval(7.6f, 4.6f, 11.4f, 6.6f, fill)
             fill.alpha = 255
         }
-        eye(c, p, -5.4f); eye(c, p, 5.4f)
+        eye(c, p, -5.6f); eye(c, p, 5.6f)
         mouth(c, p)
         c.restore()
     }
 
     private fun eye(c: Canvas, p: RinParams, ex: Float) {
-        val cx = ex + p.lookX * 1.3f
-        val cy = 0.9f + p.lookY * 1.1f
-        fill.shader = null
-        line.color = ink; line.strokeWidth = 1.2f
+        val side = if (ex < 0) -1f else 1f
+        val cx = ex + p.lookX * 1.4f
+        val cy = 0.4f + p.lookY * 1.1f
+        line.color = ink
         when (p.eyes) {
             Eyes.OPEN, Eyes.SHOCK, Eyes.MEH -> {
                 val shock = p.eyes == Eyes.SHOCK
-                val rx = if (shock) 2.6f else 2.3f
-                val ry = (if (shock) 3.4f else 3.9f) * p.eyeOpen.coerceIn(0f, 1f)
-                val side = if (ex < 0) -1f else 1f
-                // the curved brow line hugging the outer top of each eye
-                tmp.reset()
-                tmp.moveTo(ex - 2.6f * side, cy - 4.9f)
-                tmp.quadTo(ex + 4.2f * side, cy - 6.6f, ex + 4.3f * side, cy + 2.6f)
-                line.color = ink; line.strokeWidth = 0.6f
-                c.drawPath(tmp, line)
-                if (ry < 0.9f) { line.strokeWidth = 1.1f; c.drawLine(cx - 2.2f, cy + 0.8f, cx + 2.2f, cy + 0.8f, line); return }
+                val rx = if (shock) 2.9f else 2.45f
+                val ry = (if (shock) 3.6f else 4.3f) * p.eyeOpen.coerceIn(0f, 1f)
+                // the brow line that hugs the outer top of each eye
+                a.reset()
+                a.moveTo(ex - 1.6f * side, cy - 5.9f)
+                a.quadTo(ex + 4.6f * side, cy - 6.4f, ex + 4.4f * side, cy + 1.8f)
+                stroke(c, a, ink, 0.55f)
+                if (ry < 0.9f) { line.strokeWidth = 0.9f; c.drawLine(cx - 2.2f, cy + 0.8f, cx + 2.2f, cy + 0.8f, line); return }
                 fill.shader = null; fill.color = ink
                 c.save()
-                if (p.eyes == Eyes.MEH) c.clipRect(cx - rx - 1, cy - 1f, cx + rx + 1, cy + ry + 1)
+                if (p.eyes == Eyes.MEH) c.clipRect(cx - rx - 1, cy - 0.8f, cx + rx + 1, cy + ry + 1)
                 c.drawOval(cx - rx, cy - ry, cx + rx, cy + ry, fill)
                 c.restore()
+                if (p.eyes == Eyes.MEH) { line.strokeWidth = 0.7f; c.drawLine(cx - rx - 0.4f, cy - 0.8f, cx + rx + 0.4f, cy - 0.8f, line) }
                 if (shock) { fill.color = fur; c.drawCircle(cx, cy, 0.9f, fill) }
-                if (p.eyes == Eyes.MEH) c.drawLine(cx - rx, cy - 1f, cx + rx, cy - 1f, line)
             }
             Eyes.HAPPY -> {
-                tmp.reset(); tmp.moveTo(cx - 2.5f, cy + 1.2f); tmp.quadTo(cx, cy - 2.6f, cx + 2.5f, cy + 1.2f)
-                line.strokeWidth = 1.4f; c.drawPath(tmp, line)
+                a.reset(); a.moveTo(cx - 2.6f, cy + 1.4f); a.quadTo(cx, cy - 3.4f, cx + 2.6f, cy + 1.4f)
+                stroke(c, a, ink, 0.8f)
             }
             Eyes.CLOSED -> {
-                tmp.reset(); tmp.moveTo(cx - 2.5f, cy + 0.4f); tmp.quadTo(cx, cy + 2.6f, cx + 2.5f, cy + 0.4f)
-                line.strokeWidth = 1.3f; c.drawPath(tmp, line)
+                a.reset(); a.moveTo(cx - 2.5f, cy + 0.4f); a.quadTo(cx, cy + 2.4f, cx + 2.5f, cy + 0.4f)
+                stroke(c, a, ink, 0.75f)
             }
             Eyes.HEART -> {
-                tmp.reset()
-                tmp.moveTo(cx, cy + 2.6f)
-                tmp.cubicTo(cx - 3.6f, cy, cx - 2.4f, cy - 3.2f, cx, cy - 1.2f)
-                tmp.cubicTo(cx + 2.4f, cy - 3.2f, cx + 3.6f, cy, cx, cy + 2.6f)
-                fill.color = heart; c.drawPath(tmp, fill)
-                fill.color = fur; c.drawCircle(cx - 1.2f, cy - 1f, 0.5f, fill)
+                a.reset()
+                a.moveTo(cx, cy + 2.6f)
+                a.cubicTo(cx - 3.6f, cy, cx - 2.4f, cy - 3.2f, cx, cy - 1.2f)
+                a.cubicTo(cx + 2.4f, cy - 3.2f, cx + 3.6f, cy, cx, cy + 2.6f)
+                solid(c, a, heart)
             }
             Eyes.STAR -> {
-                tmp.reset()
+                a.reset()
                 for (i in 0 until 8) {
-                    val a = (i * Math.PI / 4 - Math.PI / 2).toFloat()
-                    val r = if (i % 2 == 0) 3f else 1.1f
-                    val x = cx + cos(a) * r; val y = cy + sin(a) * r
-                    if (i == 0) tmp.moveTo(x, y) else tmp.lineTo(x, y)
+                    val ang = (i * PI / 4 - PI / 2).toFloat()
+                    val r = if (i % 2 == 0) 3.1f else 1.1f
+                    val x = cx + cos(ang) * r; val y = cy + sin(ang) * r
+                    if (i == 0) a.moveTo(x, y) else a.lineTo(x, y)
                 }
-                tmp.close(); fill.color = star; c.drawPath(tmp, fill)
+                a.close(); solid(c, a, star)
             }
         }
     }
 
     private fun mouth(c: Canvas, p: RinParams) {
         val open = p.mouth.coerceIn(0f, 1f)
-        fill.shader = null
         if (open > 0.12f) {
-            val ry = 0.8f + open * 1.9f
-            val rx = 1.6f + open * 0.8f
-            val cy = 6.6f + ry * 0.45f
-            fill.color = mouthDark
-            c.drawOval(-rx, cy - ry, rx, cy + ry, fill)
-            if (open > 0.4f) { fill.color = tongue; c.drawOval(-rx * 0.7f, cy, rx * 0.7f, cy + ry, fill) }
+            // open mouth with the blue tongue from the concept sheet
+            val w = 1.5f + open * 0.9f
+            val h = 1f + open * 2.2f
+            a.reset()
+            a.moveTo(-w, 6f); a.quadTo(0f, 6.6f, w, 6f); a.quadTo(w * 0.9f, 6f + h * 1.4f, 0f, 6f + h * 1.4f); a.quadTo(-w * 0.9f, 6f + h * 1.4f, -w, 6f); a.close()
+            ink(c, a, 0.9f); solid(c, a, 0xFF2A1020.toInt())
+            if (open > 0.35f) {
+                b.reset(); b.addOval(-w * 0.7f, 6f + h * 0.55f, w * 0.7f, 6f + h * 1.45f, Path.Direction.CW)
+                c.save(); c.clipPath(a); solid(c, b, lighter(accent, 0.25f)); c.restore()
+            }
             return
         }
-        // ω
-        tmp.reset()
-        tmp.moveTo(-2.2f, 6.4f); tmp.quadTo(-1.1f, 8.2f, 0f, 6.7f); tmp.quadTo(1.1f, 8.2f, 2.2f, 6.4f)
-        line.color = ink; line.strokeWidth = 0.55f
-        c.drawPath(tmp, line)
+        a.reset()
+        a.moveTo(-2.1f, 5.9f); a.quadTo(-1.1f, 7.7f, 0f, 6.3f); a.quadTo(1.1f, 7.7f, 2.1f, 5.9f)
+        stroke(c, a, ink, 0.55f)
     }
 
-    // ── body ───────────────────────────────────────────────
-    private fun emblem(c: Canvas, x: Float, y: Float) {
-        tmp.reset()
-        tmp.moveTo(x, y - 1.9f); tmp.quadTo(x + 0.3f, y - 0.3f, x + 1.7f, y); tmp.quadTo(x + 0.3f, y + 0.3f, x, y + 1.9f)
-        tmp.quadTo(x - 0.3f, y + 0.3f, x - 1.7f, y); tmp.quadTo(x - 0.3f, y - 0.3f, x, y - 1.9f)
-        fill.shader = null; fill.color = accent; c.drawPath(tmp, fill)
+    // ───────────────────────── body ─────────────────────────
+
+    private fun emblem(c: Canvas, x: Float, y: Float, r: Float = 1.8f) {
+        a.reset()
+        a.moveTo(x, y - r); a.quadTo(x + r * 0.16f, y - r * 0.16f, x + r * 0.9f, y); a.quadTo(x + r * 0.16f, y + r * 0.16f, x, y + r)
+        a.quadTo(x - r * 0.16f, y + r * 0.16f, x - r * 0.9f, y); a.quadTo(x - r * 0.16f, y - r * 0.16f, x, y - r); a.close()
+        solid(c, a, accent)
     }
 
-    private fun body(c: Canvas, p: RinParams, dy: Float) {
-        val by = p.bodyY + dy
+    private fun body(c: Canvas, p: RinParams) {
+        val by = p.bodyY
         bodyPath.reset()
-        bodyPath.moveTo(15f, 33.5f + by)
-        bodyPath.quadTo(24f, 30.5f + by, 33f, 33.5f + by)
-        bodyPath.quadTo(36.2f, 40f + by, 34.6f, 47.6f + by)
-        bodyPath.quadTo(24f, 49.6f + by, 13.4f, 47.6f + by)
-        bodyPath.quadTo(11.8f, 40f + by, 15f, 33.5f + by)
+        bodyPath.moveTo(15.4f, 32f + by)
+        bodyPath.quadTo(24f, 29.6f + by, 32.6f, 32f + by)
+        bodyPath.quadTo(36f, 37.4f + by, 35f, 43.4f + by)
+        bodyPath.quadTo(24f, 45.4f + by, 13f, 43.4f + by)
+        bodyPath.quadTo(12f, 37.4f + by, 15.4f, 32f + by)
         bodyPath.close()
-        stroked(c, bodyPath, 1.5f)
-        fill.color = fur; fill.shader = hoodShader; c.drawPath(bodyPath, fill); fill.shader = null
-        // the bunched, high collar the chin sinks into
-        tmp.reset()
-        tmp.moveTo(16.2f, 34.8f + by); tmp.quadTo(15.6f, 31f + by, 19.5f, 30.6f + by); tmp.quadTo(24f, 32.2f + by, 28.5f, 30.6f + by)
-        tmp.quadTo(32.4f, 31f + by, 31.8f, 34.8f + by); tmp.quadTo(24f, 37f + by, 16.2f, 34.8f + by); tmp.close()
-        stroked(c, tmp, 1.3f)
-        fill.color = 0xFF17181F.toInt(); c.drawPath(tmp, fill)
-        line.color = 0xFF2A2C36.toInt(); line.strokeWidth = 0.35f
-        c.drawLine(19.6f, 32.6f + by, 20.4f, 34.8f + by, line); c.drawLine(28.4f, 32.6f + by, 27.6f, 34.8f + by, line)
-        // kangaroo pocket with the hands tucked in (only when the arms are down)
-        if (p.armL < 0.05f && p.armR < 0.05f && !p.guitar) {
-            tmp.reset()
-            tmp.moveTo(16.6f, 45.6f + by); tmp.quadTo(17.2f, 40.4f + by, 20.4f, 39.8f + by)
-            tmp.lineTo(27.6f, 39.8f + by); tmp.quadTo(30.8f, 40.4f + by, 31.4f, 45.6f + by)
-            line.color = 0xFF2E313C.toInt(); line.strokeWidth = 0.5f
-            c.drawPath(tmp, line)
+        ink(c, bodyPath); solid(c, bodyPath, hood)
+        a.reset(); a.moveTo(13.6f, 42f + by); a.quadTo(24f, 43.8f + by, 34.4f, 42f + by)
+        stroke(c, a, hoodFold, 0.4f)
+        val handsIn = p.armL < 0.05f && p.armR < 0.05f && p.armWave == 0f && !p.guitar
+        if (handsIn) {
+            a.reset(); a.moveTo(15.8f, 33.6f + by); a.quadTo(13.4f, 37.6f + by, 17.4f, 40f + by)
+            b.reset(); b.moveTo(32.2f, 33.6f + by); b.quadTo(34.6f, 37.6f + by, 30.6f, 40f + by)
+            stroke(c, a, hoodFold, 0.45f); stroke(c, b, hoodFold, 0.45f)
+            a.reset(); a.moveTo(16.8f, 41.6f + by); a.quadTo(17.4f, 37.8f + by, 20.4f, 37.3f + by)
+            a.lineTo(27.6f, 37.3f + by); a.quadTo(30.6f, 37.8f + by, 31.2f, 41.6f + by)
+            stroke(c, a, hoodFold, 0.45f)
         }
-        // zipper + rectangular pull
-        line.color = accent; line.strokeWidth = 0.8f
-        c.drawLine(24f, 35.4f + by, 24f, 44f + by, line)
-        line.strokeWidth = 0.5f
-        c.drawRect(23.2f, 37f + by, 24.8f, 38.4f + by, line)
-        emblem(c, 29.6f, 43.2f + by)
+        a.reset()
+        a.moveTo(16.4f, 33.8f + by); a.quadTo(15.6f, 29.4f + by, 19.6f, 29.2f + by); a.quadTo(24f, 30.8f + by, 28.4f, 29.2f + by)
+        a.quadTo(32.4f, 29.4f + by, 31.6f, 33.8f + by); a.quadTo(24f, 35.8f + by, 16.4f, 33.8f + by); a.close()
+        ink(c, a, 1f); solid(c, a, collar)
+        b.reset(); b.moveTo(19.4f, 31.2f + by); b.quadTo(20.2f, 32.8f + by, 19.8f, 34.4f + by)
+        stroke(c, b, hoodFold, 0.4f)
+        b.reset(); b.moveTo(28.6f, 31.2f + by); b.quadTo(27.8f, 32.8f + by, 28.2f, 34.4f + by)
+        stroke(c, b, hoodFold, 0.4f)
+        line.color = accent; line.strokeWidth = 0.7f
+        c.drawLine(24f, 34.8f + by, 24f, 41.2f + by, line)
+        line.strokeWidth = 0.45f
+        c.drawRect(23.1f, 36.2f + by, 24.9f, 37.6f + by, line)
+        emblem(c, 29.6f, 39.6f + by)
     }
 
     private fun legs(c: Canvas, p: RinParams) {
         for (side in 0..1) {
             val ph = if (side == 0) p.legL else p.legR
-            val lift = max(0f, ph) * 2.2f
-            val x = if (side == 0) 20f + ph * 0.8f else 28f - ph * 0.8f
-            legPath.reset()
-            legPath.addRoundRect(x - 2.4f, 45.5f + p.bodyY, x + 2.4f, 53f - lift + p.bodyY, 1.6f, 1.6f, Path.Direction.CW)
-            legPath.addOval(x - 3.3f + (if (side == 0) -0.3f else 0.3f), 50.9f - lift + p.bodyY, x + 3.3f + (if (side == 0) -0.3f else 0.3f), 54.7f - lift + p.bodyY, Path.Direction.CW)
-            stroked(c, legPath, 2f)
-            fill.shader = null; fill.color = if (side == 1) furShade else fur
-            c.drawPath(legPath, fill)
-            line.color = 0xFFB9C2DB.toInt(); line.strokeWidth = 0.45f
-            c.drawLine(x - 1f, 53.3f - lift + p.bodyY, x - 1f, 54.4f - lift + p.bodyY, line)
-            c.drawLine(x + 1f, 53.3f - lift + p.bodyY, x + 1f, 54.4f - lift + p.bodyY, line)
+            val lift = max(0f, ph) * 2.4f
+            val x = if (side == 0) 20f + ph * 0.9f else 28f - ph * 0.9f
+            val top = 41.5f + p.bodyY
+            val bot = 54.6f - lift
+            a.reset()
+            a.moveTo(x - 2.4f, top)
+            a.lineTo(x - 2.4f, bot - 1.8f)
+            a.quadTo(x - 3.3f, bot, x - 0.6f, bot)
+            a.lineTo(x + 1.4f, bot)
+            a.quadTo(x + 3.2f, bot, x + 2.4f, bot - 2f)
+            a.lineTo(x + 2.4f, top)
+            a.close()
+            ink(c, a, 1.2f)
+            solid(c, a, if (side == 1) furShade else fur)
+            line.color = ink; line.strokeWidth = 0.35f
+            c.drawLine(x - 0.5f, bot - 0.9f, x - 0.5f, bot - 0.1f, line)
+            c.drawLine(x + 0.8f, bot - 0.9f, x + 0.8f, bot - 0.1f, line)
         }
     }
 
     private fun paw(c: Canvas, x: Float, y: Float) {
-        pawPath.reset(); pawPath.addOval(x - 2.4f, y - 2.2f, x + 2.4f, y + 2.2f, Path.Direction.CW)
-        stroked(c, pawPath, 1.6f)
-        fill.shader = null; fill.color = fur; c.drawPath(pawPath, fill)
+        a.reset(); a.addOval(x - 2.3f, y - 2f, x + 2.3f, y + 2f, Path.Direction.CW)
+        ink(c, a, 1.1f); solid(c, a, fur)
+        line.color = ink; line.strokeWidth = 0.35f
+        c.drawLine(x - 0.6f, y + 0.4f, x - 0.6f, y + 1.6f, line); c.drawLine(x + 0.6f, y + 0.4f, x + 0.6f, y + 1.6f, line)
     }
 
     private fun arms(c: Canvas, p: RinParams, dy: Float) {
-        val sy = 36f + p.bodyY + dy
+        val sy = 33.6f + p.bodyY + dy
         for (side in floatArrayOf(-1f, 1f)) {
             val raise = if (side < 0) p.armL else p.armR
-            if (!p.guitar && raise < 0.05f && (if (side < 0) p.armL else p.armR + p.armWave) < 0.05f) continue
             val wave = if (side < 0) 0f else p.armWave
-            val sx = if (side < 0) 16f else 32f
-            val a = (0.25f + raise * 2.4f + wave) * side
-            var hx = sx + sin(a) * 9.5f
-            var hy = sy + cos(a) * 9.5f
+            if (!p.guitar && raise < 0.05f && wave == 0f) continue
+            val sx = if (side < 0) 16.2f else 31.8f
+            val ang = (0.25f + raise * 2.4f + wave) * side
+            var hx = sx + sin(ang) * 8.6f
+            var hy = sy + cos(ang) * 8.6f
             if (p.guitar) {
-                // fretting hand on the neck, strumming hand over the sound hole
-                if (side < 0) { hx = 14.5f; hy = 38.5f + p.bodyY + dy } else { hx = 27.5f; hy = 43.5f + p.bodyY + dy + p.strum * 2.4f }
+                if (side < 0) { hx = 14.5f; hy = 38.5f + p.bodyY + dy } else { hx = 27.5f; hy = 42f + p.bodyY + dy + p.strum * 2.2f }
             }
-            armPath.reset(); armPath.moveTo(sx, sy); armPath.lineTo(hx, hy)
-            outline.strokeWidth = 6.2f; c.drawPath(armPath, outline)
-            line.color = 0xFF15161C.toInt(); line.strokeWidth = 4.4f
-            c.drawPath(armPath, line)
+            a.reset(); a.moveTo(sx, sy); a.lineTo(hx, hy)
+            edge.color = ink; edge.strokeWidth = 5.2f; c.drawPath(a, edge)
+            line.color = hood; line.strokeWidth = 4f; c.drawPath(a, line)
             paw(c, hx, hy)
         }
     }
 
     private fun guitar(c: Canvas, p: RinParams) {
         c.save()
-        val by = p.bodyY + (if (p.stance == Stance.SIT) 5f else 0f)
-        c.translate(26f, 43f + by)
+        val by = p.bodyY + (if (p.stance == Stance.SIT) 4.5f else 0f)
+        c.translate(26f, 41.5f + by)
         c.rotate(-28f)
-        // neck + head
-        tmp.reset(); tmp.addRoundRect(-19f, -1f, -4f, 1f, 0.6f, 0.6f, Path.Direction.CW)
-        tmp.addRoundRect(-23f, -1.8f, -18.5f, 1.8f, 0.8f, 0.8f, Path.Direction.CW)
-        stroked(c, tmp, 1.6f)
-        fill.shader = null; fill.color = 0xFF6B3F22.toInt(); c.drawPath(tmp, fill)
-        // body
-        tmp2.reset()
-        tmp2.addCircle(-2f, 0f, 4.4f, Path.Direction.CW)
-        tmp2.addCircle(4.4f, 0f, 5.6f, Path.Direction.CW)
-        stroked(c, tmp2, 1.8f)
-        fill.color = accent; c.drawPath(tmp2, fill)
-        fill.color = 0xFF6B3F22.toInt(); c.drawRoundRect(-19f, -1f, -4f, 1f, 0.6f, 0.6f, fill)
-        fill.color = 0x33FFFFFF; c.drawCircle(3.2f, -2f, 3f, fill)
-        fill.color = ink; c.drawCircle(1f, 0f, 1.6f, fill)
-        fill.color = 0xFF2A1A10.toInt(); c.drawRect(6.2f, -2.2f, 7f, 2.2f, fill)
-        // strings, vibrating while strummed
-        line.color = 0xCCFFFFFF.toInt(); line.strokeWidth = 0.18f
+        a.reset(); a.addRoundRect(-19f, -0.9f, -4f, 0.9f, 0.6f, 0.6f, Path.Direction.CW)
+        a.addRoundRect(-23f, -1.7f, -18.5f, 1.7f, 0.8f, 0.8f, Path.Direction.CW)
+        ink(c, a, 1.1f); solid(c, a, 0xFF6B3F22.toInt())
+        b.reset(); b.addCircle(-2f, 0f, 4.2f, Path.Direction.CW); b.addCircle(4.3f, 0f, 5.4f, Path.Direction.CW)
+        ink(c, b, 1.2f); solid(c, b, accent)
+        fill.color = 0xFF6B3F22.toInt(); c.drawRoundRect(-19f, -0.9f, -4f, 0.9f, 0.6f, 0.6f, fill)
+        fill.color = ink; c.drawCircle(1f, 0f, 1.5f, fill)
+        fill.color = 0xFF2A1A10.toInt(); c.drawRect(6.2f, -2.1f, 7f, 2.1f, fill)
+        line.color = 0xCCFFFFFF.toInt(); line.strokeWidth = 0.16f
         for (i in -1..1) {
             val wob = p.strum * 0.35f * sin(i * 2.1f + p.strum * 40f)
-            c.drawLine(-22f, i * 0.45f, 6.6f, i * 0.45f + wob, line)
+            c.drawLine(-22f, i * 0.42f, 6.6f, i * 0.42f + wob, line)
         }
         c.restore()
     }
 
-    private fun tail(c: Canvas, p: RinParams, baseX: Float, baseY: Float) {
-        tailPath.reset()
-        val n = 18
-        var tipStart = 0f to 0f
+    // ───────────────────────── tail ─────────────────────────
+
+    /** A big fluffy tail: circles along a curve, white with a hard-edged blue tip. */
+    private fun buildTail(path: Path, tip: Path, x0: Float, y0: Float, a0: Float, bend: Float, len: Float, size: Float) {
+        path.reset(); tip.reset()
+        val n = 20
+        var x = x0; var y = y0
+        val step = len / n
         for (i in 0 until n) {
             val t = i / (n - 1f)
-            val ang = -2.65f + p.tail + t * 1.3f
-            val r = t * 14f
-            val cx = baseX + cos(ang) * r * 0.9f
-            val cy = baseY + sin(ang) * r - t * t * 3f
-            val rad = (1.8f + 3.6f * sin(t * 3.1f).coerceAtLeast(0.35f))
-            tailPath.addCircle(cx, cy, rad, Path.Direction.CW)
-            if (i == 11) tipStart = cx to cy
+            val ang = a0 + bend * t
+            x += cos(ang) * step; y += sin(ang) * step
+            val r = size * (0.42f + 0.58f * sin(min(1f, t * 1.25f) * PI.toFloat() * 0.5f)) * (if (t > 0.9f) 1f - (t - 0.9f) * 3f else 1f)
+            path.addCircle(x, y, r, Path.Direction.CW)
+            if (t >= 0.8f) tip.addCircle(x, y, r * 1.05f, Path.Direction.CW)
         }
-                stroked(c, tailPath, 2.2f)
-        fill.color = fur
-        val tip = baseX + cos(-2.65f + p.tail + 1.3f) * 12.6f to baseY + sin(-2.65f + p.tail + 1.3f) * 14f - 3f
-        fill.shader = LinearGradient(tipStart.first, tipStart.second, tip.first, tip.second, intArrayOf(fur, fur, accent, accent), floatArrayOf(0f, 0.3f, 0.3f, 1f), Shader.TileMode.CLAMP)
-        c.drawPath(tailPath, fill)
-        fill.shader = null
+    }
+
+    private fun drawTail(c: Canvas) {
+        ink(c, tailPath, 1.3f)
+        solid(c, tailPath, fur)
+        c.save(); c.clipPath(tailPath)
+        solid(c, tipPath, accent)
+        c.restore()
+    }
+
+    private fun tail(c: Canvas, p: RinParams) {
+        buildTail(tailPath, tipPath, 17f, 41.5f + p.bodyY, (PI + 0.05).toFloat() + p.tail * 0.7f, 1.45f, 18f, 3.5f)
+        drawTail(c)
     }
 
     private fun bodySit(c: Canvas, p: RinParams) {
         val by = p.bodyY
         bodyPath.reset()
-        bodyPath.addOval(14f, 38.5f + by, 34f, 53.5f + by, Path.Direction.CW)
-        bodyPath.addOval(13.5f, 35.8f + by, 34.5f, 42.2f + by, Path.Direction.CW)
-                stroked(c, bodyPath, 2.2f)
-        fill.color = fur; fill.shader = hoodShader; c.drawPath(bodyPath, fill); fill.shader = null
-        line.color = accent; line.strokeWidth = 0.9f
-        c.drawLine(24f, 40f + by, 24f, 51f + by, line)
-        emblem(c, 29f, 45f + by)
-        for (x in floatArrayOf(19f, 29f)) {
-            pawPath.reset(); pawPath.addOval(x - 3.6f, 50.3f + by, x + 3.6f, 54.7f + by, Path.Direction.CW)
-            stroked(c, pawPath, 1.8f); fill.color = fur; c.drawPath(pawPath, fill)
-        }
+        bodyPath.moveTo(15.2f, 37f + by)
+        bodyPath.quadTo(24f, 34.4f + by, 32.8f, 37f + by)
+        bodyPath.quadTo(36.4f, 44f + by, 34.6f, 51.4f + by)
+        bodyPath.quadTo(24f, 53.4f + by, 13.4f, 51.4f + by)
+        bodyPath.quadTo(11.6f, 44f + by, 15.2f, 37f + by)
+        bodyPath.close()
+        ink(c, bodyPath); solid(c, bodyPath, hood)
+        a.reset()
+        a.moveTo(16.4f, 38.4f + by); a.quadTo(15.6f, 34f + by, 19.6f, 33.8f + by); a.quadTo(24f, 35.4f + by, 28.4f, 33.8f + by)
+        a.quadTo(32.4f, 34f + by, 31.6f, 38.4f + by); a.quadTo(24f, 40.4f + by, 16.4f, 38.4f + by); a.close()
+        ink(c, a, 1f); solid(c, a, collar)
+        line.color = accent; line.strokeWidth = 0.7f
+        c.drawLine(24f, 39.4f + by, 24f, 46.4f + by, line)
+        line.strokeWidth = 0.45f
+        c.drawRect(23.1f, 40.8f + by, 24.9f, 42.2f + by, line)
+        emblem(c, 29.4f, 45.4f + by)
+        for (x in floatArrayOf(19.6f, 28.4f)) paw(c, x, 53f + by)
     }
 
     private fun tailSit(c: Canvas, p: RinParams) {
-        tailPath.reset()
-        val n = 18
-        for (i in 0 until n) {
-            val t = i / (n - 1f)
-            val ang = 3.4f - t * 2.6f + p.tail * 0.5f
-            val cx = 24f + cos(ang) * (15f - t * 3f)
-            val cy = 50f + p.bodyY + sin(ang) * (6f - t * 2f)
-            tailPath.addCircle(cx, cy, 2.2f + 2.6f * sin(t * 3.1f).coerceAtLeast(0.4f), Path.Direction.CW)
-        }
-                stroked(c, tailPath, 2.2f)
-        fill.color = fur
-        fill.shader = LinearGradient(9f, 50f, 38f, 48f, intArrayOf(fur, fur, accent, accent), floatArrayOf(0f, 0.68f, 0.68f, 1f), Shader.TileMode.CLAMP)
-        c.drawPath(tailPath, fill); fill.shader = null
+        buildTail(tailPath, tipPath, 15f, 51f + p.bodyY, (PI + 0.1).toFloat() + p.tail * 0.6f, 1.35f, 14f, 3f)
+        drawTail(c)
     }
 }
