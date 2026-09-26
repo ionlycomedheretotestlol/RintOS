@@ -3,6 +3,9 @@ name: Publish release
 on:
   push:
     tags: ["v*"]
+    branches: ["**"]
+    paths: ["release/**"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -12,10 +15,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Create the GitHub release with the APK
+      - name: Create (or update) the v1.0 release with the APK
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" release/RintOS-1.0.apk \
-            --title "RintOS ${GITHUB_REF_NAME#v}" \
-            --notes-file release/NOTES.md
+          TAG=v1.0
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" release/RintOS-1.0.apk --clobber
+          else
+            gh release create "$TAG" release/RintOS-1.0.apk \
+              --target "$GITHUB_SHA" \
+              --title "RintOS 1.0" \
+              --notes-file release/NOTES.md \
+              --latest
+          fi
