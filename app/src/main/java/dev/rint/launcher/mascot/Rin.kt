@@ -120,16 +120,6 @@ fun RinDirector(
                 scene = if (night) Scene.SLEEP else Scene.NONE
                 if (night) y.snapTo(0f)
             }
-            !night && cfg.wanders && scene == Scene.NONE && Random.nextFloat() < chance -> {
-                scene = Scene.WALK
-                flip = Random.nextBoolean()
-                y.snapTo(0f)
-                val from = if (flip) 1.15f else -0.15f
-                val to = if (flip) -0.15f else 1.15f
-                x.snapTo(from)
-                x.animateTo(to, tween(6500, easing = LinearEasing))
-                scene = Scene.NONE
-            }
         }
     }
 

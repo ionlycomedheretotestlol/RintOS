@@ -18,6 +18,7 @@ import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.ShortText
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.ViewDay
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import dev.rint.launcher.core.AiProvider
@@ -209,11 +210,12 @@ object Schema {
         )),
         Section("mascot", "Rin", "your little roommate", Icons.Rounded.Pets, Color(0xFF6C8CFF), listOf(
             Opt.Toggle("Rin lives here", get = { it.mascot.enabled }, set = { c, v -> c.copy(mascot = c.mascot.copy(enabled = v)) }),
+            Opt.Choice("Art style", "smooth vector art, or the original pixel look", dev.rint.launcher.core.MascotStyle.entries, get = { it.mascot.style }, set = { c, v -> c.copy(mascot = c.mascot.copy(style = v)) }),
+            Opt.ColorPick("Ear, tail & zipper color", "defaults to your accent", get = { it.mascot.color ?: it.look.accent }, set = { c, v -> c.copy(mascot = c.mascot.copy(color = v)) }),
             Opt.TextField("Name", get = { it.mascot.name }, set = { c, v -> c.copy(mascot = c.mascot.copy(name = v.take(16))) }),
             Opt.Choice("How often he shows up", values = MascotPresence.entries, get = { it.mascot.presence }, set = { c, v -> c.copy(mascot = c.mascot.copy(presence = v)) }),
             Opt.Slider("Size", range = 0.5f..1.8f, fmt = ::x, get = { it.mascot.size }, set = { c, v -> c.copy(mascot = c.mascot.copy(size = v)) }),
             Opt.Toggle("Says hi each day", get = { it.mascot.greets }, set = { c, v -> c.copy(mascot = c.mascot.copy(greets = v)) }),
-            Opt.Toggle("Wanders across the dock", get = { it.mascot.wanders }, set = { c, v -> c.copy(mascot = c.mascot.copy(wanders = v)) }),
             Opt.Toggle("Sleeps at night", get = { it.mascot.sleepsAtNight }, set = { c, v -> c.copy(mascot = c.mascot.copy(sleepsAtNight = v)) }),
             Opt.Toggle("Reacts to charging", get = { it.mascot.reactsToCharging }, set = { c, v -> c.copy(mascot = c.mascot.copy(reactsToCharging = v)) }),
             Opt.Toggle("Head-bobs in music breaks", get = { it.mascot.inMusic }, set = { c, v -> c.copy(mascot = c.mascot.copy(inMusic = v)) }),
@@ -252,7 +254,7 @@ object Schema {
             Opt.Choice("Brain", "which AI powers Rin", AiProvider.entries, label = { when (it) { AiProvider.GEMINI -> "gemini"; AiProvider.GROQ -> "groq"; AiProvider.CLAUDE -> "claude"; AiProvider.OPENROUTER -> "openrouter" } },
                 get = { it.ai.provider }, set = { c, v -> c.copy(ai = c.ai.copy(provider = v)) }),
             Opt.Header("API keys (stored only on this phone)"),
-            Opt.Secret("Gemini API key", "free at aistudio.google.com — also unlocks Rin's voice", "GEMINI"),
+            Opt.Secret("Gemini API key", "free at aistudio.google.com (new AQ. keys work) — also unlocks Rin's voice", "GEMINI"),
             Opt.Secret("Groq API key", "console.groq.com", "GROQ"),
             Opt.Secret("Claude API key", "console.anthropic.com", "CLAUDE"),
             Opt.Secret("OpenRouter API key", "openrouter.ai/keys", "OPENROUTER"),
@@ -287,6 +289,9 @@ object Schema {
             Opt.Action("Accessibility (lock / recents gestures)", id = "a11y"),
             Opt.Action("Replay the welcome guide", id = "guide"),
             Opt.Action("Replay the intro", id = "intro"),
+        )),
+        Section("danger", "Dangerous", "do not press. seriously.", Icons.Rounded.Warning, Color(0xFFFF3B30), listOf(
+            Opt.Action("Watch Rin play the guitar", "you have been warned", id = "guitar"),
         )),
         Section("backup", "Backup & reset", "export, import, start over", Icons.Rounded.Backup, Color(0xFF5B6380), listOf(
             Opt.Action("Export setup", "copies your whole config + layout", id = "export"),

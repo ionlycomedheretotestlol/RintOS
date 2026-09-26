@@ -138,7 +138,7 @@ data class Drawer(
     val opacity: Float = 0.82f,
     val autoKeyboard: Boolean = false,
     val showRecents: Boolean = true,
-    val headers: Boolean = true,
+    val headers: Boolean = false,
     val scrollBar: Boolean = true,
 )
 
@@ -214,6 +214,7 @@ data class ClockCfg(
 )
 
 enum class MascotPresence { SHY, NORMAL, CLINGY }
+enum class MascotStyle { SMOOTH, PIXEL }
 
 @Serializable
 data class MascotCfg(
@@ -222,10 +223,12 @@ data class MascotCfg(
     val presence: MascotPresence = MascotPresence.NORMAL,
     val size: Float = 1f,
     val sleepsAtNight: Boolean = true,
-    val reactsToCharging: Boolean = true,
+    val reactsToCharging: Boolean = false,
     val inMusic: Boolean = true,
-    val wanders: Boolean = true,
-    val greets: Boolean = true,
+    val wanders: Boolean = false,
+    val style: MascotStyle = MascotStyle.SMOOTH,
+    val color: Long? = null,
+    val greets: Boolean = false,
 )
 
 enum class OpenAnim { SYSTEM, SCALE_UP, CLIP_REVEAL, NONE }

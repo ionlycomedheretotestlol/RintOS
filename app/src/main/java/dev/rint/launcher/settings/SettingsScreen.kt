@@ -703,6 +703,7 @@ private fun Sheets(sheet: String?, state: LauncherState, close: () -> Unit) {
             return
         }
         "guide" -> { close(); state.settingsOpen = false; state.guideStep = 0; return }
+        "guitar" -> { close(); state.settingsOpen = false; dev.rint.launcher.mascot.GuitarShow.open = true; return }
         "intro" -> { close(); state.settingsOpen = false; stores.config.update { it.copy(onboarded = false) }; return }
         "resetlook" -> { close(); stores.config.update { Presets.all.first().apply(it) }; state.say("fresh look applied"); return }
         "export" -> {

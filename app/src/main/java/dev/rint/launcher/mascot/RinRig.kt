@@ -35,8 +35,10 @@ class RinParams {
     var blush = 0f
     var sweat = false
     var hop = 0f            // whole-sprite lift, applied when drawing (keeps the jump inside the frame)
+    var guitar = false
+    var strum = 0f
     fun reset() {
-        hop = 0f
+        hop = 0f; guitar = false; strum = 0f
         stance = Stance.STAND; eyes = Eyes.OPEN; eyeOpen = 1f; lookX = 0f; lookY = 0f; mouth = 0f
         headX = 0f; headY = 0f; tilt = 0f; bodyY = 0f; squash = 1f; earL = 0f; earR = 0f; tail = 0f
         legL = 0f; legR = 0f; armL = 0f; armR = 0f; armWave = 0f; blush = 0f; sweat = false

@@ -12,6 +12,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -28,7 +31,7 @@ import kotlin.math.sin
 enum class Pose(val headOnly: Boolean = false) {
     FRONT, BACK, FACE_LEFT, FACE_RIGHT,
     HEAD(true), HAPPY(true), MEH(true), SHOCK(true), DROWSY(true), LOVE(true), TALK(true), THINK(true), LISTEN(true), DANCE_HEAD(true),
-    WALK, SIT, JUMP, CROUCH, SLEEP, WAVE, DANCE, CHEER,
+    WALK, SIT, JUMP, CROUCH, SLEEP, WAVE, DANCE, CHEER, GUITAR, GUITAR_SOLO,
 }
 
 private fun hash(n: Int): Float {
@@ -108,6 +111,21 @@ fun animateRin(pose: Pose, t: Float, talk: Float, p: RinParams) {
             p.hop = abs(b) * 1.5f; p.tilt = b * 0.16f; p.armL = if (b > 0) 1f else 0.3f; p.armR = if (b > 0) 0.3f else 1f
             p.legL = max(0f, b); p.legR = max(0f, -b); p.eyes = Eyes.HAPPY; p.tail = b * 0.5f
         }
+        Pose.GUITAR, Pose.GUITAR_SOLO -> {
+            val solo = pose == Pose.GUITAR_SOLO
+            val rate = if (solo) 16f else 8f
+            p.guitar = true
+            p.strum = abs(sin(t * rate))
+            val bob = sin(t * 6.3f)
+            p.headY = -abs(bob) * 1.2f; p.tilt = bob * (if (solo) 0.18f else 0.08f)
+            p.eyes = if (solo) Eyes.CLOSED else if (sin(t * 0.9f) > 0.3f) Eyes.HAPPY else Eyes.OPEN
+            p.lookX = 0f; p.lookY = 0.6f
+            p.mouth = if (solo) 0.3f + 0.2f * abs(bob) else 0f
+            p.tail = sin(t * 6.3f) * 0.45f
+            p.legL = if (solo) max(0f, bob) * 0.6f else 0f
+            p.hop = if (solo) abs(bob) * 1.2f else 0f
+            p.earL = max(0f, bob) * 0.4f; p.earR = max(0f, -bob) * 0.4f
+        }
         Pose.CHEER -> {
             p.armL = 1f; p.armR = 1f; p.armWave = sin(t * 14f) * 0.2f; p.eyes = Eyes.STAR; p.mouth = 0.6f
             p.hop = abs(sin(t * 7f)) * 3f; p.tail = sin(t * 14f) * 0.45f
@@ -116,8 +134,8 @@ fun animateRin(pose: Pose, t: Float, talk: Float, p: RinParams) {
 }
 
 /**
- * Rin, rasterized in code every frame (no image files). Animates only while visible, via the
- * ambient clock, and keeps a single reusable bitmap per instance.
+ * Rin, drawn in code every frame (no image files): smooth vector art by default, or the
+ * classic pixel rig. Animates only while visible, via the ambient clock.
  */
 @Composable
 fun RinSprite(
@@ -129,28 +147,48 @@ fun RinSprite(
     animated: Boolean = true,
     timeOffset: Float = 0f,
 ) {
-    val rig = remember { RinRig() }
+    val look = dev.rint.launcher.ui.LocalRintOrNull.current
+    val pixel = look?.cfg?.mascot?.style == dev.rint.launcher.core.MascotStyle.PIXEL
+    val accent = look?.cfg?.mascot?.color?.toInt() ?: look?.colors?.accent?.toArgb() ?: 0xFF3B7CFF.toInt()
     val params = remember { RinParams() }
-    val bmp = remember { Bitmap.createBitmap(RinRig.W, RinRig.H, Bitmap.Config.ARGB_8888) }
-    val image = remember(bmp) { bmp.asImageBitmap() }
-    val seed = remember { hash(System.identityHashCode(rig)) * 50f }
+    val painter = remember { RinPainter() }
+    val rig = remember(pixel) { if (pixel) RinRig() else null }
+    val bmp = remember(pixel) { if (pixel) Bitmap.createBitmap(RinRig.W, RinRig.H, Bitmap.Config.ARGB_8888) else null }
+    val image = remember(bmp) { bmp?.asImageBitmap() }
+    val seed = remember { hash(System.identityHashCode(params)) * 50f }
     // a quick "pop" whenever the pose changes, so reactions feel physical
     val pop = remember { Animatable(1f) }
     LaunchedEffect(pose) { pop.snapTo(0.82f); pop.animateTo(1f, spring(dampingRatio = 0.35f, stiffness = 500f)) }
     val t = rememberAmbientClock(animated)
     Canvas(modifier.size(size)) {
         animateRin(pose, t + seed + timeOffset, talk, params)
-        rig.render(params)
-        bmp.setPixels(rig.pixels, 0, RinRig.W, 0, 0, RinRig.W, RinRig.H)
-        val srcOff = if (pose.headOnly) IntOffset(RinRig.HEAD_X, RinRig.HEAD_Y) else IntOffset.Zero
-        val srcSize = if (pose.headOnly) IntSize(RinRig.HEAD_W, RinRig.HEAD_H) else IntSize(RinRig.W, RinRig.H)
-        val k = min(this.size.width / srcSize.width, this.size.height / srcSize.height)
-        val dw = (srcSize.width * k).roundToInt()
-        val dh = (srcSize.height * k).roundToInt()
-        val dx = ((this.size.width - dw) / 2).roundToInt()
-        val dy = (if (pose.headOnly) ((this.size.height - dh) / 2).roundToInt() else (this.size.height - dh).roundToInt()) - (params.hop * k).roundToInt()
+        val srcX = if (pose.headOnly) RinRig.HEAD_X else 0
+        val srcY = if (pose.headOnly) RinRig.HEAD_Y else 0
+        val srcW = if (pose.headOnly) RinRig.HEAD_W else RinRig.W
+        val srcH = if (pose.headOnly) RinRig.HEAD_H else RinRig.H
+        val k = min(this.size.width / srcW, this.size.height / srcH)
+        val dw = srcW * k
+        val dh = srcH * k
+        val dx = (this.size.width - dw) / 2
+        val dy = (if (pose.headOnly) (this.size.height - dh) / 2 else this.size.height - dh) - params.hop * k
         scale(if (flip) -1f else 1f, pop.value, pivot = androidx.compose.ui.geometry.Offset(this.size.width / 2, this.size.height)) {
-            drawImage(image, srcOffset = srcOff, srcSize = srcSize, dstOffset = IntOffset(dx, dy), dstSize = IntSize(dw, dh), filterQuality = FilterQuality.None)
+            if (rig != null && bmp != null && image != null) {
+                rig.render(params)
+                bmp.setPixels(rig.pixels, 0, RinRig.W, 0, 0, RinRig.W, RinRig.H)
+                drawImage(image, srcOffset = IntOffset(srcX, srcY), srcSize = IntSize(srcW, srcH),
+                    dstOffset = IntOffset(dx.roundToInt(), dy.roundToInt()), dstSize = IntSize(dw.roundToInt(), dh.roundToInt()), filterQuality = FilterQuality.None)
+            } else {
+                painter.accent = accent
+                drawIntoCanvas { c ->
+                    val nc = c.nativeCanvas
+                    nc.save()
+                    nc.translate(dx, dy)
+                    nc.scale(k, k)
+                    nc.translate(-srcX.toFloat(), -srcY.toFloat())
+                    painter.draw(nc, params)
+                    nc.restore()
+                }
+            }
         }
     }
 }

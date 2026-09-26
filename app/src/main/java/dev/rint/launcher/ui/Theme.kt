@@ -69,6 +69,9 @@ data class RintLook(
 
 val LocalRint = staticCompositionLocalOf<RintLook> { error("RintTheme missing") }
 
+/** Same as [LocalRint], but null outside a theme (for widgets that must render anywhere). */
+val LocalRintOrNull = staticCompositionLocalOf<RintLook?> { null }
+
 fun Long.color() = Color(this.toInt())
 fun Color.argbLong(): Long = toArgb().toLong() and 0xFFFFFFFFL
 
@@ -134,7 +137,7 @@ fun RintTheme(cfg: RintConfig, content: @Composable () -> Unit) {
             labelLarge = base.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
         ),
     ) {
-        CompositionLocalProvider(LocalRint provides look) {
+        CompositionLocalProvider(LocalRint provides look, LocalRintOrNull provides look) {
             CompositionLocalProvider(LocalBackdrop provides rememberBackdrop(), content = content)
         }
     }
