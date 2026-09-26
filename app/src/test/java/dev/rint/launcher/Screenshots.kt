@@ -1,0 +1,173 @@
+package dev.rint.launcher
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import app.cash.paparazzi.DeviceConfig
+import app.cash.paparazzi.Paparazzi
+import dev.rint.launcher.core.RintConfig
+import dev.rint.launcher.core.WallpaperMode
+import dev.rint.launcher.home.Launcher
+import dev.rint.launcher.home.LauncherState
+import dev.rint.launcher.intro.BarrageScene
+import dev.rint.launcher.intro.BootScene
+import dev.rint.launcher.intro.IntroSynth
+import dev.rint.launcher.intro.MontageScene
+import dev.rint.launcher.intro.Personalize
+import dev.rint.launcher.intro.RinScene
+import dev.rint.launcher.intro.TaglineScene
+import dev.rint.launcher.intro.WordmarkScene
+import dev.rint.launcher.music.MusicPlayerScreen
+import dev.rint.launcher.music.NowPlaying
+import dev.rint.launcher.music.Source
+import dev.rint.launcher.music.Track
+import dev.rint.launcher.settings.Presets
+import dev.rint.launcher.settings.SettingsScreen
+import dev.rint.launcher.ui.Panel
+import dev.rint.launcher.ui.RintTheme
+import dev.rint.launcher.widgets.WidgetCtx
+import dev.rint.launcher.widgets.WidgetRegistry
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import org.junit.Rule
+import org.junit.Test
+
+class Screenshots {
+    @get:Rule
+    val paparazzi = Paparazzi(
+        deviceConfig = DeviceConfig.PIXEL_6,
+        theme = "android:Theme.Material.NoActionBar",
+        maxPercentDifference = 1.0,
+    )
+
+    private val wallpaperCfg = RintConfig(onboarded = true, guideSeen = true).let {
+        it.copy(look = it.look.copy(wallpaper = WallpaperMode.MESH))
+    }
+
+    private fun shot(cfg: RintConfig = wallpaperCfg, content: @Composable () -> Unit) {
+        TestEnv.install(paparazzi.context, cfg)
+        dev.rint.launcher.ui.RintSprings.reduce = true
+        paparazzi.snapshot {
+            RintTheme(RintApp.instance.stores.config.value) {
+                Box(Modifier.fillMaxSize().background(Color(0xFF03050B))) { content() }
+            }
+        }
+    }
+
+    private val bar = IntroSynth.BAR.toFloat()
+
+    @Test fun intro_1_boot() = shot { BootScene(3.3f) }
+    @Test fun intro_2_wordmark() = shot { WordmarkScene(2.6f, 0.6f) }
+    @Test fun intro_3_tagline() = shot { TaglineScene(bar * 6 + 1.6f, 0.4f) }
+    @Test fun intro_4_montage_color() = shot { MontageScene(IntroSynth.BEAT.toFloat() * 2 * 5 + 0.15f, 0.5f) }
+    @Test fun intro_5_montage_notch() = shot { MontageScene(IntroSynth.BEAT.toFloat() * 2 * 13 + 0.6f, 0.2f) }
+    @Test fun intro_6_barrage() = shot { BarrageScene(IntroSynth.BEAT.toFloat() * 5.2f, 0.7f) }
+    @Test fun intro_7_rin() = shot { RinScene(5.8f) }
+    @Test fun intro_8_personalize() = shot { Personalize {} }
+
+    @Test fun home_default() = shot(wallpaperCfg) {
+        Launcher(remember { LauncherState(CoroutineScope(Dispatchers.Unconfined)) })
+    }
+
+    @Test fun home_terminal_preset() = shot(Presets.all[1].apply(wallpaperCfg)) {
+        Launcher(remember { LauncherState(CoroutineScope(Dispatchers.Unconfined)) })
+    }
+
+    @Test fun home_candy_preset() = shot(Presets.all[3].apply(wallpaperCfg)) {
+        Launcher(remember { LauncherState(CoroutineScope(Dispatchers.Unconfined)) })
+    }
+
+    @Test fun settings_home() = shot {
+        SettingsScreen(remember { LauncherState(CoroutineScope(Dispatchers.Unconfined)).apply { settingsOpen = true } })
+    }
+
+    @Test fun settings_icons() = shot {
+        SettingsScreen(remember { LauncherState(CoroutineScope(Dispatchers.Unconfined)).apply { settingsOpen = true; settingsSection = "icons" } })
+    }
+
+    @Test fun music_player() = shot {
+        RintApp.instance.music.seedForPreview(
+            NowPlaying(Track("Pixel Heart", "Rin & The Blocks", "Launcher Nights", 214_000), playing = true, positionMs = 61_000, source = Source.APP, appPackage = "fake.4")
+        )
+        MusicPlayerScreen(onClose = {})
+    }
+
+    @Test fun music_lyrics() = shot {
+        val np = NowPlaying(Track("Pixel Heart", "Rin & The Blocks", "", 214_000), playing = true, positionMs = 20_600, source = Source.APP)
+        RintApp.instance.music.seedForPreview(np)
+        val lyrics = dev.rint.launcher.music.Lyrics(
+            listOf(
+                dev.rint.launcher.music.LyricLine(15_000, "woke up in a grid of blue"),
+                dev.rint.launcher.music.LyricLine(19_000, "every pixel points to you"),
+                dev.rint.launcher.music.LyricLine(23_000, "swipe it up and make it new"),
+                dev.rint.launcher.music.LyricLine(27_000, "this home is mine, it's true"),
+            ),
+            synced = true, source = "LRCLIB",
+        )
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF1B2F6B), Color(0xFF05070D))))) {
+            dev.rint.launcher.music.LyricsStage(np.copy(positionMs = 20_600), lyrics, false, 20_600, Modifier.fillMaxSize())
+        }
+    }
+
+    @Test fun music_break_rin_bobs() = shot {
+        val np = NowPlaying(Track("Pixel Heart", "Rin & The Blocks", "", 214_000), playing = true, positionMs = 3_000, source = Source.APP)
+        val lyrics = dev.rint.launcher.music.Lyrics(listOf(dev.rint.launcher.music.LyricLine(15_000, "woke up in a grid of blue")), synced = true, source = "LRCLIB")
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF1B2F6B), Color(0xFF05070D))))) {
+            dev.rint.launcher.music.LyricsStage(np, lyrics, false, 3_000, Modifier.fillMaxSize())
+        }
+    }
+
+    @Test fun notch_expanded() = shot {
+        RintApp.instance.music.seedForPreview(
+            NowPlaying(Track("Pixel Heart", "Rin & The Blocks", "", 214_000), playing = true, positionMs = 61_000, source = Source.APP)
+        )
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF0B1226), Color(0xFF1B2F6B))))) {
+            dev.rint.launcher.home.RintNotch(remember { LauncherState(CoroutineScope(Dispatchers.Unconfined)).apply { notchExpanded = true } }, Modifier.padding(top = 30.dp))
+        }
+    }
+
+    @Test fun widgets_gallery() = shot {
+        Column(
+            Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF0B1226), Color(0xFF1B2F6B)))).padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            val types = listOf("pet", "todo", "timer", "calc", "calendar", "battery", "dice", "counter", "torch", "weather")
+            val specs = types.mapNotNull { WidgetRegistry.find(it) }
+            Row(Modifier.fillMaxWidth().height(170.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                W(specs[0].type, 2, 2, Modifier.weight(1f)); W("timer", 2, 2, Modifier.weight(1f))
+            }
+            Row(Modifier.fillMaxWidth().height(250.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                W("todo", 2, 3, Modifier.weight(1f)); W("calc", 2, 3, Modifier.weight(1f))
+            }
+            W("calendar", 4, 3, Modifier.fillMaxWidth().height(220.dp))
+            Row(Modifier.fillMaxWidth().height(84.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                W("battery", 2, 1, Modifier.weight(1f)); W("dice", 2, 1, Modifier.weight(1f))
+            }
+            Row(Modifier.fillMaxWidth().height(84.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                W("counter", 2, 1, Modifier.weight(1f)); W("torch", 2, 1, Modifier.weight(1f))
+            }
+        }
+    }
+
+    @Composable
+    private fun W(type: String, w: Int, h: Int, modifier: Modifier) {
+        Panel(modifier, shape = RoundedCornerShape(24.dp)) {
+            WidgetRegistry.find(type)!!.content(WidgetCtx("shot-$type", w, h))
+        }
+    }
+
+}

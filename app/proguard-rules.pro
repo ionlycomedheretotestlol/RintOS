@@ -1,0 +1,4 @@
+-keepattributes *Annotation*, InnerClasses
+-keep,includedescriptorclasses class dev.rint.launcher.**$$serializer { *; }
+-keepclassmembers class dev.rint.launcher.** { *** Companion; }
+-keepclasseswithmembers class dev.rint.launcher.** { kotlinx.serialization.KSerializer serializer(...); }

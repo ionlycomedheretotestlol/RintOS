@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">RintOS</string>
+    <string name="accessibility_label">RintOS gestures</string>
+    <string name="accessibility_desc">Lets RintOS lock your screen and open recents from home-screen gestures. RintOS never reads screen content.</string>
+</resources>
