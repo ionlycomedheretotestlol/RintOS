@@ -11,6 +11,7 @@ import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.FlashlightOn
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Pets
+import androidx.compose.material.icons.rounded.Photo
 import androidx.compose.material.icons.rounded.PlusOne
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.StickyNote2
@@ -49,6 +50,7 @@ object WidgetRegistry {
     val all: List<WidgetSpec> = listOf(
         WidgetSpec("clock", "Clock", "Blocky tty clock and 6 other faces", Icons.Rounded.Schedule, listOf(4 to 2, 4 to 1, 2 to 2, 4 to 3)) { ClockWidget(it) },
         WidgetSpec("music", "Rint Music", "A real player with live synced lyrics", Icons.Rounded.MusicNote, listOf(4 to 2, 4 to 3, 2 to 2)) { MusicWidget(it) },
+        WidgetSpec("photos", "Photos", "A slideshow of pictures you love", Icons.Rounded.Photo, listOf(2 to 2, 4 to 2, 4 to 3, 2 to 3)) { PhotosWidget(it) },
         WidgetSpec("pet", "Rin", "Pet him. Feed him. He remembers.", Icons.Rounded.Pets, listOf(2 to 2, 4 to 2)) { PetWidget(it) },
         WidgetSpec("ask", "Ask Rin", "Your AI assistant, one tap away", Icons.Rounded.AutoAwesome, listOf(4 to 1, 2 to 2, 2 to 1)) { AskRinWidget(it) },
         WidgetSpec("notes", "Sticky note", "Type right on your home screen", Icons.Rounded.StickyNote2, listOf(2 to 2, 4 to 2, 2 to 3, 4 to 3)) { NotesWidget(it) },

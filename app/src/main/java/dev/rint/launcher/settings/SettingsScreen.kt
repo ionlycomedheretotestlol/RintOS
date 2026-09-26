@@ -82,6 +82,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.rint.launcher.RintApp
+import kotlinx.coroutines.launch
 import dev.rint.launcher.apps.IconPack
 import dev.rint.launcher.core.Binding
 import dev.rint.launcher.core.GestureAction
@@ -118,6 +119,15 @@ fun SettingsScreen(state: LauncherState) {
     var query by remember { mutableStateOf("") }
     var sheet by remember { mutableStateOf<String?>(null) }
     BackHandler { if (sheet != null) sheet = null else state.dismissTop() }
+    val ctx0 = LocalContext.current
+    val photoPicker = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) state.scope.launch {
+            val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { dev.rint.launcher.ui.PhotoWallpaper.save(ctx0, uri) }
+            if (ok) RintApp.instance.stores.config.update { it.copy(look = it.look.copy(wallpaper = dev.rint.launcher.core.WallpaperMode.PHOTO, photoVersion = System.currentTimeMillis())) }
+            state.say(if (ok) "wallpaper set" else "couldn't open that photo")
+        }
+    }
+    PhotoPickRequest.launch = { photoPicker.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly)) }
 
     Box(Modifier.fillMaxSize().background(look.colors.bg)) {
         AnimatedContent(
@@ -693,6 +703,13 @@ private fun Sheets(sheet: String?, state: LauncherState, close: () -> Unit) {
     when (sheet) {
         null -> return
         "wallpaper" -> { close(); SystemActions.openWallpaperPicker(ctx); return }
+        "photo" -> { close(); PhotoPickRequest.launch?.invoke(); return }
+        "live" -> {
+            close()
+            stores.config.update { it.copy(look = it.look.copy(wallpaper = dev.rint.launcher.core.WallpaperMode.SYSTEM)) }
+            runCatching { ctx.startActivity(Intent(android.app.WallpaperManager.ACTION_LIVE_WALLPAPER_CHOOSER).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            return
+        }
         "a11y" -> { close(); SystemActions.openAccessibilitySettings(ctx); return }
         "overlay" -> {
             close()
@@ -865,3 +882,7 @@ private fun ConfirmReset(state: LauncherState, close: () -> Unit) {
         }
     }
 }
+
+
+/** Lets settings rows trigger the photo picker registered by [SettingsScreen]. */
+object PhotoPickRequest { var launch: (() -> Unit)? = null }

@@ -95,6 +95,8 @@ object Schema {
             Opt.Header("Wallpaper"),
             Opt.Choice("Wallpaper", "system, or one RintOS paints for you", WallpaperMode.entries, get = { it.look.wallpaper }, set = { c, v -> c.copy(look = c.look.copy(wallpaper = v)) }),
             Opt.Choice("Artwork", "RintOS's own wallpapers (used when Wallpaper = art)", WallpaperArt.entries, get = { it.look.art }, set = { c, v -> c.copy(look = c.look.copy(art = v, wallpaper = WallpaperMode.ART)) }),
+            Opt.Action("Use my own photo", "pick any picture from your gallery", id = "photo"),
+            Opt.Action("Choose a live wallpaper", "any live wallpaper installed on your phone", id = "live"),
             Opt.Action("Pick system wallpaper", id = "wallpaper"),
             Opt.ColorPick("Solid color", get = { it.look.solidColor }, set = { c, v -> c.copy(look = c.look.copy(solidColor = v)) }),
             Opt.ColorPick("Gradient start", get = { it.look.gradientA }, set = { c, v -> c.copy(look = c.look.copy(gradientA = v)) }),
