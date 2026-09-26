@@ -23,14 +23,9 @@ import dev.rint.launcher.core.RintConfig
 import dev.rint.launcher.core.WallpaperMode
 import dev.rint.launcher.home.Launcher
 import dev.rint.launcher.home.LauncherState
-import dev.rint.launcher.intro.BarrageScene
-import dev.rint.launcher.intro.BootScene
 import dev.rint.launcher.intro.IntroSynth
-import dev.rint.launcher.intro.MontageScene
+import dev.rint.launcher.intro.Film
 import dev.rint.launcher.intro.Personalize
-import dev.rint.launcher.intro.RinScene
-import dev.rint.launcher.intro.TaglineScene
-import dev.rint.launcher.intro.WordmarkScene
 import dev.rint.launcher.music.MusicPlayerScreen
 import dev.rint.launcher.music.NowPlaying
 import dev.rint.launcher.music.Source
@@ -81,13 +76,19 @@ class Screenshots {
         }
     }
 
-    @Test fun intro_1_boot() = shot { BootScene(3.3f) }
-    @Test fun intro_2_wordmark() = shot { WordmarkScene(2.6f, 0.6f) }
-    @Test fun intro_3_tagline() = shot { TaglineScene(bar * 6 + 1.6f, 0.4f) }
-    @Test fun intro_4_montage_color() = shot { MontageScene(IntroSynth.BEAT.toFloat() * 2 * 5 + 0.15f, 0.5f) }
-    @Test fun intro_5_montage_notch() = shot { MontageScene(IntroSynth.BEAT.toFloat() * 2 * 13 + 0.6f, 0.2f) }
-    @Test fun intro_6_barrage() = shot { BarrageScene(IntroSynth.BEAT.toFloat() * 5.2f, 0.7f) }
-    @Test fun intro_7_rin() = shot { RinScene(5.8f) }
+    private fun film(t: Float) = shot { Film { t } }
+    @Test fun intro_0_heart() = film(1.02f)
+    @Test fun intro_1_boot() = film(bar * 2 + 3.3f)
+    @Test fun intro_2_wordmark() = film(bar * 4 + 2.6f)
+    @Test fun intro_3_tagline() = film(bar * 7 + 1.7f)
+    @Test fun intro_3b_countdown() = film(bar * 9 + 0.55f)
+    @Test fun intro_4_montage_color() = film(bar * 10 + 5.15f)
+    @Test fun intro_5_montage_notch() = film(bar * 10 + 13.6f)
+    @Test fun intro_6_barrage() = film(bar * 18 + 2.6f)
+    @Test fun intro_6b_warp() = film(bar * 21 + 0.8f)
+    @Test fun intro_6c_silence() = film(bar * 22 + 0.5f)
+    @Test fun intro_7_rin() = film(bar * 23 + 3.0f)
+    @Test fun intro_7b_landing() = film(bar * 23 + 0.5f)
     @Test fun intro_8_personalize() = shot { Personalize {} }
 
     @Test fun home_default() = shot(wallpaperCfg) {

@@ -16,7 +16,7 @@ A deeply customizable Android launcher with a pixel-art roommate named **Rin**.
   - Voice: speech-to-text uses Android's built-in recognizer (free, no key). Rin's voice uses Gemini's TTS models with a Gemini API key (free tier), with Android's offline voice as a fallback engine.
   - API keys are stored only on the phone, never included in exports, and the app opts out of cloud backup.
 - **Settings**: 168 options in grouped lists, a live preview, one-tap presets, search, and export/import of your whole setup.
-- **Intro**: a synthesized soundtrack (generated live, no audio files) driving a 24-bar launch film, a "make it yours" step, and a finale that turns into a START button. Then permissions and a guided tour from Rin.
+- **Intro**: a synthesized soundtrack (generated live, no audio files) driving a 27-bar stereo launch film (heartbeat, BRAAMs, countdown, drop, a moment of silence, and Rin landing), a "make it yours" step, and a finale that turns into a START button. Then permissions and a guided tour from Rin.
 - **Stability**: ambient animations run on a lifecycle-aware clock, so they freeze whenever the screen is off, the app is in the background, or something covers them.
 
 ## Build
