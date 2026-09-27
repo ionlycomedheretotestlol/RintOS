@@ -32,6 +32,8 @@ data class Track(
     val durationMs: Long = 0,
     val artUrl: String? = null,
     val localUri: Uri? = null,
+    /** A direct full-length stream (e.g. an Audius search result): plays with no source hunting. */
+    val streamUrl: String? = null,
 )
 
 enum class Source { NONE, LOCAL, APP, STREAM }
@@ -113,7 +115,13 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
 
     private fun pendingAppPackage(): String? = _now.value?.appPackage
 
+    /** True while RintOS itself is playing (or starting) a song. */
+    private val ownPlayback: Boolean
+        get() = _now.value?.source.let { it == Source.LOCAL || it == Source.STREAM } && (player != null || streamJob?.isActive == true)
+
     private fun syncFromController() {
+        // another app's session (e.g. the one we just paused) reports its old song: ignore it while we play ours
+        if (ownPlayback) return
         val c = controller ?: return
         val md = c.metadata ?: return
         val st = c.playbackState
@@ -150,6 +158,7 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
 
     /** Stops whatever is playing and returns the widget to search. */
     fun stop() {
+        request++
         waitJob?.cancel()
         streamJob?.cancel()
         pendingSearch = null
@@ -205,29 +214,48 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
     }
 
     private var streamJob: Job? = null
+    /** Bumped for every new play/stop, so an older attempt can tell it's been replaced. */
+    private var request = 0
 
     /** Tries each source in [MusicSources] until one actually plays. */
     private fun playStream(track: Track) {
         stopLocal()
         controller?.transportControls?.pause()
         _now.value = NowPlaying(track = track, source = Source.STREAM, waiting = true, via = "finding a source…")
+        val req = ++request
         streamJob?.cancel()
         streamJob = scope.launch {
+            val tried = ArrayList<String>()
+            // picked straight from a full-song search result: just play it
+            track.streamUrl?.let { url ->
+                _now.value = _now.value?.copy(via = "Audius (full song)")
+                val ok = kotlinx.coroutines.CompletableDeferred<Boolean>()
+                playUrl(track, Uri.parse(url), Source.STREAM, onResult = { ok.complete(it) })
+                val started = kotlinx.coroutines.withTimeoutOrNull(15_000) { ok.await() } ?: false
+                if (request != req) return@launch
+                if (started) { _now.value = _now.value?.copy(waiting = false); return@launch }
+                tried += "Audius: couldn't play"
+                stopLocal()
+            }
             for (src in MusicSources.all) {
-                if (_now.value?.track != track) return@launch
+                if (request != req) return@launch
                 _now.value = _now.value?.copy(via = "trying ${src.name}…")
-                val hit = runCatching { src.find(track) }.getOrNull() ?: continue
+                val hit = runCatching { src.find(track) }.getOrNull()
+                if (hit == null) { tried += "${src.name}: not found"; continue }
                 val ok = kotlinx.coroutines.CompletableDeferred<Boolean>()
                 playUrl(track, Uri.parse(hit.url), Source.STREAM, onResult = { ok.complete(it) })
                 val started = kotlinx.coroutines.withTimeoutOrNull(15_000) { ok.await() } ?: false
-                if (started && _now.value?.track == track) {
-                    _now.value = _now.value?.copy(via = src.name, preview = hit.preview,
+                if (request != req) return@launch
+                if (started) {
+                    _now.value = _now.value?.copy(via = src.name, preview = hit.preview, waiting = false,
                         track = if (hit.durationMs > 0) track.copy(durationMs = hit.durationMs) else track)
                     return@launch
                 }
+                tried += "${src.name}: couldn't play"
                 stopLocal()
             }
-            if (_now.value?.track == track) _now.value = _now.value?.copy(waiting = false, playing = false, via = "no source had this song. try “open in my music app”.")
+            if (request == req) _now.value = _now.value?.copy(waiting = false, playing = false,
+                via = "couldn't play this one (${tried.joinToString("; ")}). check your internet, or open it in your music app.")
         }
     }
 
@@ -270,6 +298,8 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
     }
 
     private fun playLocal(track: Track) {
+        request++
+        streamJob?.cancel()
         stopLocal()
         _now.value = NowPlaying(track = track, source = Source.LOCAL, waiting = true, via = "this phone")
         playUrl(track, track.localUri!!, Source.LOCAL, onResult = { if (!it) _now.value = null })
@@ -280,7 +310,7 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
         controller?.transportControls?.pause()
         val p = MediaPlayer()
         player = p
-        if (_now.value?.track != track) _now.value = NowPlaying(track = track, source = source, waiting = true)
+        if (_now.value?.source != source) _now.value = NowPlaying(track = track, source = source, waiting = true)
         p.setAudioAttributes(android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_MEDIA).setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC).build())
         p.setOnPreparedListener { it.start(); publishLocal(); onResult(true) }
         p.setOnCompletionListener { publishLocal() }
@@ -403,4 +433,27 @@ object MusicSources {
     }
 
     val all: List<MusicSource> = listOf(AudiusSource(strict = true), Deezer, Apple, AudiusSource(strict = false))
+
+    /** Full-length tracks from Audius for a free-text query (shown in search as "FULL"). */
+    suspend fun audiusSearch(q: String, limit: Int = 6): List<Track> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        if (q.isBlank()) return@withContext emptyList()
+        runCatching {
+            val host = get("https://api.audius.co")?.let { org.json.JSONObject(it).getJSONArray("data").getString(0) } ?: return@runCatching emptyList()
+            val body = get("$host/v1/tracks/search?query=${enc(q)}&app_name=RintOS") ?: return@runCatching emptyList()
+            val arr = org.json.JSONObject(body).getJSONArray("data")
+            (0 until minOf(arr.length(), limit)).mapNotNull { i ->
+                val o = arr.getJSONObject(i)
+                if (o.has("is_streamable") && !o.optBoolean("is_streamable", true)) return@mapNotNull null
+                val art = o.optJSONObject("artwork")?.let { a -> a.optString("480x480").ifBlank { a.optString("150x150") } }?.takeIf { it.isNotBlank() }
+                Track(
+                    title = o.optString("title"),
+                    artist = o.optJSONObject("user")?.optString("name").orEmpty(),
+                    album = "full song · Audius",
+                    durationMs = o.optLong("duration") * 1000,
+                    artUrl = art,
+                    streamUrl = "$host/v1/tracks/${o.getString("id")}/stream?app_name=RintOS",
+                )
+            }
+        }.getOrDefault(emptyList())
+    }
 }

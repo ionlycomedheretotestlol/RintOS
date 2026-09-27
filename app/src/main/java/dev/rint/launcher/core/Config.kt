@@ -267,6 +267,8 @@ data class MusicCfg(
     val preferredApp: String? = null,
     val offsetMs: Long = 0,
     val kenBurns: Boolean = true,
+    /** Settings format version for the music section (2 = streaming became the default). */
+    val version: Int = 0,
 )
 
 enum class LockStyle { CLASSIC, BLOCKS, STACKED, WORDS, ANALOG, TERMINAL, MINIMAL, POSTER, MUSIC, RIN }

@@ -28,6 +28,10 @@ class RintApp : Application() {
         instance = this
         CrashLog.install(this)
         stores = Stores(filesDir, scope)
+        // pre-1.3.1 configs saved "play songs with: my music app" as a default; move them to streaming once
+        if (stores.config.value.music.version < 2) {
+            stores.config.update { it.copy(music = it.music.copy(playVia = dev.rint.launcher.core.PlayVia.STREAM, version = 2)) }
+        }
         apps = AppRepository(this, scope)
         apps.setRenames(stores.config.value.renamedApps)
         apps.setIconPack(stores.config.value.icons.iconPack)

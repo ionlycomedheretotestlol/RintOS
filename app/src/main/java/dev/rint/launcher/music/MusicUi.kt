@@ -256,7 +256,7 @@ private fun WidgetSearch(ctx: WidgetCtx) {
                     Spacer(Modifier.width(8.dp))
                     Column(Modifier.weight(1f)) {
                         Text(t.title, color = look.colors.text, fontFamily = look.font, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(t.artist, color = look.colors.subtext, fontFamily = look.font, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(t.artist + if (t.streamUrl != null) " · full song" else "", color = look.colors.subtext, fontFamily = look.font, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
@@ -724,7 +724,7 @@ private fun MusicSearchSheet(onPick: (Track) -> Unit, onClose: () -> Unit) {
         }
         if (busy) Text("searching…", color = Color.White.copy(alpha = 0.5f), fontFamily = RintFonts.Pixel, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 20.dp))
         LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 40.dp)) {
-            items(results, key = { "${it.title}|${it.artist}|${it.localUri}" }) { t ->
+            items(results, key = { "${it.title}|${it.artist}|${it.localUri}|${it.streamUrl}" }) { t ->
                 Row(
                     Modifier.fillMaxWidth().clickable { pick(t) }.padding(horizontal = 20.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -737,7 +737,8 @@ private fun MusicSearchSheet(onPick: (Track) -> Unit, onClose: () -> Unit) {
                         Text(t.title, color = Color.White, fontFamily = look.font, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(listOf(t.artist, t.album).filter { it.isNotBlank() }.joinToString(" · "), color = Color.White.copy(alpha = 0.6f), fontFamily = look.font, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                    if (t.localUri != null) Icon(Icons.Rounded.PhoneAndroid, "on device", tint = look.colors.accent, modifier = Modifier.size(18.dp))
+                    if (t.streamUrl != null) Text("FULL", color = look.colors.accent, fontFamily = RintFonts.Pixel, fontSize = 9.sp)
+                    else if (t.localUri != null) Icon(Icons.Rounded.PhoneAndroid, "on device", tint = look.colors.accent, modifier = Modifier.size(18.dp))
                     else Icon(Icons.Rounded.GraphicEq, null, tint = Color.White.copy(alpha = 0.4f), modifier = Modifier.size(18.dp))
                 }
             }

@@ -187,7 +187,9 @@ object LyricsService {
 object MusicSearch {
     suspend fun search(ctx: Context, q: String): List<Track> = withContext(Dispatchers.IO) {
         if (q.isBlank()) return@withContext emptyList()
-        local(ctx, q) + catalog(q)
+        // phone files first, then the official catalog, then full-length songs from Audius
+        val full = MusicSources.audiusSearch(q)
+        local(ctx, q) + catalog(q) + full
     }
 
     private fun catalog(q: String): List<Track> = runCatching {

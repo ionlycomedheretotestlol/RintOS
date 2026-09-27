@@ -80,4 +80,15 @@ class LogicTest {
         assertEquals("quarter to three", timeInWords(14, 44))
         assertEquals("twelve o'clock", timeInWords(0, 1))
     }
+
+    @Test fun oldConfigsGetStreamingMusic() {
+        // a 1.0-era config: music section saved with "APP" and no version field
+        val old = """{"onboarded":true,"music":{"playVia":"APP","lyricsSize":30.0}}"""
+        val cfg = dev.rint.launcher.core.RintJson.decodeFromString(dev.rint.launcher.core.RintConfig.serializer(), old)
+        org.junit.Assert.assertEquals(0, cfg.music.version)
+        org.junit.Assert.assertEquals(dev.rint.launcher.core.PlayVia.APP, cfg.music.playVia)
+        // the retired YOUTUBE value falls back to streaming instead of breaking the config
+        val yt = dev.rint.launcher.core.RintJson.decodeFromString(dev.rint.launcher.core.RintConfig.serializer(), """{"music":{"playVia":"YOUTUBE"}}""")
+        org.junit.Assert.assertEquals(dev.rint.launcher.core.PlayVia.STREAM, yt.music.playVia)
+    }
 }

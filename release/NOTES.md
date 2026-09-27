@@ -13,4 +13,6 @@ The real one. RintOS is the Android launcher you can make completely yours, with
 
 **Update:** the 3D scenes now actually render (a bridge bug made them silently fall back to 2D), and the intro has its own new song. If 3D ever can't start on a phone, the reason now shows up in the crash report.
 
+**Music fix:** songs now actually play. Older versions had saved "play songs with: my music app" in your settings, and pausing your other music app made RintOS drop its own stream; both are fixed, and it now tells you exactly why if a song can't play. Search also shows full-length songs from Audius (marked FULL) that play instantly.
+
 Made by Carrot.
