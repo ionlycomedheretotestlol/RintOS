@@ -117,6 +117,12 @@ fun RintNotch(state: LauncherState, modifier: Modifier = Modifier, fullWidth: Bo
     val top by animateDpAsState(if (attached && !expanded) 0.dp else n.offsetY.dp, RintSprings.pop(), label = "t")
     val bg = n.color.color()
 
+    androidx.compose.runtime.LaunchedEffect(Unit) { NotchSound.warm(ctx) }
+    val first = androidx.compose.runtime.remember { booleanArrayOf(true) }
+    androidx.compose.runtime.LaunchedEffect(expanded) {
+        if (first[0]) { first[0] = false; return@LaunchedEffect }
+        if (n.sounds) NotchSound.play(ctx, expanded)
+    }
     Box((if (fullWidth) modifier.fillMaxWidth() else modifier).padding(top = top), contentAlignment = Alignment.TopCenter) {
         Box(
             Modifier

@@ -206,6 +206,7 @@ data class Notch(
     val liveActivity: Boolean = true,
     val expandOnTap: Boolean = true,
     val everywhere: Boolean = true,
+    val sounds: Boolean = true,
 )
 
 enum class ClockStyle { BLOCKS, THIN, STACKED, WORDS, ANALOG, PIXEL, NONE }

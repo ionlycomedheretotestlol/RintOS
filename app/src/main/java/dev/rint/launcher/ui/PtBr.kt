@@ -358,6 +358,7 @@ internal object PtBr {
         put("Width", "Largura"); put("Distance from top", "Distância do topo"); put("Accent glow", "Brilho de destaque")
         put("Left side", "Lado esquerdo"); put("Right side", "Lado direito"); put("Live activity", "Atividade ao vivo")
         put("grows with artwork + equalizer while music plays", "cresce com capa + equalizador enquanto a música toca"); put("Tap to expand", "Tocar pra expandir")
+        put("Open & close sounds", "Sons ao abrir e fechar"); put("quiet while music plays or the phone is on silent", "fica quieto com música tocando ou no silencioso")
         put("Show in every app", "Mostrar em todos os apps"); put("the notch floats over other apps too (needs \"display over other apps\")", "o notch flutua sobre outros apps também (precisa de \"sobrepor outros apps\")")
         put("Clock", "Relógio"); put("tty blocks & 6 more faces", "blocos tty e mais 6 estilos"); put("Face", "Estilo")
         put("Seconds", "Segundos"); put("Blinking colon", "Dois-pontos piscando"); put("Show date", "Mostrar data"); put("Date format", "Formato da data")
