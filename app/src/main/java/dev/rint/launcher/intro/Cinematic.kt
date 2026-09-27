@@ -290,7 +290,7 @@ private fun GameScene(time: () -> Float) {
             val y = feet - sprite + (maxHeight * 0.3f - feet + sprite * 0.5f) * fly
             val gone = clamp01((t - shatter - 1.8f) / 0.8f)
             RinSprite(
-                if (t < shatter) Pose.CHEER else Pose.CELEBRATE, sprite, forcePixel = false,
+                if (t < shatter) Pose.CHEER else Pose.CELEBRATE, sprite, forcePixel = true,
                 modifier = Modifier.offset(x, y).graphicsLayer { alpha = 1f - gone; scaleX = 1f - 0.6f * gone; scaleY = scaleX; translationY = -gone * 400f },
             )
         }
@@ -597,7 +597,7 @@ private val memories = listOf("exam on friday", "loves purple", "plays guitar", 
 private fun MemoryDemo(lt: Float) {
     Column(Modifier.fillMaxSize().background(Color(0xFF101119)).padding(26.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.height(50.dp))
-        RinSprite(if ((lt / BEAT).toInt() % 2 == 0) Pose.NOD else Pose.HAPPY, 150.dp, forcePixel = false)
+        RinSprite(if ((lt / BEAT).toInt() % 2 == 0) Pose.NOD else Pose.HAPPY, 150.dp, forcePixel = true)
         Spacer(Modifier.height(20.dp))
         if (lt > 0.3f) ChatBubble("remember my exam is on friday", true, lt - 0.3f)
         if (lt > 0.9f) ChatBubble("got it. you've got this.", false, lt - 0.9f)
@@ -763,7 +763,7 @@ private fun ColorDemo(lt: Float) {
     val cfg = look.cfg.copy(look = look.cfg.look.copy(accent = c.toArgb().toLong() and 0xFFFFFFFFL))
     Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
         MockPhone(cfg, width = 390.dp)
-        RinSprite(Pose.DANCE, 170.dp, Modifier.align(Alignment.BottomEnd).padding(end = 10.dp, bottom = 120.dp), accentOverride = c.toArgb())
+        RinSprite(Pose.DANCE, 170.dp, Modifier.align(Alignment.BottomEnd).padding(end = 10.dp, bottom = 120.dp), accentOverride = c.toArgb(), forcePixel = true)
     }
 }
 
@@ -788,7 +788,7 @@ private fun StarsScene(time: () -> Float) {
             }
             drawPath(p, Color(0xFF05060C))
         }
-        RinSprite(Pose.BACK, 130.dp, Modifier.align(Alignment.BottomCenter).padding(bottom = 180.dp), forcePixel = false)
+        RinSprite(Pose.BACK, 130.dp, Modifier.align(Alignment.BottomCenter).padding(bottom = 180.dp), forcePixel = true)
         Text(
             starLines[j], fontFamily = RintFonts.Inter, fontWeight = FontWeight.Black, fontSize = 30.sp, color = Color.White, textAlign = TextAlign.Center,
             modifier = Modifier.align(Alignment.Center).padding(bottom = 180.dp).graphicsLayer {
@@ -842,10 +842,10 @@ private fun ShowScene(time: () -> Float) {
         // Rin, center stage, and his reflection on the floor
         Column(Modifier.align(Alignment.Center).padding(bottom = 60.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Box(Modifier.graphicsLayer { val s = easeOutBack(pt / 0.25f); scaleX = 0.8f + 0.2f * s; scaleY = scaleX }) {
-                RinSprite(pose, 230.dp, timeOffset = pt, forcePixel = false)
+                RinSprite(pose, 230.dp, timeOffset = pt, forcePixel = true)
             }
             Box(Modifier.graphicsLayer { scaleY = -0.5f; alpha = 0.18f; transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0f) }) {
-                RinSprite(pose, 230.dp, timeOffset = pt, forcePixel = false)
+                RinSprite(pose, 230.dp, timeOffset = pt, forcePixel = true)
             }
         }
         Text(label, fontFamily = RintFonts.Inter, fontWeight = FontWeight.Black, fontSize = if (i == showPoses.size - 1) 34.sp else 30.sp, color = Color.White,
