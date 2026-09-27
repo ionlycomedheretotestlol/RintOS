@@ -39,6 +39,7 @@ import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Icon
+import dev.rint.launcher.ui.RawText
 import dev.rint.launcher.ui.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -289,12 +290,12 @@ private fun MusicLock(now: Calendar) {
         Spacer(Modifier.height(16.dp))
         Box(Modifier.size(250.dp).clip(RoundedCornerShape(30.dp))) { Artwork(np, Modifier.fillMaxSize()) }
         Spacer(Modifier.height(16.dp))
-        Text(np?.track?.title ?: "nothing playing", color = Color.White, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 20.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(np?.track?.artist ?: "play something from the music widget", color = Color.White.copy(alpha = 0.65f), fontFamily = look.font, fontSize = 14.sp, maxLines = 1)
+        RawText(np?.track?.title ?: dev.rint.launcher.ui.I18n.t("nothing playing"), color = Color.White, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 20.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        RawText(np?.track?.artist ?: dev.rint.launcher.ui.I18n.t("play something from the music widget"), color = Color.White.copy(alpha = 0.65f), fontFamily = look.font, fontSize = 14.sp, maxLines = 1)
         Spacer(Modifier.height(12.dp))
         val line = lyrics?.let { it.lines.getOrNull(it.indexAt(pos))?.text }
         if (lyrics?.isBreak(pos) == true && np?.playing == true) BobbingHead(true, 48.dp)
-        else Text(line ?: "♪", color = look.colors.accent, fontFamily = lyricFont(look.cfg.music.lyricsFont, look.font), fontSize = 24.sp, textAlign = TextAlign.Center)
+        else RawText(line ?: "♪", color = look.colors.accent, fontFamily = lyricFont(look.cfg.music.lyricsFont, look.font), fontSize = 24.sp, textAlign = TextAlign.Center)
         if (np != null) PlayerButtons(np!!.playing)
     }
 }
@@ -338,8 +339,8 @@ private fun MiniPlayer() {
         Box(Modifier.size(44.dp).clip(RoundedCornerShape(10.dp))) { Artwork(cur, Modifier.fillMaxSize()) }
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
-            Text(cur.track.title, color = Color.White, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(cur.track.artist, color = Color.White.copy(alpha = 0.65f), fontFamily = look.font, fontSize = 12.sp, maxLines = 1)
+            RawText(cur.track.title, color = Color.White, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            RawText(cur.track.artist, color = Color.White.copy(alpha = 0.65f), fontFamily = look.font, fontSize = 12.sp, maxLines = 1)
         }
         Icon(if (cur.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, null, tint = Color.White,
             modifier = Modifier.size(34.dp).pressable(PressEffect.BOUNCE) { RintApp.instance.music.toggle() })

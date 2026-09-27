@@ -9,6 +9,10 @@ import android.view.View
 /** Classic-View Rin for places without Compose (the accessibility overlay bubble). */
 class RinView(context: Context) : View(context), Choreographer.FrameCallback {
     private val painter = RinPainter()
+    private val rig = RinRig()
+    private val bmp = android.graphics.Bitmap.createBitmap(RinRig.W, RinRig.H, android.graphics.Bitmap.Config.ARGB_8888)
+    private val px = android.graphics.Paint().apply { isFilterBitmap = false }
+    private val pixelStyle get() = runCatching { dev.rint.launcher.RintApp.instance.stores.config.value.mascot.style == dev.rint.launcher.core.MascotStyle.PIXEL }.getOrDefault(true)
     private val params = RinParams()
     var accent: Int = 0xFF3B7CFF.toInt()
     private val src = Rect(RinRig.HEAD_X, RinRig.HEAD_Y, RinRig.HEAD_X + RinRig.HEAD_W, RinRig.HEAD_Y + RinRig.HEAD_H)
@@ -46,8 +50,15 @@ class RinView(context: Context) : View(context), Choreographer.FrameCallback {
         canvas.translate((width - w) / 2, (height - h) / 2)
         canvas.scale(k, k)
         canvas.translate(-src.left.toFloat(), -src.top.toFloat())
-        painter.accent = accent
-        painter.draw(canvas, params)
+        if (pixelStyle) {
+            rig.accent = accent
+            rig.render(params)
+            bmp.setPixels(rig.pixels, 0, RinRig.W, 0, 0, RinRig.W, RinRig.H)
+            canvas.drawBitmap(bmp, 0f, 0f, px)
+        } else {
+            painter.accent = accent
+            painter.draw(canvas, params)
+        }
         canvas.restore()
     }
 }

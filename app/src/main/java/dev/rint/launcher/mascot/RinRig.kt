@@ -8,7 +8,7 @@ import kotlin.math.min
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-enum class Eyes { OPEN, HAPPY, CLOSED, SHOCK, MEH, HEART, STAR }
+enum class Eyes { OPEN, HAPPY, CLOSED, SHOCK, MEH, HEART, STAR, SAD, ANGRY, WINK }
 enum class Stance { STAND, SIT, HEAD, PEEK }
 
 /** Everything that can move on Rin. Units are sprite pixels / radians. */
@@ -37,8 +37,18 @@ class RinParams {
     var hop = 0f            // whole-sprite lift, applied when drawing (keeps the jump inside the frame)
     var guitar = false
     var strum = 0f
+    // little effects around him
+    var tears = false
+    var steam = false
+    var notes = false
+    var zzz = false
+    var sparkles = false
+    var food = false
+    var spinX = 1f          // horizontal squeeze for spins (1 = normal, -1 = turned around)
+    var time = 0f
     fun reset() {
         hop = 0f; guitar = false; strum = 0f
+        tears = false; steam = false; notes = false; zzz = false; sparkles = false; food = false; spinX = 1f
         stance = Stance.STAND; eyes = Eyes.OPEN; eyeOpen = 1f; lookX = 0f; lookY = 0f; mouth = 0f
         headX = 0f; headY = 0f; tilt = 0f; bodyY = 0f; squash = 1f; earL = 0f; earR = 0f; tail = 0f
         legL = 0f; legR = 0f; armL = 0f; armR = 0f; armWave = 0f; blush = 0f; sweat = false
@@ -65,8 +75,10 @@ class RinRig {
         private val OUTLINE = argb(0xFF0B0F24)
         private val FUR = argb(0xFFFFFFFF)
         private val FUR_SHADE = argb(0xFFCBD5F2)
-        private val BLUE = argb(0xFF3B7CFF)
-        private val BLUE_LIGHT = argb(0xFF7FB0FF)
+        private val WOOD = argb(0xFF6B3F22)
+        private val STEAM = argb(0xFFD7DCEA)
+        private val TEAR = argb(0xFF8EC5FF)
+        private val FOOD = argb(0xFFFFA24A)
         private val EYE = argb(0xFF0B0F24)
         private val HOOD = argb(0xFF1E2233)
         private val HOOD_SHADE = argb(0xFF141722)
@@ -79,6 +91,18 @@ class RinRig {
 
         private fun argb(v: Long) = v.toInt()
     }
+
+    /** Ear insides, tail tip, zipper: follows the user's accent. */
+    var accent: Int = 0xFF3B7CFF.toInt()
+        set(v) { field = v; BLUE = v or 0xFF000000.toInt(); BLUE_LIGHT = mix(BLUE, 0xFFFFFFFF.toInt(), 0.4f) }
+    private var BLUE = argb(0xFF3B7CFF)
+    private var BLUE_LIGHT = argb(0xFF7FB0FF)
+    private fun mix(a: Int, b: Int, k: Float): Int {
+        fun ch(s: Int) = (((a shr s) and 0xff) * (1 - k) + ((b shr s) and 0xff) * k).toInt() shl s
+        return (0xFF shl 24) or ch(16) or ch(8) or ch(0)
+    }
+    private var hcx = 24f
+    private var hcy = 20f
 
     val pixels = IntArray(W * H)
     private val scratch = IntArray(W * H)
@@ -112,8 +136,8 @@ class RinRig {
     fun render(p: RinParams) {
         pixels.fill(CLEAR)
         when (p.stance) {
-            Stance.STAND -> { tail(p, 15f, 46.5f); body(p, 0f); legs(p); arms(p, 0f); head(p, 24f + p.headX, 20f + p.headY + p.bodyY) }
-            Stance.SIT -> { tailSit(p); bodySit(p); arms(p, 5f); head(p, 24f + p.headX, 25f + p.headY + p.bodyY) }
+            Stance.STAND -> { tail(p, 15f, 46.5f); body(p, 0f); legs(p); if (p.guitar) guitar(p, 0f); arms(p, 0f); head(p, 24f + p.headX, 20f + p.headY + p.bodyY) }
+            Stance.SIT -> { tailSit(p); bodySit(p); if (p.guitar) guitar(p, 5f); arms(p, 5f); head(p, 24f + p.headX, 25f + p.headY + p.bodyY) }
             Stance.HEAD, Stance.PEEK -> head(p, 24f + p.headX, 20f + p.headY)
         }
         if (p.stance == Stance.PEEK) {
@@ -122,6 +146,60 @@ class RinRig {
         if (p.squash != 1f) squash(p.squash)
         outline()
         if (p.sweat) { put(37, 6, BLUE_LIGHT); put(37, 7, BLUE); put(36, 8, BLUE); put(37, 8, BLUE); put(38, 8, BLUE); put(37, 9, BLUE) }
+        effects(p)
+    }
+
+    private fun guitar(p: RinParams, dy: Float) {
+        val by = p.bodyY + dy
+        for (y in 0 until H) for (x in 0 until W) {
+            val fx = x + 0.5f; val fy = y + 0.5f
+            if (inEllipse(fx, fy, 28f, 43f + by, 4f, 3.4f) || inEllipse(fx, fy, 24.5f, 42f + by, 2.8f, 2.6f)) {
+                pixels[y * W + x] = if (inEllipse(fx, fy, 26.5f, 42.5f + by, 1.1f, 1.1f)) OUTLINE else BLUE
+            } else if (segDist(fx, fy, 23f, 42f + by, 7f, 36.5f + by) < 0.8f) pixels[y * W + x] = WOOD
+        }
+        // strings shimmer while strumming
+        if (p.strum > 0.5f) for (x in 12..22) put(x, (38.2f + (x - 12) * 0.34f + by).toInt(), FUR)
+    }
+
+    /** Tears, steam, music notes, z's, sparkles, snacks: drawn on top in pixel form. */
+    private fun effects(p: RinParams) {
+        val t = p.time
+        val ex = 5.6f
+        if (p.tears) for (side in listOf(-1f, 1f)) {
+            val fall = (t * 7f + if (side > 0) 2.5f else 0f) % 7f
+            val x = (hcx + side * (ex + 1f)).toInt(); val y = (hcy + 4f + fall).toInt()
+            put(x, y, TEAR); put(x, y + 1, TEAR)
+            put((hcx + side * ex).toInt(), (hcy + 3.5f).toInt(), TEAR)
+        }
+        if (p.steam) for (i in 0..1) {
+            val ph = (t * 1.6f + i * 0.5f) % 1f
+            val side = if (i == 0) -1f else 1f
+            val cx = (hcx + side * (9f + ph * 2f)).toInt(); val cy = (hcy - 13f - ph * 7f).toInt()
+            if (ph < 0.85f) { put(cx, cy, STEAM); put(cx + 1, cy, STEAM); put(cx, cy - 1, STEAM); put(cx - 1, cy, STEAM); put(cx, cy + 1, STEAM) }
+        }
+        if (p.notes) for (i in 0..1) {
+            val ph = (t * 0.7f + i * 0.5f) % 1f
+            val x = (hcx + 13f + ph * 4f + sin(ph * 12f) * 1.2f).toInt(); val y = (hcy - 6f - ph * 14f).toInt()
+            if (y >= 1) { put(x, y, BLUE); put(x, y + 1, BLUE); put(x, y + 2, BLUE); put(x - 1, y + 2, BLUE); put(x - 1, y + 3, BLUE); put(x + 1, y, BLUE) }
+        }
+        if (p.zzz) for (i in 0..2) {
+            val ph = (t * 0.5f + i / 3f) % 1f
+            val x = (hcx + 11f + ph * 6f).toInt(); val y = (hcy - 8f - ph * 12f).toInt()
+            val c = if (ph < 0.8f) STEAM else CLEAR
+            if (c != CLEAR && y >= 0) { put(x, y, c); put(x + 1, y, c); put(x + 1, y + 1, c); put(x, y + 2, c); put(x, y + 2, c); put(x + 1, y + 2, c) }
+        }
+        if (p.sparkles) for (i in 0..3) {
+            val ph = (t * 1.3f + i * 0.25f) % 1f
+            if (ph > 0.6f) continue
+            val a = i * 1.7f + 0.4f
+            val x = (hcx + cos(a) * 17f).toInt(); val y = (hcy + sin(a) * 13f - 2f).toInt()
+            put(x, y, STAR); put(x - 1, y, STAR); put(x + 1, y, STAR); put(x, y - 1, STAR); put(x, y + 1, STAR)
+        }
+        if (p.food) {
+            val x = hcx.toInt() + 3; val y = (hcy + 9f).toInt()
+            for (dx in 0..2) for (dy in 0..1) put(x + dx, y + dy, FOOD)
+            if ((t * 4f).toInt() % 2 == 0) put(x + 4, y + 2, FOOD)
+        }
     }
 
     /** Fills pixels for which [test] holds; [shade] picks fur shading. */
@@ -133,6 +211,7 @@ class RinRig {
 
     // ── head ───────────────────────────────────────────────
     private fun head(p: RinParams, hcx: Float, hcy: Float) {
+        this.hcx = hcx; this.hcy = hcy
         val c = cos(-p.tilt); val s = sin(-p.tilt)
         val y0 = max(0, (hcy - 24).toInt()); val y1 = min(H - 1, (hcy + 14).toInt())
         val x0 = max(0, (hcx - 22).toInt()); val x1 = min(W - 1, (hcx + 22).toInt())
@@ -188,7 +267,19 @@ class RinRig {
         val cx = ex + p.lookX * 1.3f
         val cy = 0.9f + p.lookY * 1.1f
         val dx = lx - cx; val dy = ly - cy
+        val side = if (ex < 0) -1f else 1f
         when (p.eyes) {
+            Eyes.WINK -> return if (side > 0) {
+                val v = dy - 0.25f * dx * dx / 2.5f - 1.0f
+                if (abs(dx) < 2.5f && abs(v) < 0.5f) EYE else CLEAR
+            } else eyeOpenShape(p, lx, ly, cx, cy, dx, dy)
+            Eyes.SAD, Eyes.ANGRY -> {
+                if (!inEllipse(lx, ly, cx, cy, 2.55f, 3.9f)) return CLEAR
+                val slope = if (p.eyes == Eyes.SAD) 0.55f * side else -0.55f * side
+                if (dy < -1.1f + dx * slope) return CLEAR
+                if (inEllipse(lx, ly, cx - 0.6f, cy + 0.6f, 0.6f, 0.7f)) return FUR
+                return EYE
+            }
             Eyes.OPEN, Eyes.SHOCK, Eyes.MEH -> {
                 val shock = p.eyes == Eyes.SHOCK
                 val rx = if (shock) 2.9f else 2.55f
@@ -220,6 +311,13 @@ class RinRig {
                 return if (inStar) STAR else CLEAR
             }
         }
+    }
+
+    private fun eyeOpenShape(p: RinParams, lx: Float, ly: Float, cx: Float, cy: Float, dx: Float, dy: Float): Int {
+        val ry = 3.9f * p.eyeOpen.coerceIn(0.3f, 1f)
+        if (!inEllipse(lx, ly, cx, cy, 2.55f, ry)) return CLEAR
+        if (inEllipse(lx, ly, cx - 0.75f, cy - ry * 0.45f, 0.75f, 0.9f)) return FUR
+        return EYE
     }
 
     private fun mouth(p: RinParams, lx: Float, ly: Float): Int {

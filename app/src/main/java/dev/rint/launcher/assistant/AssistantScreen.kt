@@ -43,6 +43,7 @@ import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Icon
+import dev.rint.launcher.ui.RawText
 import dev.rint.launcher.ui.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -265,7 +266,7 @@ private fun ChatBubble(item: ChatItem) {
         ChatRole.STEP -> Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(6.dp).clip(CircleShape).background(look.colors.accent))
             Spacer(Modifier.size(8.dp))
-            Text(item.text, fontFamily = RintFonts.Terminal, fontSize = 16.sp, color = Color.White.copy(alpha = 0.6f))
+            RawText(item.text, fontFamily = RintFonts.Terminal, fontSize = 16.sp, color = Color.White.copy(alpha = 0.6f))
         }
         ChatRole.USER -> Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
             Text(
@@ -274,14 +275,14 @@ private fun ChatBubble(item: ChatItem) {
             )
         }
         ChatRole.RIN, ChatRole.ERROR -> Row(verticalAlignment = Alignment.Top) {
-            RinSprite(if (item.role == ChatRole.ERROR) Pose.SHOCK else Pose.HEAD, 30.dp)
+            RinSprite(if (item.role == ChatRole.ERROR) Pose.SAD else Pose.HEAD, 30.dp)
             Spacer(Modifier.size(8.dp))
             Column(
                 Modifier.widthIn(max = 300.dp).clip(RoundedCornerShape(6.dp, 20.dp, 20.dp, 20.dp))
                     .background(if (item.role == ChatRole.ERROR) look.colors.danger.copy(alpha = 0.25f) else Color.White.copy(alpha = 0.12f))
                     .padding(horizontal = 14.dp, vertical = 10.dp)
             ) {
-                Text(item.text, color = Color.White, fontFamily = look.font, fontSize = 15.sp, lineHeight = 20.sp)
+                RawText(item.text, color = Color.White, fontFamily = look.font, fontSize = 15.sp, lineHeight = 20.sp)
                 item.question?.let { q ->
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -70,7 +70,7 @@ class VoiceOut(private val ctx: Context) {
     private suspend fun gemini(text: String, key: String, model: String, voice: String): Boolean {
         val pcm = withContext(Dispatchers.IO) {
             val body = buildJsonObject {
-                put("contents", buildJsonArray { add(buildJsonObject { put("parts", buildJsonArray { add(buildJsonObject { put("text", (if (dev.rint.launcher.ui.I18n.pt) "Say cheerfully in Brazilian Portuguese, like a cute friendly mascot: " else "Say cheerfully, like a cute friendly mascot: ") + "$text") }) }) }) })
+                put("contents", buildJsonArray { add(buildJsonObject { put("parts", buildJsonArray { add(buildJsonObject { put("text", (if (dev.rint.launcher.ui.I18n.pt) "Say this naturally and warmly, in Brazilian Portuguese: " else "Say this naturally and warmly: ") + "$text") }) }) }) })
                 put("generationConfig", buildJsonObject {
                     put("responseModalities", buildJsonArray { add(kotlinx.serialization.json.JsonPrimitive("AUDIO")) })
                     put("speechConfig", buildJsonObject {

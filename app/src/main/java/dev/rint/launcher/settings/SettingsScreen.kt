@@ -59,6 +59,7 @@ import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import dev.rint.launcher.ui.RawText
 import dev.rint.launcher.ui.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -788,7 +789,7 @@ private fun IconPackSheet(close: () -> Unit) {
     SheetTitle("Icon pack")
     LazyColumn {
         item {
-            SheetRow("None — use RintOS styles", cur == null) {
+            SheetRow(dev.rint.launcher.ui.I18n.t("None — use RintOS styles"), cur == null) {
                 store.update { it.copy(icons = it.icons.copy(iconPack = null)) }; RintApp.instance.apps.setIconPack(null); close()
             }
         }
@@ -809,7 +810,7 @@ private fun SheetRow(label: String, selected: Boolean, onClick: () -> Unit) {
             .clickable(onClick = onClick).padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, color = look.colors.text, fontFamily = look.font, fontSize = 15.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        RawText(label, color = look.colors.text, fontFamily = look.font, fontSize = 15.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
         if (selected) Box(Modifier.size(10.dp).clip(CircleShape).background(look.colors.accent))
     }
 }

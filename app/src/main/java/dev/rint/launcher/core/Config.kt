@@ -236,7 +236,8 @@ data class MascotCfg(
     val reactsToCharging: Boolean = false,
     val inMusic: Boolean = true,
     val wanders: Boolean = false,
-    val style: MascotStyle = MascotStyle.SMOOTH,
+    val style: MascotStyle = MascotStyle.PIXEL,
+    val version: Int = 0,
     val color: Long? = null,
     val greets: Boolean = false,
 )

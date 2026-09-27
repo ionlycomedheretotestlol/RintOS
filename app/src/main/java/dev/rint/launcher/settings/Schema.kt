@@ -224,7 +224,7 @@ object Schema {
         Section("mascot", "Rin", "your little roommate", Icons.Rounded.Pets, Color(0xFF6C8CFF), listOf(
             Opt.Toggle("Rin lives here", get = { it.mascot.enabled }, set = { c, v -> c.copy(mascot = c.mascot.copy(enabled = v)) }),
             Opt.Choice("Art style", "smooth vector art, or the original pixel look", dev.rint.launcher.core.MascotStyle.entries, get = { it.mascot.style }, set = { c, v -> c.copy(mascot = c.mascot.copy(style = v)) }),
-            Opt.ColorPick("Ear, tail & zipper color", "defaults to your accent", get = { it.mascot.color ?: it.look.accent }, set = { c, v -> c.copy(mascot = c.mascot.copy(color = v)) }),
+            Opt.ColorPick("Ear, tail & zipper color", "follows your accent until you pick one here", get = { it.mascot.color ?: it.look.accent }, set = { c, v -> c.copy(mascot = c.mascot.copy(color = v.takeIf { it != c.look.accent })) }),
             Opt.TextField("Name", get = { it.mascot.name }, set = { c, v -> c.copy(mascot = c.mascot.copy(name = v.take(16))) }),
             Opt.Choice("How often he shows up", values = MascotPresence.entries, get = { it.mascot.presence }, set = { c, v -> c.copy(mascot = c.mascot.copy(presence = v)) }),
             Opt.Slider("Size", range = 0.5f..1.8f, fmt = ::x, get = { it.mascot.size }, set = { c, v -> c.copy(mascot = c.mascot.copy(size = v)) }),

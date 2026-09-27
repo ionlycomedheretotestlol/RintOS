@@ -61,6 +61,7 @@ import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Icon
+import dev.rint.launcher.ui.RawText
 import dev.rint.launcher.ui.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -255,8 +256,8 @@ private fun WidgetSearch(ctx: WidgetCtx) {
                     Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp))) { Artwork(NowPlaying(t), Modifier.fillMaxSize()) }
                     Spacer(Modifier.width(8.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(t.title, color = look.colors.text, fontFamily = look.font, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(t.artist + if (t.streamUrl != null) " · full song" else "", color = look.colors.subtext, fontFamily = look.font, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        RawText(t.title, color = look.colors.text, fontFamily = look.font, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        RawText(t.artist + if (t.streamUrl != null) dev.rint.launcher.ui.I18n.t(" · full song") else "", color = look.colors.subtext, fontFamily = look.font, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
@@ -281,8 +282,8 @@ private fun PlayingWidget(ctx: WidgetCtx, np: NowPlaying, onTap: () -> Unit) {
                 Box(Modifier.size(if (ctx.h >= 2) 40.dp else 30.dp).clip(RoundedCornerShape(9.dp))) { Artwork(np, Modifier.fillMaxSize()) }
                 Spacer(Modifier.width(8.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(np.track.title, color = Color.White, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(np.track.artist + if (np.preview) " · 30s preview" else "", color = Color.White.copy(alpha = 0.7f), fontFamily = look.font, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    RawText(np.track.title, color = Color.White, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    RawText(np.track.artist + if (np.preview) dev.rint.launcher.ui.I18n.t(" · 30s preview") else "", color = Color.White.copy(alpha = 0.7f), fontFamily = look.font, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Box(
                     Modifier.size(32.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.92f))
@@ -319,7 +320,7 @@ private fun PlayingWidget(ctx: WidgetCtx, np: NowPlaying, onTap: () -> Unit) {
                             (slideInVertically { it / 2 } + fadeIn()) togetherWith (slideOutVertically { -it / 2 } + fadeOut())
                         }) { i ->
                             Column {
-                                Text(lyrics.lines.getOrNull(i)?.text ?: "♪", fontFamily = font, fontSize = if (ctx.w >= 3) 20.sp else 17.sp,
+                                RawText(lyrics.lines.getOrNull(i)?.text ?: "♪", fontFamily = font, fontSize = if (ctx.w >= 3) 20.sp else 17.sp,
                                     color = Color(m.highlight.toInt()), maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 21.sp)
                                 for (k in 1 until lines) lyrics.lines.getOrNull(i + k)?.text?.let {
                                     Text(it, fontFamily = font, fontSize = 14.sp, color = Color.White.copy(alpha = 0.45f / k), maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -327,7 +328,7 @@ private fun PlayingWidget(ctx: WidgetCtx, np: NowPlaying, onTap: () -> Unit) {
                             }
                         }
                     }
-                    else -> Text(lyrics.lines.getOrNull(((pos.toFloat() / np.track.durationMs.coerceAtLeast(1)) * lyrics.lines.size).toInt())?.text ?: "♪",
+                    else -> RawText(lyrics.lines.getOrNull(((pos.toFloat() / np.track.durationMs.coerceAtLeast(1)) * lyrics.lines.size).toInt())?.text ?: "♪",
                         fontFamily = font, fontSize = 16.sp, color = Color.White, maxLines = 2)
                 }
             }
@@ -351,7 +352,7 @@ private fun MusicQuickActions(np: NowPlaying, onDismiss: () -> Unit) {
         Column(
             Modifier.width(250.dp).clip(RoundedCornerShape(22.dp)).background(look.colors.panelStrong).padding(8.dp),
         ) {
-            Text(np.track.title, color = look.colors.text, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 15.sp,
+            RawText(np.track.title, color = look.colors.text, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 15.sp,
                 maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
             @Composable
             fun item(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, color: Color = look.colors.text, onClick: () -> Unit) {
@@ -490,7 +491,7 @@ internal fun LyricsStage(np: NowPlaying?, lyrics: Lyrics?, loading: Boolean, pos
                 val brk = lyrics.isBreak(pos)
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = hAlign) {
                     val prev = lyrics.lines.getOrNull(idx - 1)?.text
-                    if (!brk && prev != null) Text(prev, fontFamily = font, fontSize = (m.lyricsSize * 0.6f).sp, color = Color.White.copy(alpha = 0.35f), textAlign = align, maxLines = 2)
+                    if (!brk && prev != null) RawText(prev, fontFamily = font, fontSize = (m.lyricsSize * 0.6f).sp, color = Color.White.copy(alpha = 0.35f), textAlign = align, maxLines = 2)
                     Spacer(Modifier.height(10.dp))
                     AnimatedContent(
                         targetState = if (brk) -2 else idx,
@@ -515,7 +516,7 @@ internal fun LyricsStage(np: NowPlaying?, lyrics: Lyrics?, loading: Boolean, pos
                     Spacer(Modifier.height(14.dp))
                     if (!brk) for (k in 1..m.upcoming) {
                         lyrics.lines.getOrNull(idx + k)?.text?.takeIf { it.isNotBlank() }?.let {
-                            Text(it, fontFamily = font, fontSize = (m.lyricsSize * 0.62f).sp, color = Color.White.copy(alpha = 0.42f / k), textAlign = align,
+                            RawText(it, fontFamily = font, fontSize = (m.lyricsSize * 0.62f).sp, color = Color.White.copy(alpha = 0.42f / k), textAlign = align,
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp), maxLines = 2)
                         }
                     }
@@ -558,7 +559,7 @@ private fun PlainLyrics(lyrics: Lyrics, np: NowPlaying, pos: Long, font: FontFam
             Text("unsynced lyrics", fontFamily = RintFonts.Pixel, fontSize = 9.sp, color = Color.White.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 12.dp))
         }
         items(lyrics.lines) {
-            Text(it.text, fontFamily = font, fontSize = 22.sp, color = Color.White.copy(alpha = 0.85f), textAlign = align,
+            RawText(it.text, fontFamily = font, fontSize = 22.sp, color = Color.White.copy(alpha = 0.85f), textAlign = align,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp))
         }
     }
@@ -589,8 +590,8 @@ private fun NowPlayingBar(np: NowPlaying, pos: Long, onSeek: (Long) -> Unit) {
             Box(Modifier.size(52.dp).clip(RoundedCornerShape(12.dp))) { Artwork(np, Modifier.fillMaxSize()) }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(np.track.title, color = Color.White, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(np.track.artist, color = Color.White.copy(alpha = 0.7f), fontFamily = look.font, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                RawText(np.track.title, color = Color.White, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                RawText(np.track.artist, color = Color.White.copy(alpha = 0.7f), fontFamily = look.font, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             OffsetNudger()
         }
@@ -734,8 +735,8 @@ private fun MusicSearchSheet(onPick: (Track) -> Unit, onClose: () -> Unit) {
                     }
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(t.title, color = Color.White, fontFamily = look.font, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(listOf(t.artist, t.album).filter { it.isNotBlank() }.joinToString(" · "), color = Color.White.copy(alpha = 0.6f), fontFamily = look.font, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        RawText(t.title, color = Color.White, fontFamily = look.font, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        RawText(listOf(t.artist, t.album).filter { it.isNotBlank() }.joinToString(" · "), color = Color.White.copy(alpha = 0.6f), fontFamily = look.font, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     if (t.streamUrl != null) Text("FULL", color = look.colors.accent, fontFamily = RintFonts.Pixel, fontSize = 9.sp)
                     else if (t.localUri != null) Icon(Icons.Rounded.PhoneAndroid, "on device", tint = look.colors.accent, modifier = Modifier.size(18.dp))
@@ -768,7 +769,7 @@ private fun MusicSearchSheet(onPick: (Track) -> Unit, onClose: () -> Unit) {
                     ) {
                         dev.rint.launcher.ui.AppIconView(RintApp.instance.apps.apps.value.firstOrNull { it.packageName == app.pkg }?.key ?: "", 40.dp)
                         Spacer(Modifier.width(12.dp))
-                        Text(app.label, color = look.colors.text, fontFamily = look.font, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        RawText(app.label, color = look.colors.text, fontFamily = look.font, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }

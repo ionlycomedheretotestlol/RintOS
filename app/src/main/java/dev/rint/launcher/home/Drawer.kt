@@ -47,6 +47,7 @@ import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Straighten
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Icon
+import dev.rint.launcher.ui.RawText
 import dev.rint.launcher.ui.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -326,7 +327,7 @@ private fun DrawerApp(state: LauncherState, e: AppEntry, modifier: Modifier = Mo
         Row(mod.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             AppIconView(e.key, 40.dp)
             Spacer(Modifier.width(16.dp))
-            Text(e.label, color = look.colors.text, fontFamily = look.font, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            RawText(e.label, color = look.colors.text, fontFamily = look.font, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     } else {
         Box(mod.padding(vertical = 10.dp), contentAlignment = Alignment.Center) {

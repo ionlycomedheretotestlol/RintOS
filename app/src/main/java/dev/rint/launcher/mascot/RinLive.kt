@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.IntSize
 import dev.rint.launcher.ui.rememberAmbientClock
 import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
@@ -32,6 +33,7 @@ enum class Pose(val headOnly: Boolean = false) {
     FRONT, BACK, FACE_LEFT, FACE_RIGHT,
     HEAD(true), HAPPY(true), MEH(true), SHOCK(true), DROWSY(true), LOVE(true), TALK(true), THINK(true), LISTEN(true), DANCE_HEAD(true),
     WALK, SIT, JUMP, CROUCH, SLEEP, WAVE, DANCE, CHEER, GUITAR, GUITAR_SOLO, STRETCH, YAWN, CONFUSED, SHY, LAUGH, NOD,
+    SAD, CRY, ANGRY, WINK, EAT, PURR, SING, SNEEZE, SPIN, PROUD, SCARED, CELEBRATE,
 }
 
 private fun hash(n: Int): Float {
@@ -51,6 +53,7 @@ private fun occasional(t: Float, every: Float, len: Float, seed: Int): Float {
 /** Turns a pose + time (+ voice level) into joint values. Pure, cheap, called every frame. */
 fun animateRin(pose: Pose, t: Float, talk: Float, p: RinParams) {
     p.reset()
+    p.time = t
     val breathe = sin(t * 2.3f)
     val blink = occasional(t, 3.4f, 0.16f, 7)
     p.eyeOpen = 1f - blink
@@ -90,7 +93,7 @@ fun animateRin(pose: Pose, t: Float, talk: Float, p: RinParams) {
         Pose.CROUCH -> { p.stance = Stance.SIT; p.bodyY = 1.5f; p.squash = 0.92f; p.lookX = 1f; p.earL = -0.3f; p.earR = -0.3f; p.tail = sin(t * 14f) * 0.2f }
         Pose.SLEEP -> {
             p.stance = Stance.SIT; p.eyes = Eyes.CLOSED; p.headY = 2f + sin(t * 1.2f) * 0.6f; p.tilt = 0.12f
-            p.earL = 0.6f; p.earR = 0.6f; p.tail = 0f; p.blush = 0.6f
+            p.earL = 0.6f; p.earR = 0.6f; p.tail = 0f; p.blush = 0.6f; p.zzz = true
         }
         Pose.JUMP -> {
             val ph = (t * 1.25f) % 1f
@@ -125,6 +128,7 @@ fun animateRin(pose: Pose, t: Float, talk: Float, p: RinParams) {
             p.legL = if (solo) max(0f, bob) * 0.6f else 0f
             p.hop = if (solo) abs(bob) * 1.2f else 0f
             p.earL = max(0f, bob) * 0.4f; p.earR = max(0f, -bob) * 0.4f
+            p.notes = true
         }
         Pose.STRETCH -> {
             val k = (sin(t * 1.6f) + 1f) / 2f
@@ -156,7 +160,69 @@ fun animateRin(pose: Pose, t: Float, talk: Float, p: RinParams) {
         }
         Pose.CHEER -> {
             p.armL = 1f; p.armR = 1f; p.armWave = sin(t * 14f) * 0.2f; p.eyes = Eyes.STAR; p.mouth = 0.6f
-            p.hop = abs(sin(t * 7f)) * 3f; p.tail = sin(t * 14f) * 0.45f
+            p.hop = abs(sin(t * 7f)) * 3f; p.tail = sin(t * 14f) * 0.45f; p.sparkles = true
+        }
+        Pose.SAD -> {
+            p.eyes = Eyes.SAD; p.lookY = 0.7f; p.headY = 1.2f + breathe * 0.2f; p.tilt = -0.06f
+            p.earL = 0.9f; p.earR = 0.9f; p.tail = sin(t * 1f) * 0.08f; p.armL = 0f; p.armR = 0f
+        }
+        Pose.CRY -> {
+            val sob = abs(sin(t * 9f))
+            p.eyes = Eyes.CLOSED; p.tears = true; p.mouth = 0.25f + 0.2f * sob; p.headY = 1f - sob * 0.8f
+            p.earL = 1f; p.earR = 1f; p.squash = 1f - 0.03f * sob; p.tail = 0f
+        }
+        Pose.ANGRY -> {
+            val huff = abs(sin(t * 4f))
+            p.eyes = Eyes.ANGRY; p.steam = true; p.earL = -0.5f; p.earR = -0.5f; p.mouth = 0.15f * huff
+            p.squash = 1f + 0.03f * huff; p.tail = sin(t * 16f) * 0.25f; p.headY = -huff * 0.4f
+        }
+        Pose.WINK -> {
+            val w = occasional(t, 2.6f, 0.9f, 13)
+            p.eyes = if (w > 0.5f) Eyes.WINK else Eyes.HAPPY; p.blush = 0.5f; p.tilt = 0.1f; p.mouth = 0f
+            p.armR = if (w > 0.5f) 0.7f else 0f; p.tail = sin(t * 6f) * 0.3f
+        }
+        Pose.EAT -> {
+            val chew = abs(sin(t * 10f))
+            p.food = (t % 3f) < 1.2f; p.mouth = if (p.food) 0.5f * chew else 0.1f * chew
+            p.eyes = if (p.food) Eyes.OPEN else Eyes.HAPPY; p.lookY = 0.8f; p.blush = 0.5f; p.tail = sin(t * 7f) * 0.35f
+            p.armL = 0.35f; p.armR = 0.35f; p.headY = chew * 0.4f
+        }
+        Pose.PURR -> {
+            val v = sin(t * 30f) * 0.25f
+            p.eyes = Eyes.CLOSED; p.blush = 1f; p.tilt = 0.18f + sin(t * 1.2f) * 0.05f; p.headX = v
+            p.earL = 0.5f; p.earR = 0.5f; p.tail = sin(t * 2f) * 0.5f; p.sparkles = true
+        }
+        Pose.SING -> {
+            val b = sin(t * 5.5f)
+            p.mouth = 0.35f + 0.35f * abs(sin(t * 8f)); p.eyes = Eyes.CLOSED; p.notes = true; p.tilt = b * 0.1f
+            p.headY = -abs(b) * 0.8f; p.armR = 0.6f; p.armWave = b * 0.2f; p.tail = b * 0.4f
+        }
+        Pose.SNEEZE -> {
+            val ph = (t * 0.5f) % 1f
+            if (ph < 0.7f) { val k = ph / 0.7f; p.eyes = Eyes.MEH; p.eyeOpen = 1f - k * 0.7f; p.headY = -k * 1.5f; p.tilt = -k * 0.15f; p.mouth = 0.2f * k }
+            else { p.eyes = Eyes.CLOSED; p.headY = 2f; p.tilt = 0.12f; p.mouth = 0.7f; p.squash = 0.9f; p.earL = -0.6f; p.earR = -0.6f; p.headX = sin(t * 60f) * 0.4f }
+        }
+        Pose.SPIN -> {
+            val ph = (t * 0.8f) % 1f
+            p.spinX = if (ph < 0.5f) cos(ph * 4f * PI.toFloat()) else 1f
+            if (p.spinX < 0f) { p.lookY = -1f; p.lookX = 0f }
+            p.hop = if (ph < 0.5f) sin(ph * 2f * PI.toFloat()) * 4f else 0f
+            p.armL = 0.7f; p.armR = 0.7f; p.eyes = Eyes.HAPPY; p.tail = sin(t * 12f) * 0.5f
+        }
+        Pose.PROUD -> {
+            p.eyes = Eyes.CLOSED; p.lookY = -0.6f; p.headY = -1f; p.tilt = -0.08f; p.squash = 1.04f
+            p.armL = 0.25f; p.armR = 0.25f; p.mouth = 0f; p.tail = sin(t * 3f) * 0.4f; p.sparkles = sin(t * 0.8f) > 0f
+        }
+        Pose.SCARED -> {
+            val sh = sin(t * 40f) * 0.35f
+            p.eyes = Eyes.SHOCK; p.sweat = true; p.headX = sh; p.squash = 0.95f; p.earL = 1f; p.earR = 1f
+            p.armL = 0.5f; p.armR = 0.5f; p.tail = 0f; p.mouth = 0.3f
+        }
+        Pose.CELEBRATE -> {
+            val ph = (t * 1.1f) % 1f
+            p.hop = sin(ph * PI.toFloat()) * 8f; p.armL = 1f; p.armR = 1f; p.armWave = sin(t * 18f) * 0.25f
+            p.eyes = Eyes.STAR; p.mouth = 0.7f; p.sparkles = true; p.notes = ph > 0.5f; p.tail = sin(t * 16f) * 0.5f
+            p.spinX = if (ph < 0.3f) cos(ph / 0.3f * 2f * PI.toFloat()) else 1f
         }
     }
 }
@@ -175,10 +241,11 @@ fun RinSprite(
     animated: Boolean = true,
     timeOffset: Float = 0f,
     forcePixel: Boolean? = null,
+    accentOverride: Int? = null,
 ) {
     val look = dev.rint.launcher.ui.LocalRintOrNull.current
     val pixel = forcePixel ?: (look?.cfg?.mascot?.style == dev.rint.launcher.core.MascotStyle.PIXEL)
-    val accent = look?.cfg?.mascot?.color?.toInt() ?: look?.colors?.accent?.toArgb() ?: 0xFF3B7CFF.toInt()
+    val accent = accentOverride ?: look?.cfg?.mascot?.color?.toInt() ?: look?.colors?.accent?.toArgb() ?: 0xFF3B7CFF.toInt()
     val params = remember { RinParams() }
     val painter = remember { RinPainter() }
     val rig = remember(pixel) { if (pixel) RinRig() else null }
@@ -200,8 +267,10 @@ fun RinSprite(
         val dh = srcH * k
         val dx = (this.size.width - dw) / 2
         val dy = (if (pose.headOnly) (this.size.height - dh) / 2 else this.size.height - dh) - params.hop * k
-        scale(if (flip) -1f else 1f, pop.value, pivot = androidx.compose.ui.geometry.Offset(this.size.width / 2, this.size.height)) {
+        val sx = (if (flip) -1f else 1f) * params.spinX.let { if (kotlin.math.abs(it) < 0.08f) 0.08f else it }
+        scale(sx, pop.value, pivot = androidx.compose.ui.geometry.Offset(this.size.width / 2, this.size.height)) {
             if (rig != null && bmp != null && image != null) {
+                rig.accent = accent
                 rig.render(params)
                 bmp.setPixels(rig.pixels, 0, RinRig.W, 0, 0, RinRig.W, RinRig.H)
                 drawImage(image, srcOffset = IntOffset(srcX, srcY), srcSize = IntSize(srcW, srcH),

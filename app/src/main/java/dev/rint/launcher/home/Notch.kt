@@ -33,6 +33,7 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Icon
+import dev.rint.launcher.ui.RawText
 import dev.rint.launcher.ui.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -246,8 +247,8 @@ private fun ExpandedNotch(state: LauncherState) {
                     }
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(cur.track.title, color = Color.White, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(cur.track.artist, color = Color.White.copy(alpha = 0.65f), fontFamily = look.font, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        RawText(cur.track.title, color = Color.White, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        RawText(cur.track.artist, color = Color.White.copy(alpha = 0.65f), fontFamily = look.font, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     Equalizer(if (cur.playing) look.colors.accent else Color.Gray)
                 }

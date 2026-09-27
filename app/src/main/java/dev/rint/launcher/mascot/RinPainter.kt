@@ -84,6 +84,7 @@ class RinPainter {
             ink(c, a, 0.8f); solid(c, a, lighter(accent, 0.35f))
         }
         c.restore()
+        effects(c, p)
     }
 
     // ───────────────────────── head ─────────────────────────
@@ -141,7 +142,54 @@ class RinPainter {
         inner(earInR, 1f, rx, ry)
     }
 
+    private var hcx = 24f
+    private var hcy = 19.5f
+
+    private fun effects(c: Canvas, p: RinParams) {
+        val t = p.time
+        fill.shader = null
+        if (p.tears) for (side in listOf(-1f, 1f)) {
+            val fall = (t * 7f + if (side > 0) 2.5f else 0f) % 7f
+            a.reset(); val x = hcx + side * 6.4f; val y = hcy + 4f + fall
+            a.moveTo(x, y - 1.4f); a.quadTo(x + 1f, y + 0.6f, x, y + 0.9f); a.quadTo(x - 1f, y + 0.6f, x, y - 1.4f)
+            solid(c, a, 0xFF8EC5FF.toInt())
+        }
+        if (p.steam) for (i in 0..1) {
+            val ph = (t * 1.6f + i * 0.5f) % 1f
+            if (ph > 0.85f) continue
+            val side = if (i == 0) -1f else 1f
+            fill.color = 0xFFD7DCEA.toInt(); fill.alpha = (255 * (1f - ph)).toInt()
+            c.drawCircle(hcx + side * (9f + ph * 2f), hcy - 13f - ph * 7f, 1.3f + ph * 1.2f, fill); fill.alpha = 255
+        }
+        if (p.notes) for (i in 0..1) {
+            val ph = (t * 0.7f + i * 0.5f) % 1f
+            val x = hcx + 13f + ph * 4f + sin(ph * 12f) * 1.2f; val y = hcy - 6f - ph * 14f
+            fill.color = accent; c.drawOval(x - 1.3f, y + 2f, x + 0.3f, y + 3.2f, fill)
+            line.color = accent; line.strokeWidth = 0.45f; c.drawLine(x + 0.1f, y + 2.6f, x + 0.1f, y - 0.8f, line); c.drawLine(x + 0.1f, y - 0.8f, x + 1.4f, y - 0.2f, line)
+        }
+        if (p.zzz) for (i in 0..2) {
+            val ph = (t * 0.5f + i / 3f) % 1f
+            if (ph > 0.8f) continue
+            val x = hcx + 11f + ph * 6f; val y = hcy - 8f - ph * 12f; val s = 1f + ph * 1.2f
+            line.color = 0xFFB8C0DA.toInt(); line.strokeWidth = 0.45f
+            c.drawLine(x, y, x + s, y, line); c.drawLine(x + s, y, x, y + s, line); c.drawLine(x, y + s, x + s, y + s, line)
+        }
+        if (p.sparkles) for (i in 0..3) {
+            val ph = (t * 1.3f + i * 0.25f) % 1f
+            if (ph > 0.6f) continue
+            val an = i * 1.7f + 0.4f; val r = 1.6f * sin(ph / 0.6f * PI.toFloat())
+            val x = hcx + cos(an) * 17f; val y = hcy + sin(an) * 13f - 2f
+            a.reset(); a.moveTo(x, y - r * 1.6f); a.quadTo(x, y, x + r, y); a.quadTo(x, y, x, y + r * 1.6f); a.quadTo(x, y, x - r, y); a.quadTo(x, y, x, y - r * 1.6f)
+            solid(c, a, star)
+        }
+        if (p.food) {
+            fill.color = 0xFFFFA24A.toInt(); c.drawCircle(hcx + 4.5f, hcy + 9.4f, 1.8f, fill)
+            fill.color = 0xFFC66B1E.toInt(); c.drawCircle(hcx + 5.2f, hcy + 9f, 0.5f, fill)
+        }
+    }
+
     private fun head(c: Canvas, p: RinParams, hx: Float, hy: Float, depth25: Boolean) {
+        hcx = hx; hcy = hy
         c.save()
         c.translate(hx, hy)
         c.rotate(Math.toDegrees(p.tilt.toDouble()).toFloat())
@@ -183,6 +231,20 @@ class RinPainter {
         val cy = 0.4f + p.lookY * 1.1f
         line.color = ink
         when (p.eyes) {
+            Eyes.WINK -> {
+                if (side > 0) { a.reset(); a.moveTo(cx - 2.5f, cy + 0.4f); a.quadTo(cx, cy + 2.4f, cx + 2.5f, cy + 0.4f); stroke(c, a, ink, 0.75f) }
+                else { fill.shader = null; fill.color = ink; c.drawOval(cx - 2.45f, cy - 4.3f, cx + 2.45f, cy + 4.3f, fill); fill.color = fur; c.drawCircle(cx - 0.8f, cy - 1.8f, 0.8f, fill) }
+            }
+            Eyes.SAD, Eyes.ANGRY -> {
+                val slope = if (p.eyes == Eyes.SAD) 0.55f * side else -0.55f * side
+                a.reset(); a.moveTo(cx - 4f, cy - 1.1f - 4f * slope); a.lineTo(cx + 4f, cy - 1.1f + 4f * slope); a.lineTo(cx + 4f, cy + 6f); a.lineTo(cx - 4f, cy + 6f); a.close()
+                c.save(); c.clipPath(a)
+                fill.shader = null; fill.color = ink; c.drawOval(cx - 2.45f, cy - 4.3f, cx + 2.45f, cy + 4.3f, fill)
+                c.restore()
+                fill.color = fur; c.drawCircle(cx - 0.6f, cy + 0.8f, 0.7f, fill)
+                line.color = ink; line.strokeWidth = 0.7f
+                c.drawLine(cx - 2.9f, cy - 1.6f - 2.9f * slope, cx + 2.9f, cy - 1.6f + 2.9f * slope, line)
+            }
             Eyes.OPEN, Eyes.SHOCK, Eyes.MEH -> {
                 val shock = p.eyes == Eyes.SHOCK
                 val rx = if (shock) 2.9f else 2.45f

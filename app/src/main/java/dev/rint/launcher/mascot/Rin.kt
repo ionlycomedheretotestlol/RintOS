@@ -149,7 +149,7 @@ fun RinDirector(
             scope.launch {
                 val prev = scene
                 scene = Scene.HAPPY
-                reaction = listOf(Pose.JUMP, Pose.CHEER, Pose.DANCE, Pose.WAVE).random()
+                reaction = listOf(Pose.JUMP, Pose.CHEER, Pose.DANCE, Pose.WAVE, Pose.SPIN, Pose.WINK, Pose.LAUGH, Pose.SING, Pose.PROUD, Pose.CELEBRATE, Pose.PURR).random()
                 bubble = listOf("hi!", ":3", "hehe", "boop", "!!").random()
                 delay(1400)
                 bubble = null
@@ -158,7 +158,7 @@ fun RinDirector(
             }
         }
         val pose = when (scene) {
-            Scene.PEEK -> Pose.WAVE
+            Scene.PEEK -> if (System.currentTimeMillis() / 60_000 % 3 == 0L) Pose.WINK else Pose.WAVE
             Scene.WALK -> Pose.WALK
             Scene.SLEEP -> Pose.SLEEP
             Scene.CHARGE -> Pose.CHEER

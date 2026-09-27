@@ -359,7 +359,7 @@ internal object PtBr {
         put("Greeting under the clock", "Saudação embaixo do relógio"); put("Alignment", "Alinhamento")
         put("Rin", "Rin"); put("your little roommate", "seu colega de quarto"); put("Rin lives here", "O Rin mora aqui")
         put("Art style", "Estilo de arte"); put("smooth vector art, or the original pixel look", "arte vetorial suave, ou o visual pixel original")
-        put("Ear, tail & zipper color", "Cor da orelha, rabo e zíper"); put("defaults to your accent", "por padrão, sua cor de destaque")
+        put("Ear, tail & zipper color", "Cor da orelha, rabo e zíper"); put("follows your accent until you pick one here", "segue sua cor de destaque até você escolher uma aqui")
         put("Name", "Nome"); put("How often he shows up", "Com que frequência ele aparece"); put("Says hi each day", "Diz oi todo dia")
         put("Sleeps at night", "Dorme à noite"); put("Reacts to charging", "Reage ao carregar"); put("Head-bobs in music breaks", "Balança a cabeça nos intervalos da música")
         put("Rint Music", "Rint Music"); put("lyrics look & playback", "visual da letra e reprodução")

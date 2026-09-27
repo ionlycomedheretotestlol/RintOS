@@ -50,6 +50,7 @@ import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.material.icons.rounded.Dock
 import androidx.compose.material3.Icon
+import dev.rint.launcher.ui.RawText
 import dev.rint.launcher.ui.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -216,7 +217,7 @@ fun AppMenu(state: LauncherState) {
                 Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     AppIconView(entry.key, 34.dp)
                     Spacer(Modifier.width(12.dp))
-                    Text(entry.label, color = look.colors.text, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    RawText(entry.label, color = look.colors.text, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             })
         }
@@ -417,7 +418,7 @@ fun WidgetPicker(state: LauncherState) {
                                                 preview?.let { Image(it, null, Modifier.fillMaxSize()) }
                                             }
                                             Spacer(Modifier.height(6.dp))
-                                            Text(info.loadLabel(ctx.packageManager), fontSize = 12.sp, color = look.colors.text, fontFamily = look.font, maxLines = 2)
+                                            RawText(info.loadLabel(ctx.packageManager), fontSize = 12.sp, color = look.colors.text, fontFamily = look.font, maxLines = 2)
                                             val (cw, ch) = SysWidgets.cellsFor(info, ctx, look.cfg.home.columns)
                                             Text("${cw}×$ch", fontFamily = RintFonts.Pixel, fontSize = 9.sp, color = look.colors.subtext)
                                         }

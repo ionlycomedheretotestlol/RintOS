@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import dev.rint.launcher.ui.RawText
 import dev.rint.launcher.ui.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -89,7 +90,7 @@ fun MockPhone(
                         Box(Modifier.fillMaxHeight().aspectRatio(1f).clip(RoundedCornerShape(8.dp)).background(look.colors.accent))
                         Column(Modifier.weight(1f).padding(start = 8.dp)) {
                             Text("now playing", fontFamily = RintFonts.Pixel, fontSize = 6.sp, color = look.colors.subtext)
-                            Text(lyric ?: "♪ your song here", fontFamily = RintFonts.Terminal, fontSize = 13.sp, color = look.colors.text, maxLines = 1)
+                            RawText(lyric?.let { dev.rint.launcher.ui.I18n.t(it) } ?: dev.rint.launcher.ui.I18n.t("♪ your song here"), fontFamily = RintFonts.Terminal, fontSize = 13.sp, color = look.colors.text, maxLines = 1)
                         }
                     }
                 }

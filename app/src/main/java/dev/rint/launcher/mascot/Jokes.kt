@@ -123,7 +123,7 @@ fun JokeOverlay() {
             Joke.SNEEZE -> Sneeze(t)
             Joke.SUMMON -> Summon(t, look.colors.accent.toArgb())
             Joke.FLIP -> Bubble("wrong way up!", Pose.CONFUSED)
-            Joke.SPIN -> Bubble("wheeeee", Pose.CHEER)
+            Joke.SPIN -> Bubble("wheeeee", Pose.SPIN)
             Joke.BACKFLIP -> Backflip(t)
             Joke.SELF_DESTRUCT -> SelfDestruct(t)
         }
@@ -192,7 +192,7 @@ private fun Ram(t: Float) {
         } else {
             SpeechBubble("…I ate it. it was crunchy.")
             Spacer(Modifier.height(8.dp))
-            RinSprite(Pose.HAPPY, 150.dp)
+            RinSprite(Pose.EAT, 150.dp)
             Text("RAM added: 0 bytes", color = Color.White.copy(alpha = 0.6f), fontFamily = RintFonts.Pixel, fontSize = 11.sp, modifier = Modifier.padding(top = 12.dp))
         }
     }
@@ -268,7 +268,7 @@ private fun SelfDestruct(t: Float) {
             Text("SELF DESTRUCT", color = Color(0xFFFF3B30), fontFamily = RintFonts.Pixel, fontSize = 18.sp)
             Text("$n", color = Color.White, fontFamily = RintFonts.Inter, fontWeight = FontWeight.Black, fontSize = 140.sp,
                 modifier = Modifier.graphicsLayer { val s = 1f + 0.4f * (1f - (t % 1f)); scaleX = s; scaleY = s })
-            RinSprite(Pose.SHOCK, 100.dp)
+            RinSprite(Pose.SCARED, 100.dp)
         } else if (t < 5.6f) {
             Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = 1f - (t - 5f) / 0.6f)))
         } else {

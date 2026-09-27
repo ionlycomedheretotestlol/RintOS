@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import dev.rint.launcher.ui.RawText
 import dev.rint.launcher.ui.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -138,7 +139,7 @@ private fun SaverDrawer(onClose: () -> Unit) {
             ) {
                 AppIconView(e.key, 48.dp)
                 Spacer(Modifier.height(4.dp))
-                Text(e.label, color = Color.White.copy(alpha = 0.85f), fontFamily = look.font, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                RawText(e.label, color = Color.White.copy(alpha = 0.85f), fontFamily = look.font, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }

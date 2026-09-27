@@ -149,12 +149,12 @@ fun PetWidget(ctx: WidgetCtx) {
     val bounce = remember { Animatable(0f) }
     val base = when {
         hour >= 23 || hour < 6 -> Pose.SLEEP
-        hoursHungry > 10 -> Pose.MEH
+        hoursHungry > 10 -> Pose.SAD
         else -> Pose.SIT
     }
     val mood = when (base) {
         Pose.SLEEP -> "sleeping"
-        Pose.MEH -> "hungry..."
+        Pose.SAD -> "hungry..."
         else -> if (love > 50) "adores you" else if (love > 10) "happy" else "curious"
     }
     Row(Modifier.fillMaxSize().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -167,7 +167,7 @@ fun PetWidget(ctx: WidgetCtx) {
                     ctx.set("love", (love + 1).toString())
                     hearts += System.nanoTime() to Random.nextFloat()
                     scope.launch {
-                        reaction = if (love % 3 == 2) Pose.CHEER else Pose.JUMP
+                        reaction = listOf(Pose.PURR, Pose.JUMP, Pose.WINK, Pose.CHEER, Pose.SPIN, Pose.LAUGH)[love % 6]
                         bounce.snapTo(1f)
                         bounce.animateTo(0f, spring(dampingRatio = 0.3f, stiffness = Spring.StiffnessMedium))
                         delay(900)
@@ -219,10 +219,10 @@ fun PetWidget(ctx: WidgetCtx) {
                             Haptics.confirm(v)
                             ctx.set("fed", System.currentTimeMillis().toString())
                             scope.launch {
-                                reaction = Pose.CHEER
+                                reaction = Pose.EAT
                                 bounce.snapTo(1f)
                                 bounce.animateTo(0f, spring(dampingRatio = 0.35f))
-                                delay(700)
+                                delay(1800)
                                 reaction = null
                             }
                         }

@@ -31,6 +31,24 @@ class RinPoses {
         }
     }
 
+    @Test fun allPosesPixelPink() {
+        dev.rint.launcher.ui.RintSprings.reduce = true
+        paparazzi.snapshot {
+            Column(Modifier.fillMaxSize().background(Color(0xFF3A4A7A)).padding(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Pose.entries.chunked(6).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        row.forEach { p ->
+                            Column {
+                                RinSprite(p, 60.dp, animated = false, timeOffset = 1.13f, talk = 0.8f, forcePixel = true, accentOverride = 0xFFFF4FA0.toInt())
+                                Text(p.name, fontSize = 7.sp, color = Color.White)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     @Test fun allPoses() {
         dev.rint.launcher.ui.RintSprings.reduce = true
         paparazzi.snapshot {
