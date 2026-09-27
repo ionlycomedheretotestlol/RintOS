@@ -147,11 +147,10 @@ internal fun Film(time: () -> Float) {
     dev.rint.launcher.ui.LocalRintOrNull.current?.let { BLUE = it.colors.accent }
     val bar by remember { derivedStateOf { barOf(time()) } }
     val density = LocalDensity.current.density
-    val stage = rememberStage3D()
-    val three = stage.ok
+    val three = true
     Box(Modifier.fillMaxSize().background(INK)) {
-        // three.js lives underneath; it only draws during its own sections
-        Stage3D(stage, time, Modifier.fillMaxSize().graphicsLayer {
+        // the native 3D renderer lives underneath; it only draws during its own sections
+        Native3D(time, Modifier.fillMaxSize().graphicsLayer {
             val t = time()
             val s = shakeOf(t) * density * 0.6f
             translationX = sin(t * 97f) * s; translationY = cos(t * 71f) * s * 0.8f
@@ -940,7 +939,7 @@ private val credits = listOf(
     "made by Carrot" to false,
     "starring Rin" to false,
     "music: synthesized live · 0 audio files" to false,
-    "3D: three.js" to false,
+    "3D: hand-built renderer · no WebView" to false,
     "thanks for waiting." to true,
 )
 

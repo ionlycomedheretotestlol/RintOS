@@ -21,7 +21,7 @@ Made by Carrot.
 - **Notch**: your own dynamic island with live music activity.
 - **Settings**: 190+ options in grouped lists, a live preview, presets, search, export/import.
 - **Rin himself**: drawn entirely in code, flat 2D with a 2.5D head, and a lot of animations (waving, cheering, dancing, yawning, stretching, laughing, being confused, playing guitar…).
-- **The 1.3 intro**: 84 seconds, set to "Rin's Anthem", an original 128 BPM track synthesized live (no audio files): a music-box opening, trap-hat build-ups, two drops (the second one future-bass), vocal chops, a piano breakdown, a moment of silence and a key change; 3D scenes rendered with three.js (a voxel wordmark, a warp tunnel, a giant 3D "1.3"); the whole story of how RintOS got here; credits; then the START button.
+- **The 1.3 intro**: 84 seconds, set to "Rin's Anthem", an original 128 BPM track synthesized live (no audio files): a music-box opening, trap-hat build-ups, two drops (the second one future-bass), vocal chops, a piano breakdown, a moment of silence and a key change; real-time 3D scenes drawn by a small built-in 3D renderer (a voxel wordmark, a warp tunnel, a giant 3D "1.3"); the whole story of how RintOS got here; credits; then the START button.
 - **Settings → Dangerous**: nine buttons you should not press. Guitar solo, deleting System32, downloading more RAM, summoning 100 Rins, self destruct, and more. All jokes; none of them do anything bad.
 
 ## Install
@@ -53,5 +53,5 @@ Requirements: JDK 17+ and the Android SDK (platform 35).
 ## Notes
 
 - Free, legal music APIs only have full-length streams for part of the catalog (Audius); for everything else you get the official 30-second preview plus a one-tap "open in my music app".
-- The 3D intro scenes use three.js (MIT license, bundled offline). Phones without WebGL get 2D versions of those scenes.
+- The intro's 3D is rendered natively (perspective camera, shaded cubes, depth sorting), so it works on every phone with no WebView or WebGL.
 - API keys stay on the phone, are never exported, and the app opts out of cloud backup.
