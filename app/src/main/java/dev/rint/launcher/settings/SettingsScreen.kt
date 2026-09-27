@@ -213,7 +213,7 @@ private fun Home(state: LauncherState, query: String, onQuery: (String) -> Unit,
         item {
             Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 RinSprite(Pose.SLEEP, 56.dp)
-                Text("RintOS 1.3", fontFamily = RintFonts.Pixel, fontSize = 9.sp, color = look.colors.subtext)
+                Text("RintOS 1.4", fontFamily = RintFonts.Pixel, fontSize = 9.sp, color = look.colors.subtext)
             }
         }
     }

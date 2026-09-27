@@ -378,7 +378,7 @@ object MusicSources {
     private fun get(url: String): String? = runCatching {
         val c = java.net.URL(url).openConnection() as java.net.HttpURLConnection
         c.connectTimeout = 8000; c.readTimeout = 8000
-        c.setRequestProperty("User-Agent", "RintOS/1.3")
+        c.setRequestProperty("User-Agent", "RintOS/1.4")
         c.inputStream.bufferedReader().use { it.readText() }
     }.getOrNull()
 

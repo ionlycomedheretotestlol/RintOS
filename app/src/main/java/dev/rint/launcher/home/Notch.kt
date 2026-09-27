@@ -99,14 +99,14 @@ fun RintNotch(state: LauncherState, modifier: Modifier = Modifier, fullWidth: Bo
         NotchShape.WIDE -> n.width.dp * 1.6f
         else -> n.width.dp
     }
-    val w by animateDpAsState(
+    val wRaw by animateDpAsState(
         when {
             expanded -> screenW - 20.dp
             live -> baseW + 96.dp
             else -> baseW
         }, RintSprings.pop(), label = "w",
     )
-    val h by animateDpAsState(if (expanded) 200.dp else n.height.dp, RintSprings.pop(), label = "h")
+    val hRaw by animateDpAsState(if (expanded) 200.dp else n.height.dp, RintSprings.pop(), label = "h")
     val attached = n.shape == NotchShape.TEARDROP || n.shape == NotchShape.TAB
     val radius: Dp = when {
         expanded -> 36.dp
@@ -114,7 +114,12 @@ fun RintNotch(state: LauncherState, modifier: Modifier = Modifier, fullWidth: Bo
         else -> n.height.dp / 2
     }
     val shape = if (attached && !expanded) RoundedCornerShape(0.dp, 0.dp, radius, radius) else RoundedCornerShape(radius)
-    val top by animateDpAsState(if (attached && !expanded) 0.dp else n.offsetY.dp, RintSprings.pop(), label = "t")
+    val topRaw by animateDpAsState(if (attached && !expanded) 0.dp else n.offsetY.dp, RintSprings.pop(), label = "t")
+    // bouncy springs overshoot: an attached (Tab/Teardrop) notch springing to 0 would briefly ask
+    // for negative padding, which crashes Compose. Never let any of these go below zero.
+    val w = wRaw.coerceAtLeast(0.dp)
+    val h = hRaw.coerceAtLeast(0.dp)
+    val top = topRaw.coerceAtLeast(0.dp)
     val bg = n.color.color()
 
     androidx.compose.runtime.LaunchedEffect(Unit) { NotchSound.warm(ctx) }

@@ -1,19 +1,21 @@
-# RintOS 1.3 🎉
+# RintOS 1.4 🎉
 
-The real one. RintOS is an Android launcher you can make completely yours, with Rin living in it.
+**Install:** download `RintOS-1.4.apk`, install it over 1.3 (your setup stays), or fresh.
 
-**Install:** download `RintOS-1.3.apk`, install it, open it, and pick RintOS as your home app. It starts completely fresh.
+## New
+- **The notch, in every app**: it floats over other apps, with live music activity, and new open/close sounds (quiet during music and on silent).
+- **Rin remembers you**: tell him things and he keeps them, and he learns which apps you use when. It all stays on your phone, and you can see or delete it in Settings → Rin assistant → Memory.
+- **Saver mode, reworked**: a breathing dot with a battery ring and sleepy Rin, settings one tap away, and the new **Saver Home**, a lighter home for weak phones (widgets float away, the essentials stay).
+- **6 new wallpapers**: sunset, synthwave and snowy peaks, plus three live ones in your accent color: starfield, rain on glass, waves.
+- **Lock screen, your way**: new Neon style, clock font/size/position, blurred, black or glow backgrounds, and a greeting.
+- **5 new widgets**: countdown, world clock, Rin's daily thought, device stats, stopwatch.
+- **Startup screens**: four designs that play once after every restart, in your accent color. (A real boot animation needs root and can brick a phone; this can't.)
+- **A new intro**: "Upgrade", 60 seconds, a brand new song that goes from 8-bit to full sound, with 3D.
+- Rin button next to search can be turned off; 220+ settings in total.
 
-## Highlights
-- **English or Português (Brasil)** 🇧🇷: pick on first launch. Everything switches, including the intro, settings, widgets, and Rin himself (he replies, listens and speaks in Portuguese). Song titles, artists and lyrics are never translated. Change it any time in Settings → Look & feel → Language.
-- **A brand new intro**: 84 seconds, set to **Rin's Anthem**, an original song synthesized live, with real-time 3D scenes drawn by RintOS's own renderer (works on every phone). Then the START button.
-- **Pixel Rin**, in your accent color, with 40+ animations: waving, dancing, guitar solos, singing, eating, purring, crying, getting angry, winking, spinning, celebrating…
-- **Rin assistant**: hold home anywhere and just talk. He sees the screen, taps, types, opens apps and plays music, and asks before anything risky. Works with Gemini, Groq, Claude or OpenRouter (bring your own key; keys never leave the phone). He talks like a person, not a chatbot.
-- **Rint Music**: search inside the widget and full songs stream right there (Audius), with live synced lyrics. No previews, no YouTube. Anything else opens in your music app.
-- **Battery saver dot mode**: when battery gets low, home folds into a single dot. Warnings at saver level, 5% and 1%, every time.
-- **Serious alerts only**: Rin pops up for very low battery and emergency broadcasts. Nothing else.
-- **Wallpapers & widgets**: your photos, live wallpapers, built-in art; a Photos slideshow, pet Rin, notes, checklist, timer, calculator, weather and more.
-- **200+ settings**, 10 lock screens, your own dynamic island, presets, export/import.
-- **Settings → Dangerous**: nine buttons you should not press. Delete System32. Download more RAM. Summon 100 Rins. (They're jokes. Press them.)
+## Fixed
+- **Terminal preset crash** (the Tab-shaped notch bounced to a negative size when closing).
+- The app drawer's blur now covers the whole screen and doesn't squish when the keyboard opens.
+- Music detection: only your chosen music app counts, YouTube only when it's actually music, and TikTok and Instagram videos are ignored.
 
 Made by Carrot.
