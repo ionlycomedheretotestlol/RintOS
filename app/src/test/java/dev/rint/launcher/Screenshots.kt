@@ -117,6 +117,13 @@ class Screenshots {
 
     @androidx.compose.runtime.Composable private fun launcher() = Launcher(remember { LauncherState(CoroutineScope(Dispatchers.Unconfined)) })
     private val base = RintConfig(onboarded = true, guideSeen = true)
+    @Test fun clock_analog_4x2() = shot(base.copy(clock = base.clock.copy(style = dev.rint.launcher.core.ClockStyle.ANALOG, greeting = true))) {
+        androidx.compose.foundation.layout.Box(Modifier.padding(top = 120.dp).fillMaxSize()) {
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().height(200.dp)) {
+                dev.rint.launcher.widgets.ClockWidget(dev.rint.launcher.widgets.WidgetCtx("c", 4, 2))
+            }
+        }
+    }
     @Test fun readme_pink_hexes() = shot(base.copy(
         look = base.look.copy(accent = 0xFFFF6FB5, wallpaper = dev.rint.launcher.core.WallpaperMode.MESH, gradientA = 0xFF2A0B3D, gradientB = 0xFFFF6FB5, gradientC = 0xFF6A5CFF),
         icons = base.icons.copy(shape = dev.rint.launcher.core.IconShape.HEXAGON, style = dev.rint.launcher.core.IconStyle.RINT, monoBg = dev.rint.launcher.core.MonoBackground.WHITE, monoFg = 0xFFFF6FB5),

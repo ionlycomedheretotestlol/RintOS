@@ -27,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -250,7 +251,7 @@ fun ClockFace(c: ClockCfg, modifier: Modifier = Modifier, compact: Boolean = fal
             style = TextStyle(fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = ((if (compact) 22 else 36) * c.size).sp,
                 lineHeight = ((if (compact) 24 else 38) * c.size).sp, color = color, shadow = shadow),
         )
-        ClockStyle.ANALOG -> Canvas(modifier.fillMaxHeight().aspectRatio(1f)) {
+        ClockStyle.ANALOG -> Box(modifier, contentAlignment = Alignment.Center) { Canvas(Modifier.fillMaxHeight().aspectRatio(1f, matchHeightConstraintsFirst = true)) {
             val r = size.minDimension / 2
             val center = Offset(size.width / 2, size.height / 2)
             drawCircle(Color.Black.copy(alpha = 0.25f), r)
@@ -263,7 +264,7 @@ fun ClockFace(c: ClockCfg, modifier: Modifier = Modifier, compact: Boolean = fal
             rotate(m * 6f + s / 10f, center) { drawLine(color, center, Offset(center.x, center.y - r * 0.74f), r * 0.045f, StrokeCap.Round) }
             if (c.seconds) rotate(s * 6f, center) { drawLine(look.colors.accent, center, Offset(center.x, center.y - r * 0.82f), r * 0.02f, StrokeCap.Round) }
             drawCircle(look.colors.accent, r * 0.05f, center)
-        }
+        } }
         ClockStyle.NONE -> Unit
     }
 }
