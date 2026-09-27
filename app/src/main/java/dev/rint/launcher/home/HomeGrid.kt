@@ -65,14 +65,27 @@ fun HomePage(page: Int, layout: HomeLayout, state: LauncherState, modifier: Modi
     ) {
         val cellW = maxWidth / cfg.home.columns
         val cellH = maxHeight / cfg.home.rows
+        val lite = cfg.battery.saverHome
+        val fade = LiteHome.fade.value
         layout.items.filter { it.page == page }.forEach { item ->
+            val isWidget = item.kind != ItemKind.APP
+            if (isWidget && lite && fade <= 0.001f) return@forEach
             val dragging = state.drag?.item?.id == item.id
             androidx.compose.runtime.key(item.id) {
                 Box(
                     Modifier
                         .offset(cellW * item.x, cellH * item.y)
                         .size(cellW * item.w, cellH * item.h)
-                        .graphicsLayer { alpha = if (dragging) 0f else 1f }
+                        .graphicsLayer {
+                            val f = if (isWidget) LiteHome.fade.value else 1f
+                            alpha = if (dragging) 0f else f
+                            if (f < 1f) {
+                                // Saver Home: widgets shrink and float away one after another
+                                scaleX = 0.35f + 0.65f * f; scaleY = scaleX
+                                translationY = -(1f - f) * 60f * (1 + item.y % 3)
+                                rotationZ = (1f - f) * (if (item.x % 2 == 0) -8f else 8f)
+                            }
+                        }
                 ) {
                     when (item.kind) {
                         ItemKind.APP -> HomeApp(item, state, cellW, cellH)

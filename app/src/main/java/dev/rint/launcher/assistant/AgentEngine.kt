@@ -105,6 +105,7 @@ class AgentEngine(private val ctx: Context, private val scope: CoroutineScope) {
         val c = cfg()
         val key = keyFor(c.provider)
         chat += ChatItem(ChatRole.USER, text)
+        runCatching { RinMemory.touchChat() }
         if (key == null) {
             chat += ChatItem(ChatRole.ERROR, "I need a ${c.provider.name.lowercase()} API key first — add one in settings → Rin assistant.")
             return
@@ -136,7 +137,7 @@ class AgentEngine(private val ctx: Context, private val scope: CoroutineScope) {
 
     private suspend fun run(brain: Brain) {
         val c = cfg()
-        val tools = if (c.automation) Tools.all else Tools.basic
+        val tools = (if (c.automation) Tools.all else Tools.basic) + (if (c.memory) Tools.memory else emptyList())
         repeat(c.maxSteps) {
             status = "thinking…"
             val reply = brain.turn(systemPrompt(), history, tools)
@@ -278,6 +279,8 @@ class AgentEngine(private val ctx: Context, private val scope: CoroutineScope) {
                 }
             }
             "customize_launcher" -> ToolOutcome(call.id, call.name, customize(a))
+            "remember" -> { step("remembering"); ToolOutcome(call.id, call.name, RinMemory.remember(a.str("fact").orEmpty())) }
+            "forget" -> { step("forgetting"); ToolOutcome(call.id, call.name, RinMemory.forget(a.str("about").orEmpty())) }
             else -> ToolOutcome(call.id, call.name, "Unknown tool ${call.name}")
         }
     }
@@ -324,6 +327,7 @@ class AgentEngine(private val ctx: Context, private val scope: CoroutineScope) {
             } else append("Phone control is disabled; you can only chat, play music and customize the launcher. ")
             append("\n")
             if (dev.rint.launcher.ui.I18n.pt) append("LANGUAGE: the user speaks Brazilian Portuguese. Always reply in natural, casual Brazilian Portuguese (pt-BR), even if tool results are in English.\n")
+            append(RinMemory.promptBlock())
             if (c.personality.isNotBlank()) append("Extra style from the user: ${c.personality}\n")
         }
     }
@@ -355,6 +359,11 @@ object Tools {
     )
 
     val basic = listOf(customize, music)
+
+    val memory = listOf(
+        ToolSpec("remember", "Save one lasting fact about the user to your long-term memory on this phone.", buildJsonObject { put("fact", prop("string", "short fact, e.g. 'has a math test on Friday'")) }, listOf("fact")),
+        ToolSpec("forget", "Forget remembered facts that contain these words.", buildJsonObject { put("about", prop("string", "words to match")) }, listOf("about")),
+    )
 
     val phoneTools = setOf("look_at_screen", "tap", "type_text", "scroll", "swipe", "press_key")
 

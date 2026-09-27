@@ -19,6 +19,7 @@ import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.ShortText
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.ViewDay
+import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -151,6 +152,7 @@ object Schema {
             Opt.Choice("Position", values = SearchBarPos.entries, get = { it.home.searchBar }, set = { c, v -> c.copy(home = c.home.copy(searchBar = v)) }),
             Opt.Choice("Style", values = SearchBarStyle.entries, get = { it.home.searchStyle }, set = { c, v -> c.copy(home = c.home.copy(searchStyle = v)) }),
             Opt.TextField("Placeholder text", get = { it.home.searchHint }, set = { c, v -> c.copy(home = c.home.copy(searchHint = v)) }),
+            Opt.Toggle("Rin button next to search", "one tap to talk to Rin", get = { it.home.rinButton }, set = { c, v -> c.copy(home = c.home.copy(rinButton = v)) }),
         )),
         Section("dock", "Dock", "glass, magnify, count", Icons.Rounded.Dock, Color(0xFF1FD1C1), listOf(
             Opt.Toggle("Show dock", get = { it.dock.enabled }, set = { c, v -> c.copy(dock = c.dock.copy(enabled = v)) }),
@@ -207,6 +209,8 @@ object Schema {
             Opt.Choice("Left side", values = NotchContent.entries, get = { it.notch.left }, set = { c, v -> c.copy(notch = c.notch.copy(left = v)) }),
             Opt.Choice("Right side", values = NotchContent.entries, get = { it.notch.right }, set = { c, v -> c.copy(notch = c.notch.copy(right = v)) }),
             Opt.Toggle("Live activity", "grows with artwork + equalizer while music plays", get = { it.notch.liveActivity }, set = { c, v -> c.copy(notch = c.notch.copy(liveActivity = v)) }),
+            Opt.Toggle("Show in every app", "the notch floats over other apps too (needs \"display over other apps\")", get = { it.notch.everywhere }, set = { c, v -> c.copy(notch = c.notch.copy(everywhere = v)) }),
+            Opt.Action("Allow display over other apps", id = "overlay"),
             Opt.Toggle("Tap to expand", get = { it.notch.expandOnTap }, set = { c, v -> c.copy(notch = c.notch.copy(expandOnTap = v)) }),
         )),
         Section("clock", "Clock", "tty blocks & 6 more faces", Icons.Rounded.Schedule, Color(0xFF4DA3FF), listOf(
@@ -256,6 +260,11 @@ object Schema {
             Opt.Action("Preview it", id = "lockpreview"),
             Opt.Choice("Style", values = LockStyle.entries, get = { it.lock.style }, set = { c, v -> c.copy(lock = c.lock.copy(style = v)) }),
             Opt.GestureList("Shortcuts", "up to 10. camera & flashlight work without unlocking", 10, get = { it.lock.shortcuts }, set = { c, v -> c.copy(lock = c.lock.copy(shortcuts = v)) }),
+            Opt.Choice("Clock font", values = dev.rint.launcher.core.LockFont.entries, label = { if (it == dev.rint.launcher.core.LockFont.THEME) "same as theme" else pretty(it.name) }, get = { it.lock.font }, set = { c, v -> c.copy(lock = c.lock.copy(font = v)) }),
+            Opt.Slider("Clock size", range = 0.7f..1.4f, steps = 6, fmt = ::pct, get = { it.lock.clockSize }, set = { c, v -> c.copy(lock = c.lock.copy(clockSize = v)) }),
+            Opt.Choice("Clock position", values = dev.rint.launcher.core.LockPos.entries, get = { it.lock.position }, set = { c, v -> c.copy(lock = c.lock.copy(position = v)) }),
+            Opt.Choice("Background", values = dev.rint.launcher.core.LockBg.entries, get = { it.lock.background }, set = { c, v -> c.copy(lock = c.lock.copy(background = v)) }),
+            Opt.Toggle("Greeting", "good morning / good evening above the clock", get = { it.lock.greeting }, set = { c, v -> c.copy(lock = c.lock.copy(greeting = v)) }),
             Opt.Choice("Unlock effect", values = UnlockAnim.entries, get = { it.lock.unlockAnim }, set = { c, v -> c.copy(lock = c.lock.copy(unlockAnim = v)) }),
             Opt.Toggle("Notification icons", get = { it.lock.notifications }, set = { c, v -> c.copy(lock = c.lock.copy(notifications = v)) }),
             Opt.Toggle("Music controls", get = { it.lock.music }, set = { c, v -> c.copy(lock = c.lock.copy(music = v)) }),
@@ -278,6 +287,10 @@ object Schema {
             Opt.TextField("Groq model", "pick a vision model so Rin can see screenshots", get = { it.ai.model(AiProvider.GROQ) }, set = { c, v -> c.copy(ai = c.ai.copy(models = c.ai.models + (AiProvider.GROQ.name to v.trim()))) }),
             Opt.TextField("Claude model", get = { it.ai.model(AiProvider.CLAUDE) }, set = { c, v -> c.copy(ai = c.ai.copy(models = c.ai.models + (AiProvider.CLAUDE.name to v.trim()))) }),
             Opt.TextField("OpenRouter model", get = { it.ai.model(AiProvider.OPENROUTER) }, set = { c, v -> c.copy(ai = c.ai.copy(models = c.ai.models + (AiProvider.OPENROUTER.name to v.trim()))) }),
+            Opt.Header("Memory"),
+            Opt.Toggle("Rin remembers you", "facts you tell him and your app habits, kept only on this phone", get = { it.ai.memory }, set = { c, v -> c.copy(ai = c.ai.copy(memory = v)) }),
+            Opt.Action("See what Rin remembers", "delete anything you don't want him to know", id = "memory"),
+            Opt.Action("Forget everything", id = "forgetall"),
             Opt.Header("Voice"),
             Opt.Toggle("Rin talks out loud", "needs a Gemini API key (free tier)", get = { it.ai.voice }, set = { c, v -> c.copy(ai = c.ai.copy(voice = v)) }),
             Opt.Choice("Voice engine", "Android's built-in voice is the offline fallback", VoiceEngine.entries, get = { it.ai.voiceEngine }, set = { c, v -> c.copy(ai = c.ai.copy(voiceEngine = v)) }),
@@ -307,6 +320,14 @@ object Schema {
             Opt.Action("Replay the welcome guide", id = "guide"),
             Opt.Action("Replay the intro", id = "intro"),
         )),
+        Section("startup", "Startup screen", "what you see right after the phone boots", Icons.Rounded.PowerSettingsNew, Color(0xFF7B61FF), listOf(
+            Opt.Toggle("Show after every restart", "plays once when your phone turns on, then home appears", get = { it.startup.enabled }, set = { c, v -> c.copy(startup = c.startup.copy(enabled = v)) }),
+            Opt.Choice("Design", "all four follow your accent color", dev.rint.launcher.core.StartupStyle.entries, label = { when (it) {
+                dev.rint.launcher.core.StartupStyle.RINTOS -> "RintOS"; dev.rint.launcher.core.StartupStyle.MINIMAL -> "minimal"
+                dev.rint.launcher.core.StartupStyle.TERMINAL -> "terminal"; dev.rint.launcher.core.StartupStyle.PIXEL -> "pixel walk"
+            } }, get = { it.startup.style }, set = { c, v -> c.copy(startup = c.startup.copy(style = v)) }),
+            Opt.Action("Preview it", id = "startuppreview"),
+        )),
         Section("power", "Battery & alerts", "saver mode, serious warnings only", Icons.Rounded.BatteryAlert, Color(0xFF34C759), listOf(
             Opt.Toggle("Battery saver mode", "when battery gets low, home folds into a single dot: no widgets, almost no animation", get = { it.battery.saver }, set = { c, v -> c.copy(battery = c.battery.copy(saver = v)) }),
             Opt.Slider("Turn on at", range = 5f..40f, steps = 6, fmt = { "${it.toInt()}%" }, get = { it.battery.saverAt.toFloat() }, set = { c, v -> c.copy(battery = c.battery.copy(saverAt = v.toInt())) }),
@@ -314,6 +335,7 @@ object Schema {
             Opt.Toggle("Emergency alerts", "Rin pops up for tornado, amber and other emergency broadcasts (needs notification access)", get = { it.battery.emergencyAlerts }, set = { c, v -> c.copy(battery = c.battery.copy(emergencyAlerts = v)) }),
             Opt.Action("Allow Rin's popups over other apps", id = "overlay"),
             Opt.Action("Try saver mode now", id = "saver"),
+            Opt.Toggle("Saver Home", "a lighter home: no widgets or wandering Rin, calmer wallpaper. Good for weak phones, not for daily use", get = { it.battery.saverHome }, set = { c, v -> c.copy(battery = c.battery.copy(saverHome = v)) }),
         )),
         Section("danger", "Dangerous", "do not press. seriously.", Icons.Rounded.Warning, Color(0xFFFF3B30), listOf(
             Opt.Action("Watch Rin play the guitar", "you have been warned", id = "guitar"),

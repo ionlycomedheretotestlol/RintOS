@@ -252,9 +252,8 @@ internal class Voxel3D(private val accent: Int) {
         return Word(out, w * cell, h * cell, cell)
     }
 
-    private val stack = word(listOf("RINT", "OS"), { line, _ -> line == 1 }, 1f, 2)
-    private val version = word(listOf("1.3"), { _, x -> x >= 4 }, 0.7f, 1)
-    private val big = word(listOf("1.3"), { _, x -> x >= 4 }, 1.6f, 2)
+    private val version = word(listOf("RINTOS"), { _, x -> x >= 18 }, 0.55f, 1)
+    private val big = word(listOf("1.4"), { _, x -> x >= 4 }, 1.6f, 2)
     private val ring = word(listOf("RINTOS"), { _, x -> x >= 18 }, 0.5f, 1)
 
     private val stars = FloatArray(900 * 3).also {
@@ -311,11 +310,11 @@ internal class Voxel3D(private val accent: Int) {
         glow = k
         begin()
         when {
-            bar in Score.RISE until Score.BUILD -> {
+            bar in Score.BREAK until Score.DROP2 -> {
                 fog = 0.006f
-                val lt = (t - Score.RISE * Score.BAR.toFloat()) * K
+                val lt = (t - Score.BREAK * Score.BAR.toFloat()) * K
                 val orbit = -1.25f + 1.25f * easeInOut(lt / 6.2f)
-                val fit = fitDistance(stack.w, stack.h + 9f, 1.12f)
+                val fit = fitDistance(big.w, big.h + 9f, 1.12f)
                 val rad = fit * (1.5f - 0.5f * easeInOut(lt / 6.5f)) - (if (lt > 7f) (lt - 7f) * fit * 0.6f else 0f)
                 lookAt(sin(orbit) * rad, 9f - 8f * easeInOut(lt / 6f), cos(orbit) * rad, 0f, -0.8f, 0f)
                 drawStars(c, t * 0.02f)
@@ -327,7 +326,7 @@ internal class Voxel3D(private val accent: Int) {
                     val z = i * 3f + gz
                     if (project(-60f, -9f, z)) { val ax = psx; val ay = psy; if (project(60f, -9f, z)) c.drawLine(ax, ay, psx, psy, linePaint) }
                 }
-                placeWord(stack, 0f, 2.2f, 0f) { v, o ->
+                placeWord(big, 0f, 2.2f, 0f) { v, o ->
                     val p = easeOutBack((lt - v.delay * 2.4f) / 1.6f)
                     val q = clamp01(p) + (if (p > 1f) p - 1f else 0f)
                     o[0] = v.sx + (v.tx - v.sx) * q; o[1] = v.sy + (v.ty - v.sy) * q; o[2] = v.sz + (v.tz - v.sz) * q
@@ -343,9 +342,9 @@ internal class Voxel3D(private val accent: Int) {
                 }
                 flush(c)
             }
-            bar in Score.TUNNEL until Score.LIFT -> {
+            bar in Score.DROP2 until Score.OUTRO -> {
                 fog = 0.014f
-                val lt = (t - Score.TUNNEL * Score.BAR.toFloat()) * K
+                val lt = (t - Score.DROP2 * Score.BAR.toFloat()) * K
                 val travel = lt * 45f + (if (lt > 5f) (lt - 5f).pow(3) * 10f else 0f)
                 val fov = 60f + 45f * clamp01((lt - 5f) / 3f) + 6f * k
                 viewport(w, h, fov)
@@ -374,7 +373,8 @@ internal class Voxel3D(private val accent: Int) {
                     if (pz > 70f) return@forEachIndexed
                     val s = focal / pz
                     val cw = 8f * s; val ch = 2f * s
-                    val vis = clamp01((70f - pz) / 20f)
+                    val vis = clamp01((70f - pz) / 20f) * clamp01((pz - 14f) / 10f)
+                    if (vis <= 0.01f) return@forEachIndexed
                     cardPaint.color = if (j % 2 == 0) accent else 0xFF2A2F45.toInt()
                     cardPaint.alpha = (255 * vis).toInt()
                     c.drawRoundRect(RectF(psx - cw / 2, psy - ch / 2, psx + cw / 2, psy + ch / 2), ch / 2, ch / 2, cardPaint)
@@ -387,13 +387,13 @@ internal class Voxel3D(private val accent: Int) {
                     c.drawText(text, psx, psy + ch * 0.15f, textPaint)
                 }
             }
-            bar in Score.FINAL until Score.END -> {
+            bar >= Score.OUTRO -> {
                 fog = 0.003f
-                val lt = (t - Score.FINAL * Score.BAR.toFloat()) * K
-                val outro = max(0f, t - Score.OUTRO * Score.BAR.toFloat()) * K
+                val lt = (t - Score.OUTRO * Score.BAR.toFloat()) * K
+                val outro = max(0f, t - (Score.OUTRO + 2) * Score.BAR.toFloat()) * K
                 val slam = easeOutExpo(lt / 0.45f)
                 val pull = easeInOut(outro / 4f)
-                val fitC = fitDistance(big.w * 1.1f, big.h * 2.4f, 1.15f)
+                val fitC = fitDistance(big.w * 1.5f, big.h * 2.6f, 1.3f)
                 var camX = sin(t * 0.25f) * fitC * 0.18f
                 var camY = -2f + 2f * pull
                 if (lt < 0.5f) { val sh = (1f - lt / 0.5f) * 2.5f; camX += (rnd.nextFloat() - .5f) * sh; camY += (rnd.nextFloat() - .5f) * sh }
@@ -432,8 +432,8 @@ internal class Voxel3D(private val accent: Int) {
     }
 
     private val tunnelCards = listOf(
-        "Rin, your AI", "songs play right here", "${dev.rint.launcher.settings.Schema.optionCount} settings", "10 lock screens",
-        "your photo & live wallpapers", "battery saver dot", "no ads. no tracking.", "…and it's free",
+        "notch in every app", "Rin remembers you", "Saver Home", "live wallpapers",
+        "5 new widgets", "startup screens", "${dev.rint.launcher.settings.Schema.optionCount} settings", "…and it's still free",
     )
 }
 

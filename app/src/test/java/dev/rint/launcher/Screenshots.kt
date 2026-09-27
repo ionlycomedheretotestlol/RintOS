@@ -38,6 +38,7 @@ import dev.rint.launcher.widgets.WidgetCtx
 import dev.rint.launcher.widgets.WidgetRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import androidx.compose.ui.draw.clip
 import org.junit.Rule
 import org.junit.Test
 
@@ -77,24 +78,20 @@ class Screenshots {
     }
 
     private fun film(t: Float) = shot { Film { t } }
-    @Test fun intro_00_heart() = film(1.02f)
-    @Test fun intro_01_boot() = film(bar * 2 + 6.3f)
-    @Test fun intro_02_rise() = film(bar * 6 + 4.6f)
-    @Test fun intro_02b_rise_assembling() = film(bar * 6 + 1.2f)
-    @Test fun intro_07b_tunnel_warp() = film(bar * 24 + 1.5f)
-    @Test fun intro_13b_final_3d() = film(bar * 37f)
-    @Test fun intro_03_tagline() = film(bar * 11 + 1.7f)
-    @Test fun intro_04_countdown() = film(bar * 13 + 0.55f)
-    @Test fun intro_05_montage_color() = film(bar * 14 + 5.15f)
-    @Test fun intro_06_montage_notch() = film(bar * 14 + 13.6f)
-    @Test fun intro_07_tunnel() = film(bar * 22 + 3f)
-    @Test fun intro_08_evolution() = film(bar * 26 + 3.2f)
-    @Test fun intro_09_barrage() = film(bar * 28 + 1.3f)
-    @Test fun intro_10_break() = film(bar * 31 + 1.2f)
-    @Test fun intro_11_silence() = film(bar * 34 + 0.5f)
-    @Test fun intro_12_landing() = film(bar * 35 + 0.5f)
-    @Test fun intro_13_final() = film(bar * 35 + 5f)
-    @Test fun intro_14_credits() = film(bar * 41 + 3f)
+    @Test fun intro_00_cold() = film(bar * 1.4f)
+    @Test fun intro_01_chip_home() = film(bar * 2 + 1.2f)
+    @Test fun intro_02_chip_rin() = film(bar * 4 + 1.5f)
+    @Test fun intro_03_upgrade() = film(bar * 6 + 2.4f)
+    @Test fun intro_04_new_notch() = film(bar * 8 + 1.5f)
+    @Test fun intro_05_new_memory() = film(bar * 9 + 1.6f)
+    @Test fun intro_06_new_saver() = film(bar * 10 + 1.0f)
+    @Test fun intro_07_new_live() = film(bar * 11 + 1.2f)
+    @Test fun intro_08_new_widgets() = film(bar * 13 + 1.2f)
+    @Test fun intro_09_new_lock() = film(bar * 14 + 1.2f)
+    @Test fun intro_10_new_startup() = film(bar * 15 + 1.2f)
+    @Test fun intro_11_break_3d() = film(bar * 17 + 1.0f)
+    @Test fun intro_12_parade() = film(bar * 21 + 0.6f)
+    @Test fun intro_13_outro() = film(bar * 27 + 1.5f)
     @Test fun intro_15_personalize() = shot { Personalize {} }
 
     @Test fun home_default() = shot(wallpaperCfg) {
@@ -124,6 +121,32 @@ class Screenshots {
             }
         }
     }
+    @Test fun saver_dot() = shot(base) { dev.rint.launcher.home.SaverHome() }
+    @Test fun saver_home_lite() = shot(base.copy(battery = base.battery.copy(saverHome = true))) { launcher() }
+    @Test fun wp_starfield() = shot(base.copy(look = base.look.copy(wallpaper = dev.rint.launcher.core.WallpaperMode.STARFIELD, accent = 0xFF8E7CFF))) { launcher() }
+    @Test fun wp_rain() = shot(base.copy(look = base.look.copy(wallpaper = dev.rint.launcher.core.WallpaperMode.RAIN))) { launcher() }
+    @Test fun wp_waves() = shot(base.copy(look = base.look.copy(wallpaper = dev.rint.launcher.core.WallpaperMode.WAVES, accent = 0xFF00C8B4))) { launcher() }
+    @Test fun wp_sunset() = shot(base.copy(look = base.look.copy(art = dev.rint.launcher.core.WallpaperArt.SUNSET, accent = 0xFFFF8A5B))) { launcher() }
+    @Test fun wp_synthwave() = shot(base.copy(look = base.look.copy(art = dev.rint.launcher.core.WallpaperArt.SYNTHWAVE, accent = 0xFFFF4FD8))) { launcher() }
+    @Test fun wp_peaks() = shot(base.copy(look = base.look.copy(art = dev.rint.launcher.core.WallpaperArt.PEAKS))) { launcher() }
+    @Test fun lock_neon() = shot(base.copy(look = base.look.copy(accent = 0xFF8E7CFF), lock = base.lock.copy(style = dev.rint.launcher.core.LockStyle.NEON, background = dev.rint.launcher.core.LockBg.GLOW, greeting = true, position = dev.rint.launcher.core.LockPos.MIDDLE))) { dev.rint.launcher.lock.LockScreen({}, {}) }
+    @Test fun lock_serif_bottom() = shot(base.copy(lock = base.lock.copy(style = dev.rint.launcher.core.LockStyle.STACKED, font = dev.rint.launcher.core.LockFont.SERIF, position = dev.rint.launcher.core.LockPos.BOTTOM, clockSize = 0.8f, background = dev.rint.launcher.core.LockBg.BLURRED))) { dev.rint.launcher.lock.LockScreen({}, {}) }
+    @Test fun new_widgets() = shot(base) {
+        androidx.compose.foundation.layout.Column(Modifier.padding(16.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
+            listOf("countdown" to 4, "worldclock" to 4, "thought" to 4, "device" to 4, "stopwatch" to 4).forEach { (t, w) ->
+                val spec = dev.rint.launcher.widgets.WidgetRegistry.find(t)!!
+                androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().height(if (t == "stopwatch") 90.dp else 150.dp)
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(24.dp)).background(Color(0xFF1B1E29))) {
+                    spec.content(dev.rint.launcher.widgets.WidgetCtx("nw_$t", w, if (t == "stopwatch") 1 else 2))
+                }
+            }
+        }
+    }
+    @Test fun startup_rintos_a() = shot(base) { dev.rint.launcher.intro.StartupFrame(dev.rint.launcher.core.StartupStyle.RINTOS, 0.3f) }
+    @Test fun startup_rintos_b() = shot(base) { dev.rint.launcher.intro.StartupFrame(dev.rint.launcher.core.StartupStyle.RINTOS, 0.8f) }
+    @Test fun startup_minimal() = shot(base) { dev.rint.launcher.intro.StartupFrame(dev.rint.launcher.core.StartupStyle.MINIMAL, 0.6f) }
+    @Test fun startup_terminal() = shot(base) { dev.rint.launcher.intro.StartupFrame(dev.rint.launcher.core.StartupStyle.TERMINAL, 0.6f) }
+    @Test fun startup_pixel() = shot(base) { dev.rint.launcher.intro.StartupFrame(dev.rint.launcher.core.StartupStyle.PIXEL, 0.5f) }
     @Test fun readme_pink_hexes() = shot(base.copy(
         look = base.look.copy(accent = 0xFFFF6FB5, wallpaper = dev.rint.launcher.core.WallpaperMode.MESH, gradientA = 0xFF2A0B3D, gradientB = 0xFFFF6FB5, gradientC = 0xFF6A5CFF),
         icons = base.icons.copy(shape = dev.rint.launcher.core.IconShape.HEXAGON, style = dev.rint.launcher.core.IconStyle.RINT, monoBg = dev.rint.launcher.core.MonoBackground.WHITE, monoFg = 0xFFFF6FB5),

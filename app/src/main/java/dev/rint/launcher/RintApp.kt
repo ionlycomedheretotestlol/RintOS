@@ -35,6 +35,13 @@ class RintApp : Application() {
         }
         dev.rint.launcher.ui.Lang.of(stores.config.value.lang)?.let { dev.rint.launcher.ui.I18n.lang = it }
         scope.launch { stores.config.state.collect { c -> dev.rint.launcher.ui.Lang.of(c.lang)?.let { dev.rint.launcher.ui.I18n.lang = it } } }
+        scope.launch {
+            var last: Pair<Boolean, Boolean>? = null
+            stores.config.state.collect { c ->
+                val k = c.notch.enabled to c.notch.everywhere
+                if (k != last) { last = k; dev.rint.launcher.system.GlobalNotch.refresh(this@RintApp) }
+            }
+        }
         // 1.3 final: pixel Rin is the default look
         if (stores.config.value.mascot.version < 1) {
             stores.config.update { it.copy(mascot = it.mascot.copy(style = dev.rint.launcher.core.MascotStyle.PIXEL, color = null, version = 1)) }

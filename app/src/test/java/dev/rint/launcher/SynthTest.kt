@@ -28,7 +28,7 @@ class SynthTest {
             for (s in buf) { sum += s.toDouble() * s; peak = maxOf(peak, abs(s.toInt())); if (abs(s.toInt()) > 28000) clipped++ }
             val rms = sqrt(sum / buf.size) / Short.MAX_VALUE
             report.appendLine("bar %2d %-8s rms %.3f peak %.2f hot %.3f".format(b, Score.part(b), rms, peak / 32767.0, clipped.toDouble() / buf.size))
-            if (Score.part(b) != Score.Part.SILENCE && b >= 1) assertTrue("bar $b is silent", rms > 0.01)
+            if (b >= 1) assertTrue("bar $b is silent", rms > 0.01)
             assertTrue("bar $b is a wall of clipping", clipped.toDouble() / buf.size < 0.05)
         }
         val secs = (System.nanoTime() - start) / 1e9

@@ -197,7 +197,7 @@ private fun Home(state: LauncherState, query: String, onQuery: (String) -> Unit,
             "Look" to listOf("look", "icons", "labels", "home", "dock", "clock"),
             "Features" to listOf("ai", "music", "lock", "notch", "mascot", "power", "danger"),
             "Behavior" to listOf("drawer", "search", "gestures", "motion"),
-            "System" to listOf("system", "backup"),
+            "System" to listOf("startup", "system", "backup"),
         )
         groups.forEach { (title, ids) ->
             item {
@@ -740,6 +740,8 @@ private fun Sheets(sheet: String?, state: LauncherState, close: () -> Unit) {
             return
         }
         "intro" -> { close(); state.settingsOpen = false; stores.config.update { it.copy(onboarded = false) }; return }
+        "startuppreview" -> { close(); state.settingsOpen = false; dev.rint.launcher.intro.StartupPreview.show = true; return }
+        "forgetall" -> { close(); dev.rint.launcher.assistant.RinMemory.clearAll(); state.say("Rin forgot everything"); return }
         "resetlook" -> { close(); stores.config.update { Presets.all.first().apply(it) }; state.say("fresh look applied"); return }
         "export" -> {
             close()
@@ -756,6 +758,7 @@ private fun Sheets(sheet: String?, state: LauncherState, close: () -> Unit) {
         when (sheet) {
             "iconpack" -> IconPackSheet(close)
             "hidden" -> HiddenAppsSheet()
+            "memory" -> MemorySheet()
             "musicapp" -> MusicAppSheet(close)
             "import" -> ImportSheet(state, close)
             "resetall" -> ConfirmReset(state, close)
@@ -829,6 +832,30 @@ private fun HiddenAppsSheet() {
                 Spacer(Modifier.width(12.dp))
                 Text(e?.label ?: k, color = look.colors.text, fontFamily = look.font, modifier = Modifier.weight(1f))
                 Pill("unhide") { store.update { it.copy(hiddenApps = it.hiddenApps - k) } }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MemorySheet() {
+    val look = LocalRint.current
+    val mem by dev.rint.launcher.assistant.RinMemory.store.state.collectAsState()
+    SheetTitle("What Rin remembers")
+    if (mem.facts.isEmpty()) Text("Nothing yet. Tell Rin things like “remember my exam is on Friday”.", color = look.colors.subtext, fontFamily = look.font)
+    LazyColumn {
+        items(mem.facts.reversed()) { f ->
+            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                RawText(f.text, color = look.colors.text, fontFamily = look.font, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                Spacer(Modifier.width(8.dp))
+                Pill("forget") { dev.rint.launcher.assistant.RinMemory.delete(f) }
+            }
+        }
+        val habits = mem.habits.values.filter { it.hours.sum() >= 3 }.sortedByDescending { it.hours.sum() }.take(8)
+        if (habits.isNotEmpty()) {
+            item { Spacer(Modifier.height(12.dp)); Text("HABITS HE NOTICED", fontFamily = RintFonts.Pixel, fontSize = 10.sp, color = look.colors.subtext) }
+            items(habits) { h ->
+                RawText("${h.label} · ${h.hours.indices.maxBy { h.hours[it] }}h", color = look.colors.text, fontFamily = look.font, fontSize = 14.sp, modifier = Modifier.padding(vertical = 4.dp))
             }
         }
     }

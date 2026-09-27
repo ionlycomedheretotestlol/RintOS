@@ -37,6 +37,9 @@ fun WallpaperArt.res(): Int = when (this) {
     WallpaperArt.TIDE -> R.drawable.wp_tide
     WallpaperArt.PIXEL_NIGHT -> R.drawable.wp_pixel
     WallpaperArt.PAPER -> R.drawable.wp_paper
+    WallpaperArt.SUNSET -> R.drawable.wp_sunset
+    WallpaperArt.SYNTHWAVE -> R.drawable.wp_synth
+    WallpaperArt.PEAKS -> R.drawable.wp_peaks
 }
 
 /**

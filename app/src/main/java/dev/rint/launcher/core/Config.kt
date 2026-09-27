@@ -27,14 +27,15 @@ data class RintConfig(
     val lock: LockCfg = LockCfg(),
     val ai: AiCfg = AiCfg(),
     val battery: BatteryCfg = BatteryCfg(),
+    val startup: StartupCfg = StartupCfg(),
     val hiddenApps: Set<String> = emptySet(),
     val renamedApps: Map<String, String> = emptyMap(),
 )
 
 enum class ThemeMode { AUTO, LIGHT, DARK, AMOLED }
 enum class UiFont { INTER, SYSTEM, PIXEL, TERMINAL, SERIF, MONO }
-enum class WallpaperMode { ART, SYSTEM, SOLID, GRADIENT, MESH, PHOTO }
-enum class WallpaperArt { TIDE, PIXEL_NIGHT, PAPER }
+enum class WallpaperMode { ART, SYSTEM, SOLID, GRADIENT, MESH, PHOTO, STARFIELD, RAIN, WAVES }
+enum class WallpaperArt { TIDE, PIXEL_NIGHT, PAPER, SUNSET, SYNTHWAVE, PEAKS }
 
 @Serializable
 data class Look(
@@ -84,6 +85,7 @@ data class Home(
     val lockLayout: Boolean = false,
     val infinitePages: Boolean = false,
     val showMascotHint: Boolean = true,
+    val rinButton: Boolean = true,
 )
 
 enum class IconShape { SQUIRCLE, CIRCLE, ROUNDED, SQUARE, TEARDROP, HEXAGON, PEBBLE, CLOVER, DIAMOND, SYSTEM }
@@ -203,6 +205,7 @@ data class Notch(
     val right: NotchContent = NotchContent.BATTERY,
     val liveActivity: Boolean = true,
     val expandOnTap: Boolean = true,
+    val everywhere: Boolean = true,
 )
 
 enum class ClockStyle { BLOCKS, THIN, STACKED, WORDS, ANALOG, PIXEL, NONE }
@@ -274,7 +277,10 @@ data class MusicCfg(
     val version: Int = 0,
 )
 
-enum class LockStyle { CLASSIC, BLOCKS, STACKED, WORDS, ANALOG, TERMINAL, MINIMAL, POSTER, MUSIC, RIN }
+enum class LockStyle { CLASSIC, BLOCKS, STACKED, WORDS, ANALOG, TERMINAL, MINIMAL, POSTER, MUSIC, RIN, NEON }
+enum class LockFont { THEME, INTER, SERIF, PIXEL, TERMINAL, MONO }
+enum class LockPos { TOP, MIDDLE, BOTTOM }
+enum class LockBg { WALLPAPER, BLURRED, BLACK, GLOW }
 enum class UnlockAnim { SLIDE_UP, FADE, ZOOM, SPLIT, PIXELS }
 
 @Serializable
@@ -290,6 +296,11 @@ data class LockCfg(
     val dim: Float = 0.25f,
     val message: String = "",
     val accentClock: Boolean = false,
+    val font: LockFont = LockFont.THEME,
+    val clockSize: Float = 1f,
+    val position: LockPos = LockPos.TOP,
+    val background: LockBg = LockBg.WALLPAPER,
+    val greeting: Boolean = false,
 )
 
 enum class AiProvider { GEMINI, GROQ, CLAUDE, OPENROUTER }
@@ -308,6 +319,7 @@ data class AiCfg(
     val confirmRisky: Boolean = true,
     val maxSteps: Int = 25,
     val personality: String = "",
+    val memory: Boolean = true,
 ) {
     fun model(p: AiProvider = provider): String = models[p.name]?.takeIf { it.isNotBlank() } ?: defaultModel(p)
 
@@ -327,4 +339,13 @@ data class BatteryCfg(
     val saverAt: Int = 15,
     val alerts: Boolean = true,
     val emergencyAlerts: Boolean = true,
+    val saverHome: Boolean = false,
+)
+
+enum class StartupStyle { RINTOS, MINIMAL, TERMINAL, PIXEL }
+
+@Serializable
+data class StartupCfg(
+    val enabled: Boolean = true,
+    val style: StartupStyle = StartupStyle.RINTOS,
 )

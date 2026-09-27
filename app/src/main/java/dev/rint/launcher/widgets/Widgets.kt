@@ -8,6 +8,11 @@ import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Casino
 import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.AvTimer
+import androidx.compose.material.icons.rounded.Memory
+import androidx.compose.material.icons.rounded.Lightbulb
+import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.Event
 import androidx.compose.material.icons.rounded.FlashlightOn
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Pets
@@ -63,6 +68,11 @@ object WidgetRegistry {
         WidgetSpec("battery", "Battery", "Charge ring with time estimate", Icons.Rounded.Battery5Bar, listOf(2 to 1, 2 to 2, 1 to 1)) { BatteryWidget(it) },
         WidgetSpec("calendar", "Month", "This month at a glance", Icons.Rounded.CalendarMonth, listOf(4 to 3, 2 to 2, 4 to 2)) { CalendarWidget(it) },
         WidgetSpec("weather", "Weather", "Open-Meteo, no account needed", Icons.Rounded.Cloud, listOf(4 to 2, 2 to 2, 4 to 1)) { WeatherWidget(it) },
+        WidgetSpec("countdown", "Countdown", "Days until the thing you're waiting for", Icons.Rounded.Event, listOf(2 to 2, 4 to 2)) { CountdownWidget(it) },
+        WidgetSpec("worldclock", "World clock", "Another city's time. Tap to switch", Icons.Rounded.Public, listOf(2 to 2, 4 to 2, 4 to 1)) { WorldClockWidget(it) },
+        WidgetSpec("thought", "Rin's thought", "A new little thought from Rin every day", Icons.Rounded.Lightbulb, listOf(4 to 2, 4 to 1, 2 to 2)) { RinThoughtWidget(it) },
+        WidgetSpec("device", "Device", "Storage, memory and uptime", Icons.Rounded.Memory, listOf(2 to 2, 4 to 2, 4 to 1)) { DeviceWidget(it) },
+        WidgetSpec("stopwatch", "Stopwatch", "Start, pause, lap", Icons.Rounded.AvTimer, listOf(4 to 1, 2 to 2, 4 to 2)) { StopwatchWidget(it) },
     )
 
     fun find(type: String?) = all.firstOrNull { it.type == type }

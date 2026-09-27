@@ -52,6 +52,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -196,7 +197,11 @@ fun Launcher(state: LauncherState) {
     val opaque = state.settingsOpen || MusicOverlay.open || dev.rint.launcher.assistant.AssistantOverlay.open
     var hidden by remember { mutableStateOf(false) }
     LaunchedEffect(opaque) { if (opaque) { delay(450); hidden = true } else hidden = false }
-    val saver by dev.rint.launcher.system.BatteryWatch.saver.collectAsState()
+    val saverOn by dev.rint.launcher.system.BatteryWatch.saver.collectAsState()
+    val lite = cfg.battery.saverHome
+    LiteHomeController(lite)
+    // with Saver Home on, low battery keeps the (already light) home instead of folding into the dot
+    val saver = saverOn && !lite
     val morph by androidx.compose.animation.core.animateFloatAsState(
         if (saver) 1f else 0f, androidx.compose.animation.core.tween(1100, easing = androidx.compose.animation.core.FastOutSlowInEasing), label = "saver",
     )
@@ -221,7 +226,14 @@ fun Launcher(state: LauncherState) {
                 clip = true
             }
         }) {
-        Wallpaper()
+        // wallpapers drawn in code (gradient, aurora, solid) get a real blur behind the drawer on Android 12+
+        val needsBlur = look.cfg.look.wallpaper.let { it == WallpaperMode.GRADIENT || it == WallpaperMode.MESH || it == WallpaperMode.STARFIELD || it == WallpaperMode.RAIN || it == WallpaperMode.WAVES }
+        Box(Modifier.fillMaxSize().then(
+            if (needsBlur && android.os.Build.VERSION.SDK_INT >= 31) {
+                val d = state.drawer.value
+                if (d > 0.01f) Modifier.blur((look.cfg.look.blur * d).dp) else Modifier
+            } else Modifier
+        )) { Wallpaper() }
 
         Box(
             Modifier
@@ -255,7 +267,7 @@ fun Launcher(state: LauncherState) {
                 Dock(state, layout.dock)
                 Spacer(Modifier.height(8.dp))
             }
-            RinDirector(
+            if (!lite) RinDirector(
                 homeVisits = state.homeVisits,
                 charging = battery.charging,
                 bottomInset = with(LocalDensity.current) { (WindowInsets.navigationBars.getBottom(this) / density).dp } + cfg.dock.height.dp + 18.dp,
@@ -263,7 +275,7 @@ fun Launcher(state: LauncherState) {
         }
         }
        }
-       if (morph > 0.9f) Box(Modifier.fillMaxSize().graphicsLayer { alpha = ((morph - 0.9f) / 0.1f).coerceIn(0f, 1f) }) { SaverHome() }
+       if (morph > 0.9f) Box(Modifier.fillMaxSize().graphicsLayer { alpha = ((morph - 0.9f) / 0.1f).coerceIn(0f, 1f) }) { SaverHome(state) }
       }
 
         // Only compose the drawer while it's visible (or an app is being dragged out of it),
@@ -288,6 +300,7 @@ fun Launcher(state: LauncherState) {
         AnimatedVisibility(dev.rint.launcher.assistant.AssistantOverlay.open, enter = fadeIn() + slideInVertically { it / 4 }, exit = fadeOut() + slideOutVertically { it / 4 }) {
             dev.rint.launcher.assistant.AssistantScreen(state)
         }
+        AnimatedVisibility(LiteHome.loading, enter = fadeIn(), exit = fadeOut()) { LiteHomeLoading() }
         dev.rint.launcher.mascot.GuitarShowOverlay()
         dev.rint.launcher.mascot.JokeOverlay()
         CrashReport(state)
@@ -312,11 +325,13 @@ private fun HomeSearchBar(state: LauncherState) {
                 Spacer(Modifier.width(6.dp))
                 Text(cfg.home.searchHint, color = Color.White, fontFamily = look.font, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 13.sp)
             }
-            Spacer(Modifier.width(8.dp))
-            Box(
-                Modifier.size(34.dp).glass(CircleShape).pressable(dev.rint.launcher.core.PressEffect.BOUNCE) { dev.rint.launcher.assistant.AssistantOverlay.show() },
-                contentAlignment = Alignment.Center,
-            ) { RinSprite(Pose.HEAD, 26.dp) }
+            if (cfg.home.rinButton) {
+                Spacer(Modifier.width(8.dp))
+                Box(
+                    Modifier.size(34.dp).glass(CircleShape).pressable(dev.rint.launcher.core.PressEffect.BOUNCE) { dev.rint.launcher.assistant.AssistantOverlay.show() },
+                    contentAlignment = Alignment.Center,
+                ) { RinSprite(Pose.HEAD, 26.dp) }
+            }
         }
         return
     }
@@ -527,7 +542,7 @@ fun Wallpaper() {
             WallpaperMode.MESH -> {
                 // "Aurora": four soft light blobs drifting over a deep gradient. Driven by the
                 // ambient clock so it stops moving whenever you can't see it.
-                val p = rememberAmbientClock() * (2f * Math.PI.toFloat() / 48f)
+                val p = rememberAmbientClock(!look.cfg.battery.saverHome) * (2f * Math.PI.toFloat() / 48f)
                 Canvas(Modifier.fillMaxSize()) {
                     drawRect(Brush.verticalGradient(listOf(l.gradientA.color(), Color(0xFF050818))))
                     val blobs = listOf(
@@ -548,6 +563,8 @@ fun Wallpaper() {
                     drawRect(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.12f), Color.Transparent, Color.Black.copy(alpha = 0.35f))))
                 }
             }
+            WallpaperMode.STARFIELD, WallpaperMode.RAIN, WallpaperMode.WAVES ->
+                LiveWallpaper(l.wallpaper, look.colors.accent, running = !look.cfg.battery.saverHome)
         }
         if (l.wallpaperDim > 0f) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = l.wallpaperDim)))
         if (l.grain > 0f) {

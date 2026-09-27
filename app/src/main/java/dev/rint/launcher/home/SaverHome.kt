@@ -36,6 +36,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.togetherWith
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
@@ -61,25 +63,77 @@ import dev.rint.launcher.ui.RintFonts
  * app list with Rin in the middle. No widgets, no wallpaper, no ambient animation.
  */
 @Composable
-fun SaverHome() {
+fun SaverHome(state: LauncherState? = null) {
     val look = LocalRint.current
     val battery by BatteryWatch.state.collectAsState()
     var open by remember { mutableStateOf(false) }
     BackHandler(open) { open = false }
+    val openSettings: () -> Unit = { state?.settingsOpen = true; state?.settingsSection = "power" }
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        if (!open) {
-            Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(Modifier.size(64.dp).clip(CircleShape).background(look.colors.accent).clickable { open = true })
-                Spacer(Modifier.height(18.dp))
-                Text("saver mode · ${battery.level}%", color = Color.White.copy(alpha = 0.5f), fontFamily = RintFonts.Pixel, fontSize = 10.sp)
-                Text("tap the dot", color = Color.White.copy(alpha = 0.3f), fontFamily = look.font, fontSize = 12.sp)
+        androidx.compose.animation.AnimatedContent(open, label = "saver", transitionSpec = {
+            (androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(350)) + androidx.compose.animation.scaleIn(initialScale = 0.9f)) togetherWith
+                (androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(200)) + androidx.compose.animation.scaleOut(targetScale = 1.08f))
+        }) { isOpen ->
+            if (!isOpen) SaverDot(battery.level, battery.charging, onOpen = { open = true }, onSettings = openSettings)
+            else SaverDrawer(onClose = { open = false }, onSettings = openSettings)
+        }
+    }
+}
+
+/** The dot: breathes slowly, wears the battery as a ring, and a sleepy Rin keeps watch. */
+@Composable
+private fun SaverDot(level: Int, charging: Boolean, onOpen: () -> Unit, onSettings: () -> Unit) {
+    val look = LocalRint.current
+    val t = dev.rint.launcher.ui.rememberAmbientClock()
+    val breathe = 1f + 0.06f * kotlin.math.sin(t * 1.6f)
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(Modifier.size(120.dp), contentAlignment = Alignment.Center) {
+                androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+                    val stroke = 4.dp.toPx()
+                    drawCircle(look.colors.accent.copy(alpha = 0.12f), radius = size.minDimension / 2 - stroke)
+                    drawArc(
+                        if (charging) Color(0xFF3DDC84) else look.colors.accent, -90f, 360f * level / 100f, false,
+                        topLeft = androidx.compose.ui.geometry.Offset(stroke, stroke),
+                        size = androidx.compose.ui.geometry.Size(size.width - stroke * 2, size.height - stroke * 2),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round),
+                    )
+                    // a single spark orbiting the ring
+                    val a = t * 0.9f
+                    val r = size.minDimension / 2 - stroke
+                    drawCircle(Color.White.copy(alpha = 0.7f), 2.dp.toPx(), center + androidx.compose.ui.geometry.Offset(kotlin.math.cos(a) * r, kotlin.math.sin(a) * r))
+                }
+                Box(
+                    Modifier.size(64.dp).graphicsLayer { scaleX = breathe; scaleY = breathe }
+                        .clip(CircleShape).background(look.colors.accent).clickable { onOpen() }
+                )
             }
-        } else SaverDrawer { open = false }
+            Spacer(Modifier.height(18.dp))
+            Text("saver mode · $level%", color = Color.White.copy(alpha = 0.5f), fontFamily = RintFonts.Pixel, fontSize = 10.sp)
+            Text("tap the dot", color = Color.White.copy(alpha = 0.3f), fontFamily = look.font, fontSize = 12.sp)
+        }
+        RinSprite(Pose.DROWSY, 56.dp, Modifier.align(Alignment.BottomCenter).padding(bottom = 120.dp))
+        Row(
+            Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 28.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            SaverChip("Saver Home") { dev.rint.launcher.RintApp.instance.stores.config.update { it.copy(battery = it.battery.copy(saverHome = true)) } }
+            SaverChip("settings", onSettings)
+        }
     }
 }
 
 @Composable
-private fun SaverDrawer(onClose: () -> Unit) {
+private fun SaverChip(label: String, onClick: () -> Unit) {
+    val look = LocalRint.current
+    Text(
+        label, color = Color.White.copy(alpha = 0.8f), fontFamily = look.font, fontSize = 13.sp,
+        modifier = Modifier.clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.08f)).clickable { onClick() }.padding(horizontal = 16.dp, vertical = 9.dp),
+    )
+}
+
+@Composable
+private fun SaverDrawer(onClose: () -> Unit, onSettings: () -> Unit) {
     val look = LocalRint.current
     val ctx = LocalContext.current
     val view = LocalView.current
@@ -128,6 +182,8 @@ private fun SaverDrawer(onClose: () -> Unit) {
                             cursorBrush = SolidColor(look.colors.accent), modifier = Modifier.fillMaxWidth())
                     }
                     Spacer(Modifier.width(8.dp))
+                    Text("settings", color = Color.White.copy(alpha = 0.6f), fontFamily = look.font, fontSize = 14.sp, modifier = Modifier.clickable { onSettings() })
+                    Spacer(Modifier.width(12.dp))
                     Text("close", color = look.colors.accent, fontFamily = look.font, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.clickable { onClose() })
                 }
             }

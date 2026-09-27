@@ -101,7 +101,13 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
 
     private fun pickController(list: List<MediaController>? = null) {
         if (_now.value?.source.let { it == Source.LOCAL || it == Source.STREAM }) return
-        val sessions = list ?: runCatching { msm.getActiveSessions(listenerComponent) }.getOrDefault(emptyList())
+        val all = list ?: runCatching { msm.getActiveSessions(listenerComponent) }.getOrDefault(emptyList())
+        val sessions = all.filter { MusicDetect.counts(it, dev.rint.launcher.RintApp.instance.stores.config.value.music.preferredApp) }
+        if (sessions.isEmpty() && _now.value?.source == Source.APP) {
+            controller?.unregisterCallback(controllerCallback); controller = null
+            _now.value = null
+            return
+        }
         val best = sessions.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
             ?: sessions.firstOrNull { it.packageName == pendingAppPackage() }
             ?: sessions.firstOrNull()
@@ -124,6 +130,8 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
         if (ownPlayback) return
         val c = controller ?: return
         val md = c.metadata ?: return
+        // a YouTube video that isn't music, a podcast app, a game making noise: not a song
+        if (!MusicDetect.counts(c, dev.rint.launcher.RintApp.instance.stores.config.value.music.preferredApp)) { pickController(); return }
         val st = c.playbackState
         val title = md.getString(MediaMetadata.METADATA_KEY_TITLE) ?: return
         val artist = md.getString(MediaMetadata.METADATA_KEY_ARTIST)
@@ -456,5 +464,53 @@ object MusicSources {
                 )
             }
         }.getOrDefault(emptyList())
+    }
+}
+
+
+/** Decides whether a media session is actually music worth showing (widget, notch, lock screen). */
+object MusicDetect {
+    private val musicApps = setOf(
+        "com.spotify.music", "com.google.android.apps.youtube.music", "com.apple.android.music", "deezer.android.app",
+        "com.soundcloud.android", "com.amazon.mp3", "com.aspiro.tidal", "com.pandora.android", "com.maxmpz.audioplayer",
+        "in.krosbits.musicolet", "com.shaiban.audioplayer.mplayer", "com.sec.android.app.music", "com.miui.player",
+        "com.google.android.music", "org.akanework.gramophone", "com.kapp.youtube.final", "app.revanced.android.apps.youtube.music",
+        "it.fast4x.rimusic", "com.zionhuang.music", "com.dd3boh.outertune", "com.arturo254.opentune", "moe.koiverse.archivetune",
+    )
+    private val videoApps = setOf(
+        "com.zhiliaoapp.musically", "com.ss.android.ugc.trill", "com.instagram.android", "com.netflix.mediaclient",
+        "com.facebook.katana", "com.twitter.android", "tv.twitch.android.app", "com.disney.disneyplus", "com.amazon.avod.thirdpartyclient",
+        "com.android.chrome", "org.mozilla.firefox", "com.brave.browser", "com.microsoft.emmx", "com.sec.android.app.sbrowser",
+        "com.google.android.apps.maps", "com.waze", "com.whatsapp", "org.telegram.messenger", "com.discord",
+    )
+    private val youtube = setOf("com.google.android.youtube", "app.revanced.android.youtube", "com.vanced.android.youtube", "org.schabi.newpipe", "free.rm.skytube.oss")
+    private val musicWords = Regex(
+        "official (music )?(video|audio|visualizer|lyric)|lyrics?|\\(audio\\)|\\bft\\.|\\bfeat\\.|remix|\\bprod\\.|acoustic|\\blive at\\b|slowed|sped up|nightcore|\\bost\\b|\\bmv\\b",
+        RegexOption.IGNORE_CASE,
+    )
+    private val musicChannel = Regex("- topic$|vevo$|music$|records$|official$|\\bband\\b", RegexOption.IGNORE_CASE)
+
+    fun counts(c: android.media.session.MediaController, preferred: String?): Boolean {
+        val pkg = c.packageName
+        // the user picked a music app: only that one counts (RintOS's own player is handled separately)
+        if (!preferred.isNullOrBlank()) return pkg == preferred && looksLikeTrack(c, pkg)
+        if (pkg in videoApps) return false
+        return looksLikeTrack(c, pkg)
+    }
+
+    private fun looksLikeTrack(c: android.media.session.MediaController, pkg: String): Boolean {
+        val md = c.metadata ?: return false
+        val title = md.getString(android.media.MediaMetadata.METADATA_KEY_TITLE).orEmpty()
+        if (title.isBlank()) return false
+        val artist = (md.getString(android.media.MediaMetadata.METADATA_KEY_ARTIST) ?: md.getString(android.media.MediaMetadata.METADATA_KEY_ALBUM_ARTIST)).orEmpty()
+        val dur = md.getLong(android.media.MediaMetadata.METADATA_KEY_DURATION)
+        if (pkg in youtube) {
+            // a YouTube video only counts when it looks like a song
+            if (dur in 1..45_000L || dur > 15 * 60_000L) return false
+            return musicChannel.containsMatchIn(artist.trim()) || musicWords.containsMatchIn(title) || title.contains(" - ")
+        }
+        if (pkg in musicApps) return true
+        // anything else: needs an artist and a song-like length
+        return artist.isNotBlank() && (dur == 0L || dur in 45_000L..20 * 60_000L)
     }
 }

@@ -65,6 +65,10 @@ class MainActivity : ComponentActivity() {
             BackHandler { st.dismissTop() }
             LaunchedEffect(Unit) { consumeAction(intent) }
 
+            val bootStartup = androidx.compose.runtime.saveable.rememberSaveable {
+                cfg.onboarded && cfg.startup.enabled && runCatching { dev.rint.launcher.intro.Startup.isFirstSinceBoot(this@MainActivity) }.getOrDefault(false)
+            }
+            LaunchedEffect(bootStartup) { if (bootStartup) dev.rint.launcher.intro.StartupPreview.show = true }
             RintTheme(cfg) {
                 CompositionLocalProvider(LocalWindowFx provides fx) {
                     AnimatedContent(cfg.onboarded, label = "root", transitionSpec = { fadeIn(tween(700)) togetherWith fadeOut(tween(300)) }) { onboarded ->
@@ -73,6 +77,9 @@ class MainActivity : ComponentActivity() {
                             app.stores.config.update { it.copy(onboarded = true) }
                             if (!app.stores.config.value.guideSeen) st.guideStep = 0
                         })
+                    }
+                    androidx.compose.animation.AnimatedVisibility(dev.rint.launcher.intro.StartupPreview.show, enter = androidx.compose.animation.EnterTransition.None, exit = fadeOut(tween(250))) {
+                        dev.rint.launcher.intro.StartupScreen(cfg.startup.style) { dev.rint.launcher.intro.StartupPreview.show = false }
                     }
                 }
             }
@@ -122,6 +129,7 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         runCatching { SysWidgets.host(this).startListening() }
         RintApp.instance.music.start()
+        dev.rint.launcher.system.GlobalNotch.launcherVisible(this, true)
     }
 
     override fun onResume() {
@@ -140,6 +148,7 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         runCatching { SysWidgets.host(this).stopListening() }
+        dev.rint.launcher.system.GlobalNotch.launcherVisible(this, false)
         state?.let { st ->
             st.notchExpanded = false
             st.appMenu = null

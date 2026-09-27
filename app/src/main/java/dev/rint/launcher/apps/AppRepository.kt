@@ -187,6 +187,7 @@ class AppRepository(private val context: Context, private val scope: CoroutineSc
 
     fun launch(entry: AppEntry, bounds: android.graphics.Rect? = null, opts: android.os.Bundle? = null) {
         launchCounts.merge(entry.key, 1, Int::plus)
+        runCatching { dev.rint.launcher.assistant.RinMemory.recordLaunch(entry.key, entry.label) }
         runCatching { launcherApps?.startMainActivity(entry.component, entry.user, bounds, opts) }
     }
 

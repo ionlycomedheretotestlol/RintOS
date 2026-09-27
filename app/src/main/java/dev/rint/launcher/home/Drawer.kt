@@ -172,6 +172,20 @@ fun AppDrawer(state: LauncherState, modifier: Modifier = Modifier) {
         }
     }
 
+    // The blur is its own full-screen layer: it never slides, scales or shrinks with the keyboard.
+    val backdrop = dev.rint.launcher.ui.LocalBackdrop.current
+    val rootView = androidx.compose.ui.platform.LocalView.current.rootView
+    androidx.compose.foundation.Canvas(modifier.fillMaxSize().graphicsLayer { alpha = p.coerceIn(0f, 1f) }) {
+        if (backdrop != null) {
+            val full = androidx.compose.ui.unit.IntSize(maxOf(rootView.width, size.width.toInt(), 1), maxOf(rootView.height, size.height.toInt(), 1))
+            val sc = maxOf(full.width / backdrop.tiny.width.toFloat(), full.height / backdrop.tiny.height.toFloat())
+            val w = (backdrop.tiny.width * sc).toInt(); val h = (backdrop.tiny.height * sc).toInt()
+            drawImage(backdrop.tiny, dstOffset = androidx.compose.ui.unit.IntOffset((full.width - w) / 2, (full.height - h) / 2),
+                dstSize = androidx.compose.ui.unit.IntSize(w, h), filterQuality = androidx.compose.ui.graphics.FilterQuality.Medium)
+            drawRect(Color(0xFF05070F).copy(alpha = if (look.colors.dark) 0.30f else 0f))
+            drawRect(Color.Black.copy(alpha = 0.18f + 0.3f * (cfg.drawer.opacity - 0.5f).coerceAtLeast(0f)))
+        } else drawRect(look.colors.bg.copy(alpha = cfg.drawer.opacity))
+    }
     Box(
         modifier
             .fillMaxSize()
@@ -181,11 +195,6 @@ fun AppDrawer(state: LauncherState, modifier: Modifier = Modifier) {
                 val s = lerp(0.94f, 1f, p)
                 scaleX = s; scaleY = s
             }
-            .then(
-                if (dev.rint.launcher.ui.LocalBackdrop.current != null)
-                    Modifier.glass(androidx.compose.ui.graphics.RectangleShape, edge = false).background(Color.Black.copy(alpha = 0.18f + 0.3f * (cfg.drawer.opacity - 0.5f).coerceAtLeast(0f)))
-                else Modifier.background(look.colors.bg.copy(alpha = cfg.drawer.opacity))
-            )
             .nestedScroll(closeConnection)
     ) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {

@@ -81,10 +81,12 @@ import java.util.Calendar
 import java.util.Locale
 
 @Composable
-fun RintNotch(state: LauncherState, modifier: Modifier = Modifier) {
+fun RintNotch(state: LauncherState, modifier: Modifier = Modifier, fullWidth: Boolean = true, overlay: Boolean = false) {
     val look = LocalRint.current
     val n = look.cfg.notch
     if (!n.enabled) return
+    // over other apps: stay out of the way of landscape videos and games
+    if (overlay && LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) return
     val v = LocalView.current
     val ctx = LocalContext.current
     val np by RintApp.instance.music.now.collectAsState()
@@ -115,7 +117,7 @@ fun RintNotch(state: LauncherState, modifier: Modifier = Modifier) {
     val top by animateDpAsState(if (attached && !expanded) 0.dp else n.offsetY.dp, RintSprings.pop(), label = "t")
     val bg = n.color.color()
 
-    Box(modifier.fillMaxWidth().padding(top = top), contentAlignment = Alignment.TopCenter) {
+    Box((if (fullWidth) modifier.fillMaxWidth() else modifier).padding(top = top), contentAlignment = Alignment.TopCenter) {
         Box(
             Modifier
                 .width(w)
@@ -131,7 +133,7 @@ fun RintNotch(state: LauncherState, modifier: Modifier = Modifier) {
                 },
         ) {
             AnimatedContent(expanded, label = "notch", transitionSpec = { fadeIn(tween(220, 90)) togetherWith fadeOut(tween(90)) }) { ex ->
-                if (ex) ExpandedNotch(state) else CollapsedNotch(live, n.left, n.right)
+                if (ex) ExpandedNotch(state, overlay) else CollapsedNotch(live, n.left, n.right)
             }
         }
     }
@@ -217,7 +219,7 @@ private fun Equalizer(color: Color) {
 }
 
 @Composable
-private fun ExpandedNotch(state: LauncherState) {
+private fun ExpandedNotch(state: LauncherState, overlayMode: Boolean = false) {
     val look = LocalRint.current
     val engine = RintApp.instance.music
     val np by engine.now.collectAsState()
@@ -242,7 +244,13 @@ private fun ExpandedNotch(state: LauncherState) {
             val pos = rememberPosition(cur, look.cfg.music.offsetMs)
             Column(Modifier.fillMaxSize()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(58.dp).clip(RoundedCornerShape(14.dp)).pressable(PressEffect.SHRINK) { state.notchExpanded = false; MusicOverlay.show() }) {
+                    Box(Modifier.size(58.dp).clip(RoundedCornerShape(14.dp)).pressable(PressEffect.SHRINK) {
+                        state.notchExpanded = false; MusicOverlay.show()
+                        if (overlayMode) runCatching {
+                            val c = RintApp.instance
+                            c.startActivity(android.content.Intent(c, dev.rint.launcher.MainActivity::class.java).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_REORDER_TO_FRONT))
+                        }
+                    }) {
                         Artwork(cur, Modifier.fillMaxSize())
                     }
                     Spacer(Modifier.width(12.dp))

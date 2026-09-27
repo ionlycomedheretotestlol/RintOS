@@ -45,6 +45,11 @@ internal object PtBr {
         "{} GB of 16 GB · {}" to "{} GB de 16 GB · {}",
         // music
         "trying {}…" to "tentando {}…",
+        "{} days ago" to "há {} dias",
+        "lap {}" to "volta {}",
+        "up {}d {}h" to "ligado há {}d {}h",
+        "up {}h" to "ligado há {}h",
+        "{} GB free" to "{} GB livres",
         "{}: not found" to "{}: não encontrado",
         "{}: couldn't play" to "{}: não deu pra tocar",
         "loading {}…" to "carregando {}…",
@@ -353,6 +358,7 @@ internal object PtBr {
         put("Width", "Largura"); put("Distance from top", "Distância do topo"); put("Accent glow", "Brilho de destaque")
         put("Left side", "Lado esquerdo"); put("Right side", "Lado direito"); put("Live activity", "Atividade ao vivo")
         put("grows with artwork + equalizer while music plays", "cresce com capa + equalizador enquanto a música toca"); put("Tap to expand", "Tocar pra expandir")
+        put("Show in every app", "Mostrar em todos os apps"); put("the notch floats over other apps too (needs \"display over other apps\")", "o notch flutua sobre outros apps também (precisa de \"sobrepor outros apps\")")
         put("Clock", "Relógio"); put("tty blocks & 6 more faces", "blocos tty e mais 6 estilos"); put("Face", "Estilo")
         put("Seconds", "Segundos"); put("Blinking colon", "Dois-pontos piscando"); put("Show date", "Mostrar data"); put("Date format", "Formato da data")
         put("24-hour", "24 horas"); put("Use accent color", "Usar cor de destaque"); put("Size", "Tamanho")
@@ -411,12 +417,37 @@ internal object PtBr {
         put("Emergency alerts", "Alertas de emergência")
         put("Rin pops up for tornado, amber and other emergency broadcasts (needs notification access)", "o Rin aparece para tornados, alertas amber e outras emergências (precisa de acesso às notificações)")
         put("Allow Rin's popups over other apps", "Permitir popups do Rin sobre outros apps"); put("Try saver mode now", "Testar o modo economia agora")
+        put("Saver Home", "Início Econômico"); put("a lighter home: no widgets or wandering Rin, calmer wallpaper. Good for weak phones, not for daily use", "uma tela inicial mais leve: sem widgets nem Rin passeando, papel de parede mais calmo. Boa pra celulares fracos, não pro dia a dia")
+        put("making home lighter…", "deixando a tela inicial mais leve…"); put("packing away widgets", "guardando os widgets")
         put("Dangerous", "Perigoso"); put("do not press. seriously.", "não aperte. sério.")
         put("Watch Rin play the guitar", "Ver o Rin tocar guitarra"); put("you have been warned", "você foi avisado")
         put("Backup & reset", "Backup e redefinir"); put("export, import, start over", "exportar, importar, recomeçar")
         put("Export setup", "Exportar setup"); put("copies your whole config + layout", "copia toda sua configuração + layout")
         put("Import setup", "Importar setup"); put("paste an exported setup", "cole um setup exportado")
         put("Reset look to defaults", "Redefinir visual para o padrão"); put("Reset everything", "Redefinir tudo")
+        put("Rin button next to search", "Botão do Rin ao lado da busca"); put("one tap to talk to Rin", "um toque pra falar com o Rin")
+        put("Startup screen", "Tela de inicialização"); put("what you see right after the phone boots", "o que você vê logo depois que o celular liga")
+        put("Show after every restart", "Mostrar depois de cada reinício"); put("plays once when your phone turns on, then home appears", "toca uma vez quando o celular liga, depois vem a tela inicial")
+        put("Design", "Design"); put("all four follow your accent color", "os quatro seguem sua cor de destaque"); put("pixel walk", "passeio pixel"); put("minimal", "mínimo")
+        put("rintos 1.4 · boot", "rintos 1.4 · inicialização"); put("[ ok ] kernel says hi", "[ ok ] o kernel mandou oi"); put("[ ok ] waking up Rin", "[ ok ] acordando o Rin")
+        put("[ ok ] loading your wallpaper", "[ ok ] carregando seu papel de parede"); put("[ ok ] icons: polished", "[ ok ] ícones: polidos"); put("[ ok ] widgets: stretching", "[ ok ] widgets: se alongando")
+        put("[ ok ] notch: in position", "[ ok ] notch: em posição"); put("[ ok ] music: ready when you are", "[ ok ] música: pronta quando você quiser"); put("[ ok ] welcome back.", "[ ok ] bem-vindo de volta.")
+        put("still everything you love", "tudo que você ama continua aqui"); put("your home", "sua tela inicial"); put("music + live lyrics", "música + letra ao vivo")
+        put("UPGRADING", "ATUALIZANDO"); put("NEW", "NOVO"); put("the notch, in every app", "o notch, em todo app"); put("Rin remembers you", "o Rin lembra de você")
+        put("live wallpapers", "papéis de parede animados"); put("new wallpapers", "novos papéis de parede"); put("5 new widgets", "5 widgets novos")
+        put("your lock screen, your way", "sua tela de bloqueio, do seu jeito"); put("startup screens · português", "telas de inicialização · português")
+        put("rebuilt.", "refeito."); put("for you.", "pra você."); put("40+ animations", "40+ animações")
+        put("celebrate", "comemorar"); put("sing", "cantar"); put("shred", "solar"); put("spin", "girar"); put("snack", "lanchar"); put("purr", "ronronar")
+        put("wink", "piscar"); put("laugh", "rir"); put("proud", "orgulho"); put("dance", "dançar"); put("scared", "susto"); put("cheer", "vibrar")
+        put("on it. lofi, coming up.", "deixa comigo. lofi saindo."); put("remember my exam is on friday", "lembra que minha prova é sexta")
+        put("got it. good luck, you've got this.", "anotado. boa sorte, você consegue."); put("MEMORY", "MEMÓRIA"); put("exam on friday", "prova na sexta")
+        put("notch in every app", "notch em todo app"); put("…and it's still free", "…e continua grátis")
+        put("Clock font", "Fonte do relógio"); put("Clock size", "Tamanho do relógio"); put("Clock position", "Posição do relógio"); put("Greeting", "Saudação"); put("good morning / good evening above the clock", "bom dia / boa noite acima do relógio")
+        put("Memory", "Memória"); put("Rin remembers you", "O Rin lembra de você"); put("facts you tell him and your app habits, kept only on this phone", "o que você conta pra ele e seus hábitos de apps, guardados só neste celular")
+        put("See what Rin remembers", "Ver o que o Rin lembra"); put("delete anything you don't want him to know", "apague o que você não quer que ele saiba")
+        put("Forget everything", "Esquecer tudo"); put("Rin forgot everything", "O Rin esqueceu tudo"); put("What Rin remembers", "O que o Rin lembra")
+        put("Nothing yet. Tell Rin things like “remember my exam is on Friday”.", "Nada ainda. Diga ao Rin coisas como “lembra que minha prova é sexta”.")
+        put("forget", "esquecer"); put("HABITS HE NOTICED", "HÁBITOS QUE ELE NOTOU"); put("remembering", "lembrando"); put("forgetting", "esquecendo")
         put("use %s for the query", "use %s no lugar da busca"); put("e.g. EEE d MMM · dd/MM/yyyy", "ex.: EEE d MMM · dd/MM/yyyy")
     }
 
@@ -446,6 +477,14 @@ internal object PtBr {
         put("Charge ring with time estimate", "Anel de carga com estimativa de tempo")
         put("Month", "Mês"); put("This month at a glance", "Este mês num relance")
         put("Weather", "Clima"); put("Open-Meteo, no account needed", "Open-Meteo, sem precisar de conta")
+        put("Countdown", "Contagem regressiva"); put("Days until the thing you're waiting for", "Dias até aquilo que você está esperando")
+        put("World clock", "Relógio mundial"); put("Another city's time. Tap to switch", "A hora de outra cidade. Toque pra trocar")
+        put("Rin's thought", "Pensamento do Rin"); put("A new little thought from Rin every day", "Um pensamentinho novo do Rin todo dia")
+        put("Device", "Aparelho"); put("Storage, memory and uptime", "Armazenamento, memória e tempo ligado")
+        put("Stopwatch", "Cronômetro"); put("Start, pause, lap", "Iniciar, pausar, volta")
+        put("countdown", "contagem"); put("tap to set a date", "toque pra escolher a data"); put("today!", "é hoje!"); put("day left", "dia restante"); put("days left", "dias restantes")
+        put("what's coming up?", "o que vem aí?"); put("rin says", "o rin diz"); put("storage", "armazenamento"); put("memory", "memória")
+        put("running", "rodando"); put("stopwatch", "cronômetro"); put("night", "noite"); put("day", "dia")
     }
 
     /** Settings choices show enum names, lowercased with spaces. */
@@ -476,6 +515,8 @@ internal object PtBr {
             "scale up" to "ampliar", "clip reveal" to "revelar",
             "classic" to "clássico", "minimal" to "mínimo", "poster" to "pôster",
             "slide up" to "deslizar pra cima", "split" to "dividir",
+            "neon" to "neon", "middle" to "meio", "blurred" to "desfocado", "same as theme" to "igual ao tema",
+            "starfield" to "estrelas", "waves" to "ondas", "sunset" to "pôr do sol", "synthwave" to "synthwave", "peaks" to "montanhas",
         ).forEach { (k, v) -> putIfAbsent(k, v) }
     }
 }

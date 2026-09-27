@@ -48,6 +48,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -140,7 +141,18 @@ fun LockScreen(onUnlock: () -> Unit, onShortcut: (Binding) -> Unit) {
     ) {
         val progress = p.value
         val content: @Composable BoxScope.() -> Unit = {
-            Wallpaper()
+            when (lc.background) {
+                dev.rint.launcher.core.LockBg.WALLPAPER -> Wallpaper()
+                dev.rint.launcher.core.LockBg.BLURRED -> Box(Modifier.fillMaxSize().then(
+                    if (android.os.Build.VERSION.SDK_INT >= 31) Modifier.blur(28.dp) else Modifier
+                )) { Wallpaper() }
+                dev.rint.launcher.core.LockBg.BLACK -> Unit
+                dev.rint.launcher.core.LockBg.GLOW -> Canvas(Modifier.fillMaxSize()) {
+                    drawRect(Color(0xFF05060B))
+                    val c = Offset(size.width / 2, size.height * 0.28f)
+                    drawCircle(androidx.compose.ui.graphics.Brush.radialGradient(listOf(look.colors.accent.copy(alpha = 0.55f), Color.Transparent), c, size.maxDimension * 0.6f), size.maxDimension * 0.6f, c)
+                }
+            }
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = lc.dim)))
             if (lc.style == LockStyle.TERMINAL) Box(Modifier.fillMaxSize().background(Color.Black))
             LockContent(onShortcut, progress)
@@ -189,6 +201,21 @@ private fun PixelDissolve(p: Float) {
 
 @Composable
 private fun LockContent(onShortcut: (Binding) -> Unit, progress: Float) {
+    val base = LocalRint.current
+    val lcf = base.cfg.lock.font
+    val look = if (lcf == dev.rint.launcher.core.LockFont.THEME) base else base.copy(font = when (lcf) {
+        dev.rint.launcher.core.LockFont.INTER -> RintFonts.Inter
+        dev.rint.launcher.core.LockFont.SERIF -> androidx.compose.ui.text.font.FontFamily.Serif
+        dev.rint.launcher.core.LockFont.PIXEL -> RintFonts.Pixel
+        dev.rint.launcher.core.LockFont.TERMINAL -> RintFonts.Terminal
+        dev.rint.launcher.core.LockFont.MONO -> androidx.compose.ui.text.font.FontFamily.Monospace
+        dev.rint.launcher.core.LockFont.THEME -> base.font
+    })
+    androidx.compose.runtime.CompositionLocalProvider(LocalRint provides look) { LockContentInner(onShortcut, progress) }
+}
+
+@Composable
+private fun LockContentInner(onShortcut: (Binding) -> Unit, progress: Float) {
     val look = LocalRint.current
     val lc = look.cfg.lock
     val now = rememberNow(1000)
@@ -197,7 +224,23 @@ private fun LockContent(onShortcut: (Binding) -> Unit, progress: Float) {
     val clockColor = if (lc.accentClock) look.colors.accent else Color.White
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 24.dp)) {
         Spacer(Modifier.height(36.dp))
-        Box(Modifier.fillMaxWidth().weight(1f)) {
+        if (lc.greeting) {
+            val hour = now.get(Calendar.HOUR_OF_DAY)
+            val hi = when (hour) { in 5..11 -> "good morning"; in 12..17 -> "good afternoon"; in 18..22 -> "good evening"; else -> "late night mode" }
+            Text(dev.rint.launcher.ui.I18n.t(hi), color = look.colors.accent, fontFamily = RintFonts.Pixel, fontSize = 11.sp, letterSpacing = 2.sp,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), textAlign = TextAlign.Center)
+        }
+        Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = when (lc.position) {
+            dev.rint.launcher.core.LockPos.TOP -> Alignment.TopCenter
+            dev.rint.launcher.core.LockPos.MIDDLE -> Alignment.Center
+            dev.rint.launcher.core.LockPos.BOTTOM -> Alignment.BottomCenter
+        }) {
+          Box(Modifier.fillMaxWidth().graphicsLayer {
+              scaleX = lc.clockSize; scaleY = lc.clockSize
+              transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, when (lc.position) {
+                  dev.rint.launcher.core.LockPos.TOP -> 0f; dev.rint.launcher.core.LockPos.MIDDLE -> 0.5f; dev.rint.launcher.core.LockPos.BOTTOM -> 1f
+              })
+          }) {
             when (lc.style) {
                 LockStyle.CLASSIC -> Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(fmt("EEEE, d MMMM", now), color = Color.White, fontFamily = look.font, fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
@@ -237,7 +280,17 @@ private fun LockContent(onShortcut: (Binding) -> Unit, progress: Float) {
                 }
                 LockStyle.MUSIC -> MusicLock(now)
                 LockStyle.RIN -> RinLock(now)
+                LockStyle.NEON -> Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    val glow = androidx.compose.ui.text.TextStyle(
+                        fontFamily = look.font, fontWeight = FontWeight.Light, fontSize = 96.sp, color = Color.White,
+                        shadow = androidx.compose.ui.graphics.Shadow(look.colors.accent, Offset.Zero, 42f),
+                    )
+                    Text(fmt(if (look.cfg.clock.use24h) "HH:mm" else "h:mm", now), style = glow)
+                    Text(fmt("EEEE · d MMMM", now).uppercase(), color = look.colors.accent, fontFamily = RintFonts.Pixel, fontSize = 12.sp, letterSpacing = 3.sp,
+                        style = androidx.compose.ui.text.TextStyle(shadow = androidx.compose.ui.graphics.Shadow(look.colors.accent, Offset.Zero, 18f)))
+                }
             }
+          }
         }
         if (lc.message.isNotBlank()) Text(lc.message, color = Color.White.copy(alpha = 0.75f), fontFamily = look.font, fontSize = 13.sp,
             textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp))

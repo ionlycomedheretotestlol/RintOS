@@ -44,7 +44,7 @@ class I18nTest {
         val allowed = setOf("Rin", "Dock", "Notch", "Layout", "Widget", "Presets", "Rint Music", "auto", "inter", "pixel", "terminal", "mono",
             "zoom", "squircle", "rint", "original", "normal", "google", "duckduckgo", "brave", "bing", "startpage", "gemini", "groq", "claude",
             "openrouter", "android", "rin", "ask", "app", "local", "stream", "amoled", "musica", "Kore, Puck, Leda, Zephyr, Aoede, Charon…", "pixels",
-            "notch", "widgets", "“5 km to mi”, “70 f to c”", "en", "pt", "console.groq.com", "console.anthropic.com", "openrouter.ai/keys")
+            "notch", "widgets", "“5 km to mi”, “70 f to c”", "en", "pt", "console.groq.com", "console.anthropic.com", "openrouter.ai/keys", "synthwave", "neon", "Design", "rintos")
         val real = missing.filter { it !in allowed }
         assertTrue("untranslated: $real", real.isEmpty())
     }

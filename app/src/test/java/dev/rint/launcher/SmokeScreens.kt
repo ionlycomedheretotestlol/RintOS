@@ -97,4 +97,24 @@ class SmokeScreens {
         frame("loading") { dev.rint.launcher.intro.LoadingScreen(listOf("a", "b")) { it(0.4f) } }
         frame("permissions") { dev.rint.launcher.intro.Permissions {} }
     }
+
+    /** Everything again with the Terminal preset, which has crashed on a real phone. */
+    @Test fun terminalPresetEverywhere() {
+        val cfg = dev.rint.launcher.settings.Presets.all.first { it.name == "Terminal" }.apply(RintConfig(onboarded = true, guideSeen = true))
+        frame("t_home", cfg) { dev.rint.launcher.home.Launcher(remember { st() }) }
+        frame("t_drawer", cfg) { val s = remember { st() }; LaunchedEffect(Unit) { s.drawer.snapTo(1f) }; dev.rint.launcher.home.AppDrawer(s) }
+        Schema.sections.forEach { sec -> frame("t_section_${sec.id}", cfg) { dev.rint.launcher.settings.SettingsScreen(remember { st().apply { settingsOpen = true; settingsSection = sec.id } }) } }
+        frame("t_settings", cfg) { dev.rint.launcher.settings.SettingsScreen(remember { st().apply { settingsOpen = true } }) }
+        frame("t_notch", cfg) { dev.rint.launcher.home.RintNotch(remember { st() }) }
+        frame("t_saver", cfg) { dev.rint.launcher.home.SaverHome() }
+        frame("t_assistant", cfg) { dev.rint.launcher.assistant.AssistantScreen(remember { st() }) }
+        dev.rint.launcher.core.LockStyle.entries.forEach { ls ->
+            frame("t_lock_${ls.name}", cfg.copy(lock = cfg.lock.copy(style = ls))) { dev.rint.launcher.lock.LockScreen({}, {}) }
+        }
+        dev.rint.launcher.widgets.WidgetRegistry.all.forEach { w ->
+            w.sizes.forEach { (x, y) ->
+                frame("t_widget_${w.type}_${x}x$y", cfg) { w.content(dev.rint.launcher.widgets.WidgetCtx("t_${w.type}", x, y)) }
+            }
+        }
+    }
 }
