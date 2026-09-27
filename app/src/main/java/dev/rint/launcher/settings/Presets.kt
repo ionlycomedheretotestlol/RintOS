@@ -24,7 +24,7 @@ class Preset(val name: String, val tagline: String, val swatch: List<Long>, val 
 /** One-tap starting points. They only touch looks, never your layout, apps or gestures. */
 object Presets {
     private fun base(c: RintConfig) = RintConfig(
-        onboarded = c.onboarded, guideSeen = c.guideSeen, hiddenApps = c.hiddenApps, renamedApps = c.renamedApps,
+        lang = c.lang, onboarded = c.onboarded, guideSeen = c.guideSeen, hiddenApps = c.hiddenApps, renamedApps = c.renamedApps,
         gestures = c.gestures, search = c.search, music = c.music.copy(lyricsFont = LyricsFont.TERMINAL), mascot = c.mascot,
         home = RintConfig().home.copy(columns = c.home.columns, rows = c.home.rows, lockLayout = c.home.lockLayout),
         dock = RintConfig().dock.copy(count = c.dock.count),

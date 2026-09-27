@@ -109,6 +109,12 @@ class Screenshots {
         Launcher(remember { LauncherState(CoroutineScope(Dispatchers.Unconfined)) })
     }
 
+    private fun pt(f: () -> Unit) { dev.rint.launcher.ui.I18n.lang = dev.rint.launcher.ui.Lang.PT; try { f() } finally { dev.rint.launcher.ui.I18n.lang = dev.rint.launcher.ui.Lang.EN } }
+    @Test fun pt_home() = pt { shot(wallpaperCfg) { Launcher(remember { LauncherState(CoroutineScope(Dispatchers.Unconfined)) }) } }
+    @Test fun pt_settings() = pt { shot { SettingsScreen(remember { LauncherState(CoroutineScope(Dispatchers.Unconfined)).apply { settingsOpen = true; settingsSection = "look" } }) } }
+    @Test fun pt_intro_boot() = pt { film(bar * 2 + 6.3f) }
+    @Test fun pt_intro_tagline() = pt { film(bar * 11 + 1.7f) }
+
     @Test fun settings_home() = shot {
         SettingsScreen(remember { LauncherState(CoroutineScope(Dispatchers.Unconfined)).apply { settingsOpen = true } })
     }

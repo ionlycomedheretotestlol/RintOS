@@ -53,7 +53,7 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import dev.rint.launcher.ui.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -655,7 +655,7 @@ fun CalendarWidget(ctx: WidgetCtx) {
     val first = (cal.get(Calendar.DAY_OF_WEEK) + 5) % 7
     val days = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
     val today = now.get(Calendar.DAY_OF_MONTH)
-    val monthName = java.text.SimpleDateFormat("MMMM", java.util.Locale.getDefault()).format(now.time)
+    val monthName = java.text.SimpleDateFormat("MMMM", dev.rint.launcher.ui.I18n.locale).format(now.time)
     Column(Modifier.fillMaxSize().padding(12.dp)) {
         Row(verticalAlignment = Alignment.Bottom) {
             Text(monthName, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = look.colors.text)
@@ -665,7 +665,7 @@ fun CalendarWidget(ctx: WidgetCtx) {
         if (ctx.h < 3 && ctx.w < 4) {
             Spacer(Modifier.weight(1f))
             Text("$today", fontFamily = RintFonts.Terminal, fontSize = 56.sp, color = look.colors.text)
-            Text(java.text.SimpleDateFormat("EEEE", java.util.Locale.getDefault()).format(now.time), fontSize = 12.sp, color = look.colors.subtext, fontFamily = look.font)
+            Text(java.text.SimpleDateFormat("EEEE", dev.rint.launcher.ui.I18n.locale).format(now.time), fontSize = 12.sp, color = look.colors.subtext, fontFamily = look.font)
             return@Column
         }
         Spacer(Modifier.height(6.dp))

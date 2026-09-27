@@ -7,6 +7,8 @@ const val RINT_INK = 0xFF0A0E1EL
 
 @Serializable
 data class RintConfig(
+    /** "" until the first-launch language screen is answered. */
+    val lang: String = "",
     val onboarded: Boolean = false,
     val guideSeen: Boolean = false,
     val look: Look = Look(),

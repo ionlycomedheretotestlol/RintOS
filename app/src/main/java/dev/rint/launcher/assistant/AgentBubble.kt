@@ -112,7 +112,7 @@ class AgentBubble(private val context: Context, private val windowType: Int = Wi
     }
 
     private fun icon(text: String, onClick: () -> Unit) = TextView(context).apply {
-        this.text = text
+        this.text = dev.rint.launcher.ui.I18n.t(text)
         setTextColor(Color.parseColor("#C8CCDA"))
         textSize = 16f
         setPadding((8 * dp).toInt(), (4 * dp).toInt(), (8 * dp).toInt(), (4 * dp).toInt())
@@ -120,7 +120,7 @@ class AgentBubble(private val context: Context, private val windowType: Int = Wi
     }
 
     private fun chip(text: String, primary: Boolean, onClick: () -> Unit): TextView = TextView(context).apply {
-        this.text = text
+        this.text = dev.rint.launcher.ui.I18n.t(text)
         setTextColor(Color.WHITE)
         textSize = 13f
         typeface = ResourcesCompat.getFont(context, R.font.inter_700)
@@ -159,7 +159,7 @@ class AgentBubble(private val context: Context, private val windowType: Int = Wi
 
     fun status(text: String, busy: Boolean = true) = main.post {
         attach()
-        label.text = text
+        label.text = dev.rint.launcher.ui.I18n.t(text)
         actions.removeAllViews()
         if (busy) actions.addView(chip("stop", false) { onStop?.invoke() })
     }
@@ -174,7 +174,7 @@ class AgentBubble(private val context: Context, private val windowType: Int = Wi
     fun ask(question: String, onAnswer: (Boolean) -> Unit) = main.post {
         attach()
         if (collapsed) collapse(false)
-        label.text = question
+        label.text = dev.rint.launcher.ui.I18n.t(question)
         actions.removeAllViews()
         actions.addView(chip("no", false) { onAnswer(false) })
         actions.addView(chip("yes", true) { onAnswer(true) })

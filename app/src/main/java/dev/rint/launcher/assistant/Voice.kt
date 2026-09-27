@@ -70,7 +70,7 @@ class VoiceOut(private val ctx: Context) {
     private suspend fun gemini(text: String, key: String, model: String, voice: String): Boolean {
         val pcm = withContext(Dispatchers.IO) {
             val body = buildJsonObject {
-                put("contents", buildJsonArray { add(buildJsonObject { put("parts", buildJsonArray { add(buildJsonObject { put("text", "Say cheerfully, like a cute friendly mascot: $text") }) }) }) })
+                put("contents", buildJsonArray { add(buildJsonObject { put("parts", buildJsonArray { add(buildJsonObject { put("text", (if (dev.rint.launcher.ui.I18n.pt) "Say cheerfully in Brazilian Portuguese, like a cute friendly mascot: " else "Say cheerfully, like a cute friendly mascot: ") + "$text") }) }) }) })
                 put("generationConfig", buildJsonObject {
                     put("responseModalities", buildJsonArray { add(kotlinx.serialization.json.JsonPrimitive("AUDIO")) })
                     put("speechConfig", buildJsonObject {
@@ -137,6 +137,7 @@ class VoiceOut(private val ctx: Context) {
             var waited = 0
             while (!ready && !failed && waited < 40) { delay(50); waited++ }
             if (!ready) return false
+            runCatching { e.setLanguage(dev.rint.launcher.ui.I18n.locale) }
             e.setPitch(1.25f)
             e.setSpeechRate(1.05f)
             tts = e
@@ -195,6 +196,9 @@ class VoiceIn(private val ctx: Context) {
         r.startListening(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            val tag = dev.rint.launcher.ui.I18n.locale.toLanguageTag()
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, tag)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, tag)
         })
     }
 

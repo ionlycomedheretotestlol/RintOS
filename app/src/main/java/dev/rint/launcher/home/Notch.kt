@@ -33,7 +33,7 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import dev.rint.launcher.ui.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -161,12 +161,12 @@ private fun NotchSlot(c: NotchContent) {
     when (c) {
         NotchContent.TIME -> {
             val now = rememberNow(15_000)
-            Text(SimpleDateFormat(if (look.cfg.clock.use24h) "HH:mm" else "h:mm", Locale.getDefault()).format(now.time),
+            Text(SimpleDateFormat(if (look.cfg.clock.use24h) "HH:mm" else "h:mm", dev.rint.launcher.ui.I18n.locale).format(now.time),
                 fontFamily = RintFonts.Terminal, fontSize = 17.sp, color = fg)
         }
         NotchContent.DATE -> {
             val now = rememberNow(60_000)
-            Text(SimpleDateFormat("d MMM", Locale.getDefault()).format(now.time), fontFamily = RintFonts.Pixel, fontSize = 9.sp, color = fg)
+            Text(SimpleDateFormat("d MMM", dev.rint.launcher.ui.I18n.locale).format(now.time), fontFamily = RintFonts.Pixel, fontSize = 9.sp, color = fg)
         }
         NotchContent.BATTERY -> {
             val b = rememberBattery()
@@ -228,8 +228,8 @@ private fun ExpandedNotch(state: LauncherState) {
             val counts by Badges.counts.collectAsState()
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(SimpleDateFormat(if (look.cfg.clock.use24h) "HH:mm" else "h:mm", Locale.getDefault()).format(now.time), fontFamily = RintFonts.Terminal, fontSize = 64.sp, color = Color.White)
-                    Text(SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(now.time), fontFamily = look.font, fontSize = 14.sp, color = Color.White.copy(alpha = 0.7f))
+                    Text(SimpleDateFormat(if (look.cfg.clock.use24h) "HH:mm" else "h:mm", dev.rint.launcher.ui.I18n.locale).format(now.time), fontFamily = RintFonts.Terminal, fontSize = 64.sp, color = Color.White)
+                    Text(SimpleDateFormat("EEEE, d MMMM", dev.rint.launcher.ui.I18n.locale).format(now.time), fontFamily = look.font, fontSize = 14.sp, color = Color.White.copy(alpha = 0.7f))
                     Spacer(Modifier.height(8.dp))
                     Text("${b.level}% ${if (b.charging) "· charging" else ""}  ·  ${counts.values.sum()} notifications", fontFamily = RintFonts.Pixel, fontSize = 9.sp, color = look.colors.accent)
                 }

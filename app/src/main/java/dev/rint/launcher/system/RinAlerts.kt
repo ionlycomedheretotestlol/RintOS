@@ -35,7 +35,8 @@ object RinAlerts {
     private val main = Handler(Looper.getMainLooper())
     private var current: LinearLayout? = null
 
-    fun show(ctx: Context, title: String, body: String, danger: Boolean = false, speak: Boolean = true) = main.post {
+    fun show(ctx: Context, titleEn: String, bodyEn: String, danger: Boolean = false, speak: Boolean = true) = main.post {
+        val title = dev.rint.launcher.ui.I18n.t(titleEn); val body = dev.rint.launcher.ui.I18n.t(bodyEn)
         dismiss(ctx)
         val app = ctx.applicationContext
         val type = when {
@@ -63,7 +64,7 @@ object RinAlerts {
             typeface = ResourcesCompat.getFont(host, R.font.inter_800) ?: Typeface.DEFAULT_BOLD
         })
         texts.addView(TextView(host).apply { text = body; setTextColor(Color.WHITE); textSize = 13.5f; maxLines = 4 })
-        texts.addView(TextView(host).apply { text = "tap to dismiss"; setTextColor(Color.parseColor("#80FFFFFF")); textSize = 11f })
+        texts.addView(TextView(host).apply { text = dev.rint.launcher.ui.I18n.t("tap to dismiss"); setTextColor(Color.parseColor("#80FFFFFF")); textSize = 11f })
         card.addView(texts, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         val lp = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT, type,

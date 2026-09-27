@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
+import dev.rint.launcher.ui.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -298,7 +298,7 @@ internal fun HeartScene(time: () -> Float) {
             drawCircle(Color.White, 6f, Offset(size.width, y0))
         }
         val t = time()
-        val line = if (t < BAR) "signal detected" else "it's waking up."
+        val line = dev.rint.launcher.ui.I18n.t(if (t < BAR) "signal detected" else "it's waking up.")
         val start = if (t < BAR) 0.4f else BAR + 0.2f
         val typed = ((t - start) / 0.05f).toInt().coerceIn(0, line.length)
         Text(
@@ -331,7 +331,7 @@ internal fun BootScene(time: () -> Float) {
         "  [ ok ] tested. and tested. and tested.",
         "  compiling 1.3…",
         "  ready.",
-    )
+    ).map { dev.rint.launcher.ui.I18n.t(it) }
     val lines = story.mapIndexed { i, l -> (if (i == 0) 0.05f else i * BEAT) to l }.let { all ->
         // keep the last 11 visible, like a real terminal scrolling
         val shown = all.count { t >= it.first }
@@ -433,7 +433,12 @@ private fun DrawScope.rotateBlock(x: Float, y: Float, s: Float, deg: Float, c: C
 
 // ───────────────────────────── bars 6–9: words slam in, countdown ─────────────────────────────
 
-private val phrases = listOf(
+private val phrasesPt = listOf(
+    listOf("demorou" to false, "um" to false, "pouco." to true),
+    listOf("tantos" to false, "crashes." to true, "consertados." to false),
+    listOf("este" to false, "é" to false, "o RintOS" to false, "1.3" to true),
+)
+private val phrasesEn = listOf(
     listOf("it" to false, "took" to false, "a" to false, "while." to true),
     listOf("so" to false, "many" to false, "crashes." to true, "fixed." to false),
     listOf("this" to false, "is" to false, "RintOS" to false, "1.3" to true),
@@ -466,7 +471,7 @@ internal fun TaglineScene(time: () -> Float) {
         if (bar < 3) {
             // one word per beat, each one slamming down from huge
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                phrases[bar].forEachIndexed { i, (w, acc) ->
+                (if (dev.rint.launcher.ui.I18n.pt) phrasesPt else phrasesEn)[bar].forEachIndexed { i, (w, acc) ->
                     if (beat >= i) {
                         val since = local - i * BEAT
                         Text(

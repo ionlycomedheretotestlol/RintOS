@@ -7,6 +7,7 @@ import dev.rint.launcher.music.MusicEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class RintApp : Application() {
     /** Background failures are recorded for the crash report instead of killing the launcher. */
@@ -32,6 +33,8 @@ class RintApp : Application() {
         if (stores.config.value.music.version < 2) {
             stores.config.update { it.copy(music = it.music.copy(playVia = dev.rint.launcher.core.PlayVia.STREAM, version = 2)) }
         }
+        dev.rint.launcher.ui.Lang.of(stores.config.value.lang)?.let { dev.rint.launcher.ui.I18n.lang = it }
+        scope.launch { stores.config.state.collect { c -> dev.rint.launcher.ui.Lang.of(c.lang)?.let { dev.rint.launcher.ui.I18n.lang = it } } }
         apps = AppRepository(this, scope)
         apps.setRenames(stores.config.value.renamedApps)
         apps.setIconPack(stores.config.value.icons.iconPack)

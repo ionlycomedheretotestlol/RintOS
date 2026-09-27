@@ -21,7 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
+import dev.rint.launcher.ui.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -73,10 +73,23 @@ private val numberWords = listOf(
 
 /** User-typed patterns can be half-finished ("EEE d Q") — never let them take the home screen down. */
 fun safeDateFormat(pattern: String): SimpleDateFormat =
-    runCatching { SimpleDateFormat(pattern, Locale.getDefault()).also { it.format(java.util.Date()) } }
-        .getOrElse { SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()) }
+    runCatching { SimpleDateFormat(pattern, dev.rint.launcher.ui.I18n.locale).also { it.format(java.util.Date()) } }
+        .getOrElse { SimpleDateFormat("EEEE, d MMMM", dev.rint.launcher.ui.I18n.locale) }
+
+private val ptHours = listOf("meio-dia", "uma", "duas", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze")
 
 fun timeInWords(h24: Int, m: Int): String {
+    if (dev.rint.launcher.ui.I18n.pt) {
+        val r = ((m + 2) / 5) * 5
+        val next = r > 30
+        val h = ((if (next) h24 + 1 else h24) % 24).let { if (it == 0) "meia-noite" else ptHours[it % 12] }
+        val pra = if (h == "uma" || h == "meia-noite" || h == "meio-dia") "pra" else "pras"
+        return when (r % 60) {
+            0 -> if (h.startsWith("mei")) h else "$h em ponto"
+            5 -> "$h e cinco"; 10 -> "$h e dez"; 15 -> "$h e quinze"; 20 -> "$h e vinte"; 25 -> "$h e vinte e cinco"; 30 -> "$h e meia"
+            35 -> "vinte e cinco $pra $h"; 40 -> "vinte $pra $h"; 45 -> "quinze $pra $h"; 50 -> "dez $pra $h"; else -> "cinco $pra $h"
+        }
+    }
     val rounded = ((m + 2) / 5) * 5
     val hour = if (rounded > 30) (h24 + 1) % 12 else h24 % 12
     val hw = numberWords[hour]
@@ -111,13 +124,13 @@ fun ClockWidget(ctx: WidgetCtx) {
                 }
                 .padding(16.dp),
         ) {
-            Text(SimpleDateFormat("EEEE", Locale.getDefault()).format(now.time).uppercase(), color = look.colors.accent.lighten(),
+            Text(SimpleDateFormat("EEEE", dev.rint.launcher.ui.I18n.locale).format(now.time).uppercase(), color = look.colors.accent.lighten(),
                 fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 1.sp)
             Spacer(Modifier.weight(1f))
             val fits = if (c.style == ClockStyle.STACKED || c.style == ClockStyle.WORDS) ClockStyle.THIN else c.style
             ClockFace(c.copy(style = fits, align = Align.START, seconds = false), Modifier.fillMaxWidth().height(52.dp), compact = true)
             Spacer(Modifier.height(4.dp))
-            Text(SimpleDateFormat("d MMMM", Locale.getDefault()).format(now.time), color = Color.White.copy(alpha = 0.75f),
+            Text(SimpleDateFormat("d MMMM", dev.rint.launcher.ui.I18n.locale).format(now.time), color = Color.White.copy(alpha = 0.75f),
                 fontFamily = look.font, fontWeight = FontWeight.Medium, fontSize = 13.sp)
         }
         return

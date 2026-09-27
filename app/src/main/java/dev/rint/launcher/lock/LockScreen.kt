@@ -39,7 +39,7 @@ import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import dev.rint.launcher.ui.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -102,7 +102,7 @@ import kotlin.math.abs
 import kotlin.math.sin
 import kotlin.random.Random
 
-private fun fmt(p: String, c: Calendar) = SimpleDateFormat(p, Locale.getDefault()).format(c.time)
+private fun fmt(p: String, c: Calendar) = SimpleDateFormat(p, dev.rint.launcher.ui.I18n.locale).format(c.time)
 
 @Composable
 fun LockScreen(onUnlock: () -> Unit, onShortcut: (Binding) -> Unit) {

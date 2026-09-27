@@ -49,7 +49,7 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import dev.rint.launcher.ui.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -116,6 +116,45 @@ private enum class Stage { CINEMATIC, PERSONALIZE, FINALE, LOAD_APPS, PERMISSION
 
 @Composable
 fun IntroFlow(onFinished: () -> Unit) {
+    // Language comes first, before anything (or anyone) is shown.
+    var picked by rememberSaveable { mutableStateOf(RintApp.instance.stores.config.value.lang.isNotEmpty()) }
+    if (!picked) LanguagePick { picked = true } else IntroMain(onFinished)
+}
+
+/** Blank loading screen, then two buttons, then a 3 s fade to black before the intro starts. */
+@Composable
+private fun LanguagePick(onDone: () -> Unit) {
+    var ready by remember { mutableStateOf(false) }
+    var chosen by remember { mutableStateOf(false) }
+    val show by androidx.compose.animation.core.animateFloatAsState(
+        if (ready && !chosen) 1f else 0f,
+        tween(if (chosen) 3000 else 600), label = "lang",
+    )
+    LaunchedEffect(Unit) { delay(1200); ready = true }
+    LaunchedEffect(chosen) { if (chosen) { delay(3000); onDone() } }
+    Box(Modifier.fillMaxSize().background(Color(0xFF03050B)), contentAlignment = Alignment.Center) {
+        if (!ready) androidx.compose.material3.CircularProgressIndicator(color = Color.White.copy(alpha = 0.5f), strokeWidth = 2.dp, modifier = Modifier.size(28.dp))
+        Column(Modifier.graphicsLayer { alpha = show }, horizontalAlignment = Alignment.CenterHorizontally) {
+            listOf(dev.rint.launcher.ui.Lang.EN to "English (USA)", dev.rint.launcher.ui.Lang.PT to "Português (Brasil)").forEach { (lang, name) ->
+                androidx.compose.material3.Text(
+                    name, fontFamily = RintFonts.Inter, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.White,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.padding(8.dp).width(260.dp).clip(RoundedCornerShape(50))
+                        .background(Color.White.copy(alpha = 0.1f))
+                        .clickable(enabled = ready && !chosen) {
+                            dev.rint.launcher.ui.I18n.lang = lang
+                            RintApp.instance.stores.config.update { it.copy(lang = lang.code) }
+                            chosen = true
+                        }
+                        .padding(vertical = 16.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun IntroMain(onFinished: () -> Unit) {
     var stage by rememberSaveable { mutableStateOf(Stage.CINEMATIC) }
     val synth = remember { IntroSynth() }
     var userMuted by rememberSaveable { mutableStateOf(false) }

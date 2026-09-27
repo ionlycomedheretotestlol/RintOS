@@ -380,6 +380,7 @@ internal class Voxel3D(private val accent: Int) {
                     c.drawRoundRect(RectF(psx - cw / 2, psy - ch / 2, psx + cw / 2, psy + ch / 2), ch / 2, ch / 2, cardPaint)
                     // fit the text inside the card
                     textPaint.textSize = ch * 0.42f
+                    val text = dev.rint.launcher.ui.I18n.t(text)
                     val tw = textPaint.measureText(text)
                     if (tw > cw * 0.86f) textPaint.textSize *= cw * 0.86f / tw
                     textPaint.alpha = (255 * vis).toInt()

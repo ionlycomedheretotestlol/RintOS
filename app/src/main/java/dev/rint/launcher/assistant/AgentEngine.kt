@@ -305,7 +305,7 @@ class AgentEngine(private val ctx: Context, private val scope: CoroutineScope) {
     private fun systemPrompt(): String {
         val c = cfg()
         val name = stores.config.value.mascot.name
-        val now = SimpleDateFormat("EEEE d MMMM yyyy, HH:mm", Locale.getDefault()).format(Date())
+        val now = SimpleDateFormat("EEEE d MMMM yyyy, HH:mm", dev.rint.launcher.ui.I18n.locale).format(Date())
         return buildString {
             append("You are $name, the pixel-art fox-cat mascot of RintOS, an Android launcher, acting as the user's assistant. ")
             append("Personality: warm, playful, a little silly, but efficient. Keep spoken answers short (1-3 sentences) because they are read aloud; no markdown. ")
@@ -319,6 +319,7 @@ class AgentEngine(private val ctx: Context, private val scope: CoroutineScope) {
                 if (c.confirmRisky) append("Before anything irreversible or public — sending a message or email, posting, buying, deleting, changing security settings — call ask_user and wait for yes. ")
             } else append("Phone control is disabled; you can only chat, play music and customize the launcher. ")
             append("\n")
+            if (dev.rint.launcher.ui.I18n.pt) append("LANGUAGE: the user speaks Brazilian Portuguese. Always reply in natural, casual Brazilian Portuguese (pt-BR), even if tool results are in English.\n")
             if (c.personality.isNotBlank()) append("Extra style from the user: ${c.personality}\n")
         }
     }

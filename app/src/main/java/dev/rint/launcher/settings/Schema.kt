@@ -84,6 +84,7 @@ private fun x(f: Float) = "%.2f×".format(f)
 object Schema {
     val sections: List<Section> = listOf(
         Section("look", "Look & feel", "theme, accent, wallpaper, fonts", Icons.Rounded.Palette, Color(0xFF2F6BFF), listOf(
+            Opt.Choice("Language", "the whole app, and how Rin talks", dev.rint.launcher.ui.Lang.entries, label = { if (it == dev.rint.launcher.ui.Lang.PT) "Português (Brasil)" else "English (USA)" }, get = { dev.rint.launcher.ui.Lang.of(it.lang) ?: dev.rint.launcher.ui.Lang.EN }, set = { c, v -> c.copy(lang = v.code) }),
             Opt.Choice("Theme", values = ThemeMode.entries, get = { it.look.theme }, set = { c, v -> c.copy(look = c.look.copy(theme = v)) }),
             Opt.ColorPick("Accent color", "used everywhere: buttons, highlights, lyrics", get = { it.look.accent }, set = { c, v -> c.copy(look = c.look.copy(accent = v)) }),
             Opt.Choice("Interface font", values = UiFont.entries, get = { it.look.font }, set = { c, v -> c.copy(look = c.look.copy(font = v)) }),
@@ -241,7 +242,7 @@ object Schema {
             Opt.Slider("Background blur", range = 0f..80f, fmt = ::dp, get = { it.music.bgBlur }, set = { c, v -> c.copy(music = c.music.copy(bgBlur = v)) }),
             Opt.Slider("Background dim", range = 0f..0.9f, fmt = ::pct, get = { it.music.bgDim }, set = { c, v -> c.copy(music = c.music.copy(bgDim = v)) }),
             Opt.Toggle("Slow artwork drift", get = { it.music.kenBurns }, set = { c, v -> c.copy(music = c.music.copy(kenBurns = v)) }),
-            Opt.Choice("Play songs with", "right here = full songs from Audius, 30-second previews from Deezer/Apple otherwise", values = PlayVia.entries, label = { when (it) { PlayVia.ASK -> "ask each time"; PlayVia.APP -> "my music app"; PlayVia.LOCAL -> "files on phone"; PlayVia.STREAM -> "right here (free music APIs)" } },
+            Opt.Choice("Play songs with", "right here = full songs streamed from Audius", values = PlayVia.entries, label = { when (it) { PlayVia.ASK -> "ask each time"; PlayVia.APP -> "my music app"; PlayVia.LOCAL -> "files on phone"; PlayVia.STREAM -> "right here (free music APIs)" } },
                 get = { it.music.playVia }, set = { c, v -> c.copy(music = c.music.copy(playVia = v)) }),
             Opt.Action("Choose music app", id = "musicapp"),
             Opt.Toggle("Lyrics on the widget", get = { it.music.lyricsOnWidget }, set = { c, v -> c.copy(music = c.music.copy(lyricsOnWidget = v)) }),

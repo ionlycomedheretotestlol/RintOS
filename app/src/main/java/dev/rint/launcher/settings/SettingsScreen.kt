@@ -59,7 +59,7 @@ import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Text
+import dev.rint.launcher.ui.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -160,7 +160,7 @@ private fun Home(state: LauncherState, query: String, onQuery: (String) -> Unit,
         item { SettingsSearch(query, onQuery) }
         if (query.isNotBlank()) {
             val q = query.lowercase()
-            val found = Schema.sections.flatMap { sec -> sec.opts.filter { it !is Opt.Header && (it.title.lowercase().contains(q) || it.desc?.lowercase()?.contains(q) == true) }.map { sec to it } }
+            val found = Schema.sections.flatMap { sec -> sec.opts.filter { it !is Opt.Header && (it.title.lowercase().contains(q) || it.desc?.lowercase()?.contains(q) == true || dev.rint.launcher.ui.I18n.t(it.title).lowercase().contains(q) || it.desc?.let { d -> dev.rint.launcher.ui.I18n.t(d).lowercase().contains(q) } == true) }.map { sec to it } }
             if (found.isEmpty()) item {
                 Text("nothing called “$query” — yet.", color = look.colors.subtext, fontFamily = look.font, modifier = Modifier.padding(24.dp))
             }
@@ -728,7 +728,7 @@ private fun Sheets(sheet: String?, state: LauncherState, close: () -> Unit) {
         "lockpreview" -> { close(); dev.rint.launcher.lock.LockActivity.show(ctx); return }
         "voicetest" -> {
             close()
-            RintApp.instance.assistant.speak("hi! I'm Rin. this is my voice. pretty cool, right?")
+            RintApp.instance.assistant.speak(dev.rint.launcher.ui.I18n.t("hi! I'm Rin. this is my voice. pretty cool, right?"))
             return
         }
         "guide" -> { close(); state.settingsOpen = false; state.guideStep = 0; return }
@@ -887,7 +887,7 @@ private fun ConfirmReset(state: LauncherState, close: () -> Unit) {
         Pill("reset", selected = true) {
             stores.layout.replace(dev.rint.launcher.core.HomeLayout())
             stores.widgets.replace(emptyMap())
-            stores.config.replace(RintConfig(onboarded = true, guideSeen = true))
+            stores.config.replace(RintConfig(lang = stores.config.value.lang, onboarded = true, guideSeen = true))
             dev.rint.launcher.home.seedLayoutIfNeeded()
             state.settingsOpen = false
             close()

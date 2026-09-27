@@ -8,6 +8,7 @@ Made by Carrot.
 
 ## What's inside
 
+- **English or Português (Brasil)**: picked on first launch (a blank screen, two buttons, then the intro). Everything switches, including the intro, settings, widgets, Rin's popups, and the assistant, which replies in Portuguese, listens in pt-BR and speaks with a Brazilian voice. Change it any time in Settings → Look & feel → Language.
 - **Home screen**: grid (3–7 columns, 4–9 rows), 8 page transitions, drag and drop between pages and the dock, rename/hide apps, icon packs, 10 icon shapes, 5 icon styles, frosted glass, a magnifying dock.
 - **Wallpapers**: your own photo, any live wallpaper, three built-in artworks, solid, gradient, or an animated aurora. Optional film grain and dimming.
 - **Your colors**: accent color used everywhere, plus custom background, panel and text colors.
