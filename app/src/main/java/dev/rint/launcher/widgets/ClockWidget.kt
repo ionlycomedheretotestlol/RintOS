@@ -127,7 +127,7 @@ fun ClockWidget(ctx: WidgetCtx) {
             Text(SimpleDateFormat("EEEE", dev.rint.launcher.ui.I18n.locale).format(now.time).uppercase(), color = look.colors.accent.lighten(),
                 fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 1.sp)
             Spacer(Modifier.weight(1f))
-            val fits = if (c.style == ClockStyle.STACKED || c.style == ClockStyle.WORDS) ClockStyle.THIN else c.style
+            val fits = when (c.style) { ClockStyle.STACKED, ClockStyle.WORDS -> ClockStyle.THIN; ClockStyle.PIXEL -> ClockStyle.BLOCKS; else -> c.style }
             ClockFace(c.copy(style = fits, align = Align.START, seconds = false), Modifier.fillMaxWidth().height(52.dp), compact = true)
             Spacer(Modifier.height(4.dp))
             Text(SimpleDateFormat("d MMMM", dev.rint.launcher.ui.I18n.locale).format(now.time), color = Color.White.copy(alpha = 0.75f),

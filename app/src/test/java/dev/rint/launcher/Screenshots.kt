@@ -115,6 +115,24 @@ class Screenshots {
     @Test fun pt_intro_boot() = pt { film(bar * 2 + 6.3f) }
     @Test fun pt_intro_tagline() = pt { film(bar * 11 + 1.7f) }
 
+    @androidx.compose.runtime.Composable private fun launcher() = Launcher(remember { LauncherState(CoroutineScope(Dispatchers.Unconfined)) })
+    private val base = RintConfig(onboarded = true, guideSeen = true)
+    @Test fun readme_pink_hexes() = shot(base.copy(
+        look = base.look.copy(accent = 0xFFFF6FB5, wallpaper = dev.rint.launcher.core.WallpaperMode.MESH, gradientA = 0xFF2A0B3D, gradientB = 0xFFFF6FB5, gradientC = 0xFF6A5CFF),
+        icons = base.icons.copy(shape = dev.rint.launcher.core.IconShape.HEXAGON, style = dev.rint.launcher.core.IconStyle.RINT, monoBg = dev.rint.launcher.core.MonoBackground.WHITE, monoFg = 0xFFFF6FB5),
+        clock = base.clock.copy(style = dev.rint.launcher.core.ClockStyle.WORDS, useAccent = true),
+    )) { launcher() }
+    @Test fun readme_green_terminal() = shot(base.copy(
+        look = base.look.copy(accent = 0xFF3DDC84, font = dev.rint.launcher.core.UiFont.TERMINAL, wallpaper = dev.rint.launcher.core.WallpaperMode.ART, art = dev.rint.launcher.core.WallpaperArt.PIXEL_NIGHT),
+        icons = base.icons.copy(shape = dev.rint.launcher.core.IconShape.SQUARE, style = dev.rint.launcher.core.IconStyle.TINTED),
+        clock = base.clock.copy(style = dev.rint.launcher.core.ClockStyle.PIXEL, useAccent = true),
+    )) { launcher() }
+    @Test fun readme_orange_paper() = shot(base.copy(
+        look = base.look.copy(accent = 0xFFFF7A45, wallpaper = dev.rint.launcher.core.WallpaperMode.ART, art = dev.rint.launcher.core.WallpaperArt.TIDE),
+        icons = base.icons.copy(shape = dev.rint.launcher.core.IconShape.CLOVER),
+        clock = base.clock.copy(style = dev.rint.launcher.core.ClockStyle.ANALOG),
+    )) { launcher() }
+
     @Test fun settings_home() = shot {
         SettingsScreen(remember { LauncherState(CoroutineScope(Dispatchers.Unconfined)).apply { settingsOpen = true } })
     }

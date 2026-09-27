@@ -52,8 +52,38 @@ fun rememberBackdrop(): Backdrop? {
     val l = LocalRint.current.cfg.look
     if (l.wallpaper == WallpaperMode.PHOTO) return rememberPhotoBackdrop(l.photoVersion)
     if (l.wallpaper != WallpaperMode.ART) return null
-    val full = ImageBitmap.imageResource(l.art.res())
+    val raw = ImageBitmap.imageResource(l.art.res())
+    val cfg = LocalRint.current.cfg
+    val rinColor = (cfg.mascot.color ?: l.accent).toInt()
+    val full = remember(raw, rinColor, l.art) { if (l.art == WallpaperArt.PIXEL_NIGHT) recolorWallpaperRin(raw, rinColor) else raw }
     return remember(full) { makeBackdrop(full) }
+}
+
+/** The Pixel Night art has Rin painted in; his blue parts follow the accent like everywhere else. */
+private fun recolorWallpaperRin(src: ImageBitmap, accent: Int): ImageBitmap {
+    if (accent or 0xFF000000.toInt() == 0xFF3B7CFF.toInt()) return src
+    return runCatching {
+        val bmp = src.asAndroidBitmap().copy(android.graphics.Bitmap.Config.ARGB_8888, true)
+        // Rin's box in the 1080×2340 artwork, scaled if the decoder resized it
+        val sx = bmp.width / 1080f; val sy = bmp.height / 2340f
+        val x0 = (190 * sx).toInt(); val x1 = (336 * sx).toInt().coerceAtMost(bmp.width)
+        val y0 = (1870 * sy).toInt(); val y1 = (2076 * sy).toInt().coerceAtMost(bmp.height)
+        val w = x1 - x0; val h = y1 - y0
+        val px = IntArray(w * h)
+        bmp.getPixels(px, 0, w, x0, y0, w, h)
+        val ar = (accent shr 16) and 0xff; val ag = (accent shr 8) and 0xff; val ab = accent and 0xff
+        for (i in px.indices) {
+            val c = px[i]
+            val r = (c shr 16) and 0xff; val g = (c shr 8) and 0xff; val b = c and 0xff
+            if (b - r < 60 || b - g < 25) continue
+            val t = (((r + g) / 2f - 93.5f) / 161.5f).coerceIn(0f, 1f)   // how light the blue was
+            val k = b / 255f                                             // how dark it was
+            fun ch(a: Int) = ((a + (255 - a) * t) * k).toInt().coerceIn(0, 255)
+            px[i] = (c and 0xFF000000.toInt()) or (ch(ar) shl 16) or (ch(ag) shl 8) or ch(ab)
+        }
+        bmp.setPixels(px, 0, w, x0, y0, w, h)
+        bmp.asImageBitmap()
+    }.getOrDefault(src)
 }
 
 /** The user's own photo wallpaper, decoded off the main thread at screen size. */

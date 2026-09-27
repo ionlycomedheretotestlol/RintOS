@@ -4,7 +4,7 @@ A deeply customizable Android launcher, with a white fox-cat roommate named **Ri
 
 Made by Carrot.
 
-![RintOS screens](docs/screenshots.jpg)
+![RintOS: Purple Night setup and the lyrics player](docs/screenshots.jpg)
 
 ## What's inside
 
@@ -24,6 +24,12 @@ Made by Carrot.
 - **Rin himself**: drawn entirely in code, pixel art by default (or smooth 2D with a 2.5D head), in your accent color, with 40+ animations (waving, dancing, playing guitar, singing, eating, purring, crying, getting angry, winking, spinning, celebrating…).
 - **The 1.3 intro**: 84 seconds, set to "Rin's Anthem", an original 128 BPM track synthesized live (no audio files): a music-box opening, trap-hat build-ups, two drops (the second one future-bass), vocal chops, a piano breakdown, a moment of silence and a key change; real-time 3D scenes drawn by a small built-in 3D renderer (a voxel wordmark, a warp tunnel, a giant 3D "1.3"); the whole story of how RintOS got here; credits; then the START button.
 - **Settings → Dangerous**: nine buttons you should not press. Guitar solo, deleting System32, downloading more RAM, summoning 100 Rins, self destruct, and more. All jokes; none of them do anything bad.
+
+## More looks
+
+Same launcher, three setups: pink hexagons with a mesh gradient, green terminal on Pixel Night, and clover icons on Tide. Rin (and the Rin in the Pixel Night wallpaper) follows your accent color.
+
+![Three RintOS setups](docs/looks.jpg)
 
 ## Install
 
