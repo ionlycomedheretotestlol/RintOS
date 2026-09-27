@@ -14,4 +14,6 @@ It's finally here. The first real release of RintOS, the Android launcher you ca
 - **A brand new 1.0 intro** with a bigger soundtrack.
 - **Settings → Dangerous**: don't press it.
 
+**1.0.1:** low-battery warnings and saver mode now work every time, not just once.
+
 Made by Carrot.

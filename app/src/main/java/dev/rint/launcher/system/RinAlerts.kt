@@ -112,10 +112,11 @@ object BatteryWatch {
             override fun onReceive(c: Context, i: Intent) {
                 val level = i.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
                 val scale = i.getIntExtra(BatteryManager.EXTRA_SCALE, 100).coerceAtLeast(1)
-                val status = i.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+                val plugged = i.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0)
                 if (level < 0) return
                 val pct = level * 100 / scale
-                val charging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
+                // "plugged" is the truth: status can stay CHARGING after a charger is pulled
+                val charging = plugged != 0
                 update(c, State(pct, charging))
             }
         }
@@ -125,11 +126,11 @@ object BatteryWatch {
     private fun update(ctx: Context, s: State) {
         _state.value = s
         val cfg = RintApp.instance.stores.config.value.battery
-        if (s.charging) {
-            warned.clear()
-            if (saver.value && s.level >= cfg.saverAt + 5) saver.value = false
-            return
-        }
+        // re-arm every warning once the battery is back above it, so they fire every time
+        warned.removeAll { s.charging || s.level > it }
+        // leave saver when charging, or whenever the battery is comfortably back up
+        if (saver.value && (s.level >= cfg.saverAt + 5 && (s.charging || s.level >= 50))) saver.value = false
+        if (s.charging) return
         if (cfg.saver && !saver.value && s.level <= cfg.saverAt) {
             saver.value = true
             if (cfg.alerts) RinAlerts.show(ctx, "battery's at ${s.level}%", "I folded your home screen into saver mode so it lasts longer. It comes back when you charge.")
