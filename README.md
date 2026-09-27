@@ -21,7 +21,7 @@ Made by Carrot.
 - **Notch**: your own dynamic island with live music activity.
 - **Settings**: 190+ options in grouped lists, a live preview, presets, search, export/import.
 - **Rin himself**: drawn entirely in code, flat 2D with a 2.5D head, and a lot of animations (waving, cheering, dancing, yawning, stretching, laughing, being confused, playing guitar…).
-- **The 1.3 intro**: 86 seconds. A soundtrack synthesized live (no audio files) with two drops, vocal chops, a piano breakdown, a moment of silence and a key change; 3D scenes rendered with three.js (a voxel wordmark, a warp tunnel, a giant 3D "1.3"); the whole story of how RintOS got here; credits; then the START button.
+- **The 1.3 intro**: 84 seconds, set to "Rin's Anthem", an original 128 BPM track synthesized live (no audio files): a music-box opening, trap-hat build-ups, two drops (the second one future-bass), vocal chops, a piano breakdown, a moment of silence and a key change; 3D scenes rendered with three.js (a voxel wordmark, a warp tunnel, a giant 3D "1.3"); the whole story of how RintOS got here; credits; then the START button.
 - **Settings → Dangerous**: nine buttons you should not press. Guitar solo, deleting System32, downloading more RAM, summoning 100 Rins, self destruct, and more. All jokes; none of them do anything bad.
 
 ## Install

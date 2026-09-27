@@ -1,0 +1,33 @@
+name: Ship
+
+# Work arrives on a temporary branch. This publishes it: refresh the v1.3 release,
+# fast-forward main, then delete the temporary branch so main stays the only one.
+on:
+  push:
+    branches: ["claude/**"]
+
+permissions:
+  contents: write
+
+jobs:
+  ship:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Refresh the v1.3 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for old in $(gh release list --limit 50 --json tagName --jq '.[].tagName'); do
+            gh release delete "$old" --cleanup-tag --yes
+          done
+          gh release create v1.3 release/RintOS-1.3.apk --target "$GITHUB_SHA" \
+            --title "RintOS 1.3" --notes-file release/NOTES.md --latest
+      - name: Fast-forward main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/main" -f sha="$GITHUB_SHA" -F force=false
+      - name: Delete the temporary branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$GITHUB_REF_NAME"

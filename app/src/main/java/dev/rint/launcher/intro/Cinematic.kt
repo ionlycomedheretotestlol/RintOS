@@ -216,6 +216,14 @@ private fun FilmFx(time: () -> Float) {
             var y = (t * 40f) % 6f
             while (y < size.height) { drawRect(Color.Black.copy(alpha = a), Offset(0f, y), Size(size.width, 2f)); y += 6f }
         }
+        // in the drops, the whole frame breathes with the kick and flickers on every clap
+        if (part == Score.Part.DROP || part == Score.Part.TUNNEL || part == Score.Part.LIFT || part == Score.Part.FINAL ||
+            (part == Score.Part.BUILD && bar >= Score.BUILD)) {
+            val k = kickOf(t)
+            drawRect(Brush.radialGradient(listOf(Color.Transparent, Color.Transparent, BLUE.copy(alpha = 0.45f * k)), center, size.maxDimension * 0.72f))
+            val beatInBar = floor(t / BEAT).toInt() % 4
+            if (beatInBar == 1 || beatInBar == 3) drawRect(Color.White.copy(alpha = 0.09f * exp(-beatPhase(t) * 12f)))
+        }
         // white-hot flash on every impact, with a chromatic fringe
         val si = sinceImpact(t)
         if (si < 0.7f) {
@@ -827,7 +835,7 @@ private val liftFeatures = listOf(
 
 @Composable
 internal fun RiseOverlay(time: () -> Float) {
-    val t = time() - bars(Score.RISE)
+    val t = (time() - bars(Score.RISE)) * (2f / BAR)
     Box(Modifier.fillMaxSize()) {
         Text(
             "INTRODUCING", fontFamily = RintFonts.Pixel, fontSize = 14.sp, color = Color.White, letterSpacing = 6.sp,
@@ -848,7 +856,7 @@ internal fun RiseOverlay(time: () -> Float) {
 
 @Composable
 internal fun TunnelOverlay(time: () -> Float) {
-    val t = time() - bars(Score.TUNNEL)
+    val t = (time() - bars(Score.TUNNEL)) * (2f / BAR)
     Box(Modifier.fillMaxSize()) {
         GlitchText(
             "SECOND DROP", TextStyle(fontFamily = RintFonts.Inter, fontWeight = FontWeight.Black, fontSize = 40.sp),

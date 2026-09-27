@@ -12,10 +12,10 @@ import kotlin.math.tanh
 
 /**
  * The film's bar map. The picture reads this too, so music and visuals can never drift apart.
- * 120 BPM, one bar = 2 s.
+ * 128 BPM, one bar = 1.875 s.
  */
 object Score {
-    const val BPM = 120.0
+    const val BPM = 128.0
     const val BEAT = 60.0 / BPM
     const val BAR = BEAT * 4
     const val BOOT = 2       // heartbeat → BRAAM, the story so far
@@ -74,22 +74,25 @@ class IntroSynth {
         private val FREQ = DoubleArray(128) { 440.0 * 2.0.pow((it - 69) / 12.0) }
         private const val TAU = 2 * PI
 
-        private val CHORDS = arrayOf(intArrayOf(57, 60, 64), intArrayOf(53, 57, 60), intArrayOf(55, 60, 64), intArrayOf(55, 59, 62))
-        private val ROOTS = intArrayOf(45, 41, 48, 43)
+        // "Rin's Anthem" — E minor, i–VI–iv–V (Em–C–Am–B), the V borrowed from harmonic minor
+        private val CHORDS = arrayOf(intArrayOf(55, 59, 64), intArrayOf(55, 60, 64), intArrayOf(57, 60, 64), intArrayOf(54, 59, 63))
+        private val ROOTS = intArrayOf(40, 48, 45, 47)
         private val HOOK = arrayOf(
-            intArrayOf(76, 76, 81, -1, 79, 76, 74, 76),
-            intArrayOf(72, -1, 69, 72, 74, -1, 72, 69),
-            intArrayOf(76, -1, 79, 76, 84, -1, 83, 79),
-            intArrayOf(74, -1, 71, 74, 76, -1, 74, 71),
+            intArrayOf(71, -1, 74, 76, 79, -1, 76, 74),
+            intArrayOf(76, -1, 72, -1, 74, 76, 72, 71),
+            intArrayOf(69, 72, 76, -1, 74, 72, 71, 69),
+            intArrayOf(71, -1, 75, -1, 78, -1, 75, 71),
         )
-        private val STABS = intArrayOf(0, 3, 6, 10, 12)
-        private val ARP = intArrayOf(0, 1, 2, 1, 0, 2, 1, 2)
-        private val DRONE = intArrayOf(33, 45, 40)
-        private val BRAAM = intArrayOf(33, 45, 52)
-        private val CHOP_STEPS = intArrayOf(0, 3, 6, 8, 10, 13)
-        private val CHOP_NOTES = intArrayOf(2, 1, 0, 1, 2, 0)
+        /** The hook's opening, played slowly on a music-box bell to tease it early. */
+        private val BELL = intArrayOf(71, 74, 76, 79, 76, 72, 74, 71, 69, 72, 76, 74, 71, 75, 78, 75)
+        private val STABS = intArrayOf(0, 3, 6, 8, 11, 14)
+        private val ARP = intArrayOf(0, 2, 1, 2, 0, 2, 1, 2)
+        private val DRONE = intArrayOf(28, 40, 47)
+        private val BRAAM = intArrayOf(28, 40, 47)
+        private val CHOP_STEPS = intArrayOf(0, 2, 5, 7, 10, 12, 15)
+        private val CHOP_NOTES = intArrayOf(2, 0, 1, 2, 0, 1, 2)
         private val VOWELS = arrayOf(doubleArrayOf(800.0, 1150.0), doubleArrayOf(500.0, 900.0), doubleArrayOf(350.0, 2100.0))
-        private val KEYS_SEQ = intArrayOf(0, 1, 2, 1, 0, 2, 1, 2)
+        private val KEYS_SEQ = intArrayOf(0, 2, 1, 2, 0, 1, 2, 1)
     }
 
     @Volatile var mode = Mode.TIMELINE
@@ -189,7 +192,7 @@ class IntroSynth {
     private var aArp = 0.0; private var aArpCut = 0.0; private var aSub = 0.0; private var aPluck = 0.0
     private var aKick = 0.0; private var aHats = 0; private var aClap = 0.0; private var aSaws = 0.0
     private var aLead = 0.0; private var aLeadCut = 0.0; private var aLeadOct = 0
-    private var aRiser = -1.0; private var aRoll = -1.0; private var aSwell = 0.0; private var aChoir = 0.0; private var aChop = 0.0; private var aKeys = 0.0; private var aReese = 0.0
+    private var aRiser = -1.0; private var aRoll = -1.0; private var aSwell = 0.0; private var aChoir = 0.0; private var aChop = 0.0; private var aKeys = 0.0; private var aReese = 0.0; private var aBell = 0.0; private var aFuture = 0.0
 
     private fun full(energy: Double) {
         aPad = 0.75; aPadCut = 0.14; aArp = 0.8; aArpCut = 0.22; aSub = 0.55; aPluck = 0.6
@@ -203,12 +206,13 @@ class IntroSynth {
     private fun arrange(bar: Int, pb: Double, time: Double) {
         aPad = 0.0; aPadCut = 0.05; aDrone = 0.0; aHeart = 0.0; aArp = 0.0; aArpCut = 0.1; aSub = 0.0; aPluck = 0.0
         aKick = 0.0; aHats = 0; aClap = 0.0; aSaws = 0.0; aLead = 0.0; aLeadCut = 0.2; aLeadOct = 0
-        aRiser = -1.0; aRoll = -1.0; aSwell = 0.0; aChoir = 0.0; aChop = 0.0; aKeys = 0.0; aReese = 0.0
+        aRiser = -1.0; aRoll = -1.0; aSwell = 0.0; aChoir = 0.0; aChop = 0.0; aKeys = 0.0; aReese = 0.0; aBell = 0.0; aFuture = 0.0
         fun prog(from: Int, bars: Int) = ((time - from * BAR) / (bars * BAR)).coerceIn(0.0, 1.0)
         when (mode) {
             Mode.TIMELINE -> when (Score.part(bar)) {
                 Score.Part.HEART -> {
                     aHeart = 1.0
+                    if (bar == 1) aBell = 0.6
                     aDrone = 0.35 + 0.65 * (time / (2 * BAR))
                     if (bar == 1) aSwell = pb.pow(4.0)
                 }
@@ -217,15 +221,15 @@ class IntroSynth {
                     aPad = (p * 3).coerceAtMost(1.0); aPadCut = 0.02 + 0.04 * p
                     aDrone = (1 - p * 2).coerceAtLeast(0.0)
                     aSub = 0.35
-                    aKeys = 0.5 * p
-                    if (bar >= 4) { aArp = 0.65; aArpCut = 0.05 + 0.08 * (p * 2 - 1) }
+                    aKeys = 0.35 * p; aBell = 0.8
+                    if (bar >= Score.BOOT + 2) { aArp = 0.65; aArpCut = 0.05 + 0.08 * (p * 2 - 1) }
                     if (bar == Score.RISE - 1) aSwell = pb.pow(6.0) * 0.5
                 }
                 Score.Part.RISE -> {
                     val p = prog(Score.RISE, 4)
                     aPad = 1.0; aPadCut = 0.05 + 0.06 * p; aArp = 1.0; aArpCut = 0.1 + 0.1 * p; aSub = 0.5
                     aLead = 0.35 + 0.3 * p; aLeadCut = 0.04 + 0.08 * p
-                    aChoir = 0.35 * p
+                    aChoir = 0.35 * p; aBell = 0.45 * (1 - p)
                     if (bar >= Score.RISE + 2) { aKick = 0.65; aHats = 1; aRiser = prog(Score.RISE + 2, 2) * 0.6 }
                     if (bar == Score.BUILD - 1 && pb > 0.75) aSwell = ((pb - 0.75) * 4).pow(3.0) * 0.6
                 }
@@ -233,7 +237,7 @@ class IntroSynth {
                     val p = prog(Score.BUILD, 4)
                     aPad = 0.9; aPadCut = 0.08 + 0.06 * p; aArp = 1.0; aArpCut = 0.14 + 0.1 * p; aSub = 0.55; aPluck = 1.0
                     aLead = 0.8; aLeadCut = 0.12 + 0.1 * p
-                    aKick = 1.0; aHats = if (bar >= Score.BUILD + 2) 2 else 1; aClap = 1.0; aChop = 0.5 * p
+                    aKick = 1.0; aHats = if (bar >= Score.BUILD + 2) 3 else 1; aClap = 1.0; aChop = 0.5 * p
                     if (bar >= Score.BUILD + 2) aRiser = prog(Score.BUILD + 2, 2)
                     if (bar == Score.DROP - 1) {
                         aRoll = pb
@@ -241,7 +245,7 @@ class IntroSynth {
                     }
                 }
                 Score.Part.DROP -> { full(1.0); aChop = 1.0; aReese = 1.0 }
-                Score.Part.TUNNEL -> { full(1.3); aChoir = 0.9; aChop = 1.0; aReese = 1.0; aLeadOct = 12 }
+                Score.Part.TUNNEL -> { full(1.1); aSaws = 0.0; aFuture = 1.2; aChoir = 0.9; aChop = 1.0; aReese = 1.0; aLeadOct = 12 }
                 Score.Part.LIFT -> {
                     full(1.15)
                     aChoir = 0.8; aReese = 0.8
@@ -254,7 +258,7 @@ class IntroSynth {
                 Score.Part.BREAK -> {
                     // the breakdown: keys, pad, choir, a heartbeat-slow sub. then it builds again.
                     val p = prog(Score.BREAK, 4)
-                    aPad = 1.0; aPadCut = 0.035 + 0.06 * p; aKeys = 1.0; aChoir = 0.55; aSub = 0.3
+                    aPad = 1.0; aPadCut = 0.035 + 0.06 * p; aKeys = 1.0; aChoir = 0.55; aSub = 0.3; aBell = 0.5
                     aLead = if (bar >= Score.BREAK + 1) 0.4 else 0.0; aLeadCut = 0.05 + 0.05 * p
                     if (bar >= Score.BREAK + 2) {
                         aKick = 0.5 + 0.4 * prog(Score.BREAK + 2, 2); aHats = 1; aArp = 0.8; aArpCut = 0.1 + 0.2 * p
@@ -274,11 +278,12 @@ class IntroSynth {
                     full(1.2)
                     aChoir = 1.0; aChop = 1.0; aReese = 1.0
                     aLeadOct = if (bar >= Score.OUTRO - 2) 12 else 0
+                    if (bar >= Score.FINAL + 4) { aFuture = 0.9; aSaws = 0.0 }
                     if (bar == Score.OUTRO - 1 && pb > 0.75) { aKick = 0.0; aHats = 0; aClap = 0.0; aRoll = (pb - 0.75) * 4 }
                 }
                 Score.Part.OUTRO -> {
                     val p = prog(Score.OUTRO, 2)
-                    aPad = 1.0 - 0.5 * p; aPadCut = 0.08; aKeys = 0.8 * (1 - p); aChoir = 0.8 * (1 - p); aSub = 0.4 * (1 - p)
+                    aPad = 1.0 - 0.5 * p; aPadCut = 0.08; aKeys = 0.8 * (1 - p); aChoir = 0.8 * (1 - p); aSub = 0.4 * (1 - p); aBell = 0.8
                     aLead = if (bar == Score.OUTRO) 0.6 else 0.0; aLeadCut = 0.12
                 }
                 Score.Part.AFTER -> chill()
@@ -541,6 +546,41 @@ class IntroSynth {
             l += g; r += g
         }
 
+        // music-box bell: the hook, slowly, one note per beat (FM, inharmonic ratio)
+        if (aBell > 0) {
+            val note = BELL[((beatI % 16) + 16) % 16] + 12 + tr
+            val f = FREQ[note]
+            val bt = kt
+            val idx = 3.0 * exp(-bt * 6)
+            val v = sin(TAU * f * bt + idx * sin(TAU * f * 3.5 * bt)) * exp(-bt * 2.2) * (bt / 0.003).coerceAtMost(1.0)
+            val g = v * 0.13 * aBell
+            val pan = if (beatI % 2 == 0) 0.3 else -0.3
+            l += g * (1 - pan); r += g * (1 + pan)
+            sendRev += g * 0.6; sendDly += g * 0.35
+        }
+
+        // future-bass chords: supersaws that swell up after every kick, with a wobble
+        if (aFuture > 0) {
+            var sl = 0.0; var sr = 0.0
+            val wob = 1 + 0.006 * sin(TAU * time * (Score.BPM / 60.0) * 2)
+            for (v in 0 until 3) {
+                val f = FREQ[chord[v] + 12 + tr] * wob
+                for (d in 0 until 3) {
+                    val k = v * 3 + d
+                    sawPh[k] = (sawPh[k] + f * (0.991 + 0.009 * d) / SR) % 1.0
+                    val x = saw(sawPh[k])
+                    if (d <= 1) sl += x
+                    if (d >= 1) sr += x
+                }
+            }
+            val swell = (1 - exp(-kt * 5)) * (0.4 + 0.6 * inBeat)
+            val cut = 0.05 + 0.25 * swell
+            sawLpL += cut * (sl / 6 - sawLpL); sawLpR += cut * (sr / 6 - sawLpR)
+            val g = 0.3 * aFuture * swell
+            l += sawLpL * g; r += sawLpR * g
+            sendRev += (sawLpL + sawLpR) * g * 0.3
+        }
+
         // lead hook
         if (aLead > 0) {
             val step = eighth % 8
@@ -558,7 +598,8 @@ class IntroSynth {
                 leadPh[0] = (leadPh[0] + f * 0.997 / SR) % 1.0
                 leadPh[1] = (leadPh[1] + f * 1.003 / SR) % 1.0
                 leadPh[2] = (leadPh[2] + f * 0.5 / SR) % 1.0
-                val raw = saw(leadPh[0]) + saw(leadPh[1]) + (if (leadPh[2] < 0.5) 0.6 else -0.6)
+                val duty = 0.5 + 0.28 * sin(TAU * 0.6 * time)
+                val raw = (if (leadPh[0] < duty) 0.9 else -0.9) + saw((leadPh[1] * 2) % 1.0) * 0.55 + (if (leadPh[2] < 0.5) 0.5 else -0.5)
                 val cut = aLeadCut * (0.6 + 0.4 * env)
                 leadLp1 += cut * (raw / 2.6 - leadLp1)
                 leadLp2 += cut * (leadLp1 - leadLp2)
@@ -584,6 +625,12 @@ class IntroSynth {
             val hp = nz - hatLp
             var env = 0.0
             if (aHats == 1) { if (eighth % 2 == 1) env = exp(-inEighth * BEAT / 2 * 60) * 1.0 }
+            else if (aHats == 3) {
+                // trap hats: 16ths, then 32nd-note rolls on the last beat of the bar
+                val rate = if (beatInBar == 3) 8.0 else 4.0
+                val ph = beatPos * rate - floor(beatPos * rate)
+                env = exp(-ph * BEAT / rate * 110) * (if (beatInBar == 3) 0.6 + 0.4 * inBeat else 0.6)
+            }
             else env = if (six % 4 == 2) exp(-inSix * BEAT / 4 * 14) * 1.1 else exp(-inSix * BEAT / 4 * 90) * (if (six % 2 == 1) 0.7 else 0.45)
             val g = hp * env * 0.13
             l += g * 0.8; r += g * 1.2

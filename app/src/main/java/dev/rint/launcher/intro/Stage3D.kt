@@ -39,12 +39,21 @@ class Stage3DState {
     @Volatile internal var clock = 0f
 }
 
-private class Bridge(private val state: Stage3DState, private val config: String) {
+/**
+ * What the page calls. It MUST be a public class with public methods: WebView invokes these
+ * by reflection, and a private class silently rejects every call (that's what broke 1.3's 3D).
+ */
+class StageBridge internal constructor(private val state: Stage3DState, private val config: String, private val onFail: (String) -> Unit) {
     private val main = Handler(Looper.getMainLooper())
     @JavascriptInterface fun time(): Float = state.clock
     @JavascriptInterface fun config(): String = config
     @JavascriptInterface fun ready() { main.post { state.ok = true } }
-    @JavascriptInterface fun fail(msg: String) { main.post { state.failed = true; state.ok = false } }
+    @JavascriptInterface fun fail(msg: String) { main.post { state.failed = true; state.ok = false; onFail(msg) } }
+}
+
+/** A failed 3D intro is recorded (not fatal) so it shows up in the crash report with the reason. */
+private fun report3dFailure(ctx: android.content.Context, why: String) {
+    runCatching { dev.rint.launcher.CrashLog.record(ctx, IllegalStateException("3D intro fell back to 2D: $why"), fatal = false) }
 }
 
 /** Voxel layouts from the launcher's own block font: [[x, y, accent]]. */
@@ -100,7 +109,13 @@ internal fun Stage3D(state: Stage3DState, time: () -> Float, modifier: Modifier 
     if (LocalInspectionMode.current) return
     val accent = dev.rint.launcher.ui.LocalRintOrNull.current?.colors?.accent?.toArgb() ?: 0xFF3B7CFF.toInt()
     val config = remember(accent) { stageConfig(accent) }
+    val context = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(Unit) { while (true) withFrameNanos { state.clock = time() } }
+    // if the page never says it's ready, say why in the crash report instead of failing silently
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(6000)
+        if (!state.ok && !state.failed) { state.failed = true; report3dFailure(context, "the 3D page didn't start within 6 s") }
+    }
     var web by remember { mutableStateOf<WebView?>(null) }
     DisposableEffect(Unit) { onDispose { web?.let { runCatching { it.stopLoading(); it.destroy() } } } }
     AndroidView(
@@ -108,8 +123,8 @@ internal fun Stage3D(state: Stage3DState, time: () -> Float, modifier: Modifier 
             // no WebView on this device (or in tests)? then the 2D film carries on alone
             try { WebView(ctx).apply {
                 setBackgroundColor(Color.TRANSPARENT)
-                setLayerType(View.LAYER_TYPE_HARDWARE, null)
                 settings.javaScriptEnabled = true
+                settings.domStorageEnabled = true
                 settings.mediaPlaybackRequiresUserGesture = true
                 isVerticalScrollBarEnabled = false
                 isHorizontalScrollBarEnabled = false
@@ -117,11 +132,18 @@ internal fun Stage3D(state: Stage3DState, time: () -> Float, modifier: Modifier 
                 webViewClient = object : WebViewClient() {
                     override fun shouldOverrideUrlLoading(view: WebView, request: android.webkit.WebResourceRequest) = true
                 }
-                addJavascriptInterface(Bridge(state, config), "RintBridge")
+                webChromeClient = object : android.webkit.WebChromeClient() {
+                    override fun onConsoleMessage(m: android.webkit.ConsoleMessage): Boolean {
+                        android.util.Log.d("RintStage", "${m.messageLevel()}: ${m.message()} (${m.sourceId()}:${m.lineNumber()})")
+                        return true
+                    }
+                }
+                addJavascriptInterface(StageBridge(state, config) { why -> report3dFailure(ctx, why) }, "RintBridge")
                 loadUrl("file:///android_asset/intro/stage.html")
                 web = this
             } } catch (t: Throwable) {
                 state.failed = true
+                report3dFailure(ctx, "no WebView: ${t.message ?: t::class.simpleName}")
                 View(ctx)
             }
         },

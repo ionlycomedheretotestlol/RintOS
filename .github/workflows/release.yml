@@ -1,9 +1,6 @@
-name: Publish release
+name: Publish release (manual)
 
 on:
-  push:
-    branches: ["**"]
-    paths: ["release/**", ".github/workflows/release.yml"]
   workflow_dispatch:
 
 permissions:
@@ -14,23 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Publish v1.3 (and retire older releases)
-        env:
+      - env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=v1.3
-          APK=release/RintOS-1.3.apk
-          # 1.3 replaces every earlier release
-          for old in $(gh release list --limit 50 --json tagName --jq '.[].tagName'); do
-            if [ "$old" != "$TAG" ]; then gh release delete "$old" --cleanup-tag --yes; fi
-          done
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$APK" --clobber
-            gh release edit "$TAG" --title "RintOS 1.3" --notes-file release/NOTES.md --latest
-          else
-            gh release create "$TAG" "$APK" \
-              --target "$GITHUB_SHA" \
-              --title "RintOS 1.3" \
-              --notes-file release/NOTES.md \
-              --latest
-          fi
+          gh release upload v1.3 release/RintOS-1.3.apk --clobber
+          gh release edit v1.3 --notes-file release/NOTES.md

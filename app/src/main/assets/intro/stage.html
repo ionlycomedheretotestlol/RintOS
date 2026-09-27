@@ -16,11 +16,14 @@
 (function () {
   const B = window.RintBridge;
   function fail(msg) { try { B.fail(String(msg)); } catch (e) {} }
+  window.onerror = function (m, src, line) { fail('js error: ' + m + ' @' + line); };
   if (!B || !window.THREE) { fail('no bridge or three'); return; }
   let cfg;
   try { cfg = JSON.parse(B.config()); } catch (e) { fail('bad config'); return; }
 
   const BAR = cfg.bar, BEAT = cfg.beat;
+  // scene choreography is written in "120 BPM seconds"; this maps it onto the real tempo
+  const K = 2 / BAR;
   const ACCENT = new THREE.Color(cfg.accent);
   const WHITE = new THREE.Color(0xffffff);
   const kickBars = new Set(cfg.kickBars);
@@ -166,10 +169,14 @@
 
   let readySent = false;
   let last = -1;
+  let errors = 0;
   function frame() {
     requestAnimationFrame(frame);
+    try { draw(); } catch (e) { if (++errors === 1) fail('frame: ' + e); }
+  }
+  function draw() {
     let t = 0;
-    try { t = B.time(); } catch (e) { return; }
+    try { t = B.time(); } catch (e) { if (++errors === 1) fail("bridge: " + e); return; }
     const bar = Math.floor(t / BAR);
     const A = inSec(bar, sections.rise), Bt = inSec(bar, sections.tunnel), C = inSec(bar, sections.final);
     const any = A || Bt || C;
@@ -181,7 +188,7 @@
     camera.fov = 55; camera.up.set(0, 1, 0);
 
     if (A) {
-      const lt = t - sections.rise[0] * BAR;
+      const lt = (t - sections.rise[0] * BAR) * K;
       const orbitA = -1.25 + 1.25 * easeInOut(lt / 6.2);
       const fit = fitDistance(word.userData.w, word.userData.h + 9, 1.12);
       const rad = fit * (1.5 - 0.5 * easeInOut(lt / 6.5)) - (lt > 7 ? (lt - 7) * fit * 0.6 : 0);
@@ -206,7 +213,7 @@
     }
 
     if (Bt) {
-      const lt = t - sections.tunnel[0] * BAR;
+      const lt = (t - sections.tunnel[0] * BAR) * K;
       const speed = 40 + 25 * k + 90 * Math.pow(clamp01((lt - 5) / 3), 2);
       const travel = lt * 45 + (lt > 5 ? Math.pow(lt - 5, 3) * 10 : 0);
       camera.position.set(Math.sin(t * 0.7) * 0.8, Math.cos(t * 0.5) * 0.6, -travel);
@@ -240,8 +247,8 @@
     }
 
     if (C) {
-      const lt = t - sections.final[0] * BAR;
-      const outro = Math.max(0, t - cfg.outro * BAR);
+      const lt = (t - sections.final[0] * BAR) * K;
+      const outro = Math.max(0, t - cfg.outro * BAR) * K;
       const slam = easeOutExpo(lt / 0.45);
       const pull = easeInOut(outro / 4);
       const fitC = fitDistance(big.userData.w * 1.1, big.userData.h * 2.4, 1.15);
