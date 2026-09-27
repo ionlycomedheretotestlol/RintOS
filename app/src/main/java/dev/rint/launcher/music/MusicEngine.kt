@@ -34,7 +34,7 @@ data class Track(
     val localUri: Uri? = null,
 )
 
-enum class Source { NONE, LOCAL, APP, WEB, STREAM }
+enum class Source { NONE, LOCAL, APP, STREAM }
 
 data class NowPlaying(
     val track: Track,
@@ -46,6 +46,10 @@ data class NowPlaying(
     val source: Source = Source.NONE,
     val appPackage: String? = null,
     val waiting: Boolean = false,
+    /** Which source is playing (or what's being tried), shown in the UI. */
+    val via: String? = null,
+    /** True when only a short preview is available from free sources. */
+    val preview: Boolean = false,
 ) {
     fun position(now: Long = SystemClock.elapsedRealtime()): Long =
         if (playing) positionMs + ((now - positionStamp) * speed).toLong() else positionMs
@@ -94,7 +98,7 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
     val hasSessionAccess: Boolean get() = listening
 
     private fun pickController(list: List<MediaController>? = null) {
-        if (_now.value?.source.let { it == Source.LOCAL || it == Source.STREAM || it == Source.WEB }) return
+        if (_now.value?.source.let { it == Source.LOCAL || it == Source.STREAM }) return
         val sessions = list ?: runCatching { msm.getActiveSessions(listenerComponent) }.getOrDefault(emptyList())
         val best = sessions.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
             ?: sessions.firstOrNull { it.packageName == pendingAppPackage() }
@@ -144,23 +148,13 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
         )
     }
 
-    /** Position updates from the YouTube web player. */
-    fun onWebState(playing: Boolean, posMs: Long, durMs: Long) {
-        val cur = _now.value ?: return
-        if (cur.source != Source.WEB) return
-        _now.value = cur.copy(
-            playing = playing, positionMs = posMs, positionStamp = SystemClock.elapsedRealtime(), waiting = false,
-            track = if (durMs > 0) cur.track.copy(durationMs = durMs) else cur.track,
-        )
-    }
-
     /** Stops whatever is playing and returns the widget to search. */
     fun stop() {
         waitJob?.cancel()
+        streamJob?.cancel()
         pendingSearch = null
         when (_now.value?.source) {
             Source.APP -> controller?.transportControls?.pause()
-            Source.WEB -> WebPlayer.stop()
             else -> Unit
         }
         stopLocal()
@@ -170,7 +164,6 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
     fun toggle() {
         val n = _now.value ?: return
         when (n.source) {
-            Source.WEB -> { WebPlayer.toggle(!n.playing); _now.value = n.copy(playing = !n.playing, positionMs = n.position(), positionStamp = SystemClock.elapsedRealtime()) }
             Source.LOCAL, Source.STREAM -> player?.let { if (it.isPlaying) it.pause() else it.start(); publishLocal() }
             Source.APP -> controller?.transportControls?.let {
                 if (n.playing) it.pause() else it.play()
@@ -187,7 +180,6 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
         when (_now.value?.source) {
             Source.APP -> controller?.transportControls?.skipToPrevious()
             Source.LOCAL, Source.STREAM -> { player?.seekTo(0); publishLocal() }
-            Source.WEB -> WebPlayer.seek(0)
             else -> Unit
         }
     }
@@ -196,40 +188,46 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
         when (_now.value?.source) {
             Source.APP -> controller?.transportControls?.seekTo(ms)
             Source.LOCAL, Source.STREAM -> { player?.seekTo(ms.toInt()); publishLocal() }
-            Source.WEB -> WebPlayer.seek(ms)
             else -> Unit
         }
     }
 
     /**
-     * Plays a track the way the user chose: inside RintOS through YouTube (default), free full
-     * songs from Audius, local files, or by handing off to their music app.
+     * Plays a track the way the user chose: streamed inside RintOS through a chain of free music
+     * APIs (default), local files, or by handing off to the user's music app.
      */
     fun play(track: Track, via: dev.rint.launcher.core.PlayVia, preferredApp: String?) {
         if (track.localUri != null) return playLocal(track)
-        if (_now.value?.source == Source.WEB) WebPlayer.stop()
         when (via) {
-            dev.rint.launcher.core.PlayVia.YOUTUBE -> playWeb(track)
-            dev.rint.launcher.core.PlayVia.AUDIUS -> playAudius(track)
-            else -> play(track, preferredApp)
+            dev.rint.launcher.core.PlayVia.APP -> play(track, preferredApp)
+            else -> playStream(track)
         }
     }
 
-    private fun playWeb(track: Track) {
+    private var streamJob: Job? = null
+
+    /** Tries each source in [MusicSources] until one actually plays. */
+    private fun playStream(track: Track) {
         stopLocal()
         controller?.transportControls?.pause()
-        _now.value = NowPlaying(track = track, source = Source.WEB, waiting = true)
-        WebPlayer.play(context, track)
-    }
-
-    private fun playAudius(track: Track) {
-        stopLocal()
-        _now.value = NowPlaying(track = track, source = Source.STREAM, waiting = true)
-        scope.launch {
-            val url = Audius.find(track)
-            if (_now.value?.track != track) return@launch
-            if (url == null) { playWeb(track); return@launch }
-            playUrl(track, Uri.parse(url), Source.STREAM)
+        _now.value = NowPlaying(track = track, source = Source.STREAM, waiting = true, via = "finding a source…")
+        streamJob?.cancel()
+        streamJob = scope.launch {
+            for (src in MusicSources.all) {
+                if (_now.value?.track != track) return@launch
+                _now.value = _now.value?.copy(via = "trying ${src.name}…")
+                val hit = runCatching { src.find(track) }.getOrNull() ?: continue
+                val ok = kotlinx.coroutines.CompletableDeferred<Boolean>()
+                playUrl(track, Uri.parse(hit.url), Source.STREAM, onResult = { ok.complete(it) })
+                val started = kotlinx.coroutines.withTimeoutOrNull(15_000) { ok.await() } ?: false
+                if (started && _now.value?.track == track) {
+                    _now.value = _now.value?.copy(via = src.name, preview = hit.preview,
+                        track = if (hit.durationMs > 0) track.copy(durationMs = hit.durationMs) else track)
+                    return@launch
+                }
+                stopLocal()
+            }
+            if (_now.value?.track == track) _now.value = _now.value?.copy(waiting = false, playing = false, via = "no source had this song. try “open in my music app”.")
         }
     }
 
@@ -271,19 +269,27 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
         }
     }
 
-    private fun playLocal(track: Track) = playUrl(track, track.localUri!!, Source.LOCAL)
+    private fun playLocal(track: Track) {
+        stopLocal()
+        _now.value = NowPlaying(track = track, source = Source.LOCAL, waiting = true, via = "this phone")
+        playUrl(track, track.localUri!!, Source.LOCAL, onResult = { if (!it) _now.value = null })
+    }
 
-    private fun playUrl(track: Track, uri: Uri, source: Source) {
+    private fun playUrl(track: Track, uri: Uri, source: Source, onResult: (Boolean) -> Unit) {
         stopLocal()
         controller?.transportControls?.pause()
         val p = MediaPlayer()
         player = p
-        _now.value = NowPlaying(track = track, source = source, waiting = true)
-        p.setOnPreparedListener { it.start(); publishLocal() }
+        if (_now.value?.track != track) _now.value = NowPlaying(track = track, source = source, waiting = true)
+        p.setAudioAttributes(android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_MEDIA).setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC).build())
+        p.setOnPreparedListener { it.start(); publishLocal(); onResult(true) }
         p.setOnCompletionListener { publishLocal() }
-        p.setOnErrorListener { _, _, _ -> stopLocal(); _now.value = null; true }
-        val ok = runCatching { p.setDataSource(context, uri); p.prepareAsync() }.isSuccess
-        if (!ok) { stopLocal(); _now.value = null; return }
+        p.setOnErrorListener { _, _, _ -> if (player === p) stopLocal(); onResult(false); true }
+        val ok = runCatching {
+            if (uri.scheme == "http" || uri.scheme == "https") p.setDataSource(uri.toString()) else p.setDataSource(context, uri)
+            p.prepareAsync()
+        }.isSuccess
+        if (!ok) { stopLocal(); onResult(false); return }
         waitJob?.cancel()
         waitJob = scope.launch {
             while (player === p) {
@@ -318,25 +324,83 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
     }
 }
 
-/** Free, legal full-length streams from Audius (a large indie catalog). */
-object Audius {
-    private const val APP = "RintOS"
+/** A song URL a source can stream. */
+class StreamHit(val url: String, val preview: Boolean, val durationMs: Long = 0)
 
-    suspend fun find(track: Track): String? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-        runCatching {
-            val host = org.json.JSONObject(java.net.URL("https://api.audius.co").readText()).getJSONArray("data").getString(0)
-            val q = java.net.URLEncoder.encode("${track.title} ${track.artist}", "UTF-8")
-            val arr = org.json.JSONObject(java.net.URL("$host/v1/tracks/search?query=$q&app_name=$APP").readText()).getJSONArray("data")
-            var best: String? = null
-            for (i in 0 until minOf(arr.length(), 10)) {
+interface MusicSource {
+    val name: String
+    suspend fun find(track: Track): StreamHit?
+}
+
+/**
+ * Free, keyless, legal music APIs, tried in order. Full songs come from Audius (a big indie
+ * catalog); for everything else Deezer and Apple give official 30-second previews.
+ */
+object MusicSources {
+    private fun get(url: String): String? = runCatching {
+        val c = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+        c.connectTimeout = 8000; c.readTimeout = 8000
+        c.setRequestProperty("User-Agent", "RintOS/1.3")
+        c.inputStream.bufferedReader().use { it.readText() }
+    }.getOrNull()
+
+    private fun enc(s: String) = java.net.URLEncoder.encode(s, "UTF-8")
+    private fun norm(s: String) = s.lowercase().replace(Regex("\\(.*?\\)|\\[.*?]|feat\\..*|[^a-z0-9 ]"), " ").replace(Regex("\\s+"), " ").trim()
+    private fun same(a: String, b: String) = norm(a).let { x -> norm(b).let { y -> x.isNotEmpty() && y.isNotEmpty() && (x.contains(y) || y.contains(x)) } }
+
+    private class AudiusSource(private val strict: Boolean) : MusicSource {
+        override val name = if (strict) "Audius (full song)" else "Audius (closest match)"
+        override suspend fun find(track: Track): StreamHit? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val host = get("https://api.audius.co")?.let { org.json.JSONObject(it).getJSONArray("data").getString(0) } ?: return@withContext null
+            val body = get("$host/v1/tracks/search?query=${enc("${track.title} ${track.artist}")}&app_name=RintOS") ?: return@withContext null
+            val arr = org.json.JSONObject(body).getJSONArray("data")
+            for (i in 0 until minOf(arr.length(), 12)) {
                 val o = arr.getJSONObject(i)
                 val title = o.optString("title")
                 val user = o.optJSONObject("user")?.optString("name").orEmpty()
-                if (title.contains(track.title, true) && (track.artist.isBlank() || user.contains(track.artist, true) || title.contains(track.artist, true))) {
-                    best = o.getString("id"); break
+                val variant = Regex("remix|mix\\b|cover|edit|bootleg|flip|mashup|sped|slowed|nightcore|instrumental|karaoke|version|rework|vip|piano|acoustic|live|lofi|type beat", RegexOption.IGNORE_CASE)
+                if (strict && variant.containsMatchIn(title) && !variant.containsMatchIn(track.title)) continue
+                val core = norm(title).replace(norm(track.artist), "").trim()
+                val titleOk = if (strict) core == norm(track.title) else same(title, track.title)
+                val artistOk = track.artist.isBlank() || same(user, track.artist) || norm(title).contains(norm(track.artist))
+                if (titleOk && (artistOk || !strict)) {
+                    return@withContext StreamHit("$host/v1/tracks/${o.getString("id")}/stream?app_name=RintOS", preview = false, durationMs = o.optLong("duration") * 1000)
                 }
             }
-            best?.let { "$host/v1/tracks/$it/stream?app_name=$APP" }
-        }.getOrNull()
+            null
+        }
     }
+
+    private object Deezer : MusicSource {
+        override val name = "Deezer preview"
+        override suspend fun find(track: Track): StreamHit? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val q = if (track.artist.isNotBlank()) "track:\"${track.title}\" artist:\"${track.artist}\"" else track.title
+            for (query in listOf(q, "${track.title} ${track.artist}")) {
+                val body = get("https://api.deezer.com/search?q=${enc(query)}&limit=8") ?: continue
+                val arr = org.json.JSONObject(body).optJSONArray("data") ?: continue
+                for (i in 0 until arr.length()) {
+                    val o = arr.getJSONObject(i)
+                    val url = o.optString("preview")
+                    if (url.isNotBlank() && same(o.optString("title"), track.title)) return@withContext StreamHit(url, preview = true, durationMs = 30_000)
+                }
+            }
+            null
+        }
+    }
+
+    private object Apple : MusicSource {
+        override val name = "Apple preview"
+        override suspend fun find(track: Track): StreamHit? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val body = get("https://itunes.apple.com/search?term=${enc("${track.title} ${track.artist}")}&entity=song&limit=5") ?: return@withContext null
+            val arr = org.json.JSONObject(body).optJSONArray("results") ?: return@withContext null
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                val url = o.optString("previewUrl")
+                if (url.isNotBlank() && same(o.optString("trackName"), track.title)) return@withContext StreamHit(url, preview = true, durationMs = 30_000)
+            }
+            null
+        }
+    }
+
+    val all: List<MusicSource> = listOf(AudiusSource(strict = true), Deezer, Apple, AudiusSource(strict = false))
 }

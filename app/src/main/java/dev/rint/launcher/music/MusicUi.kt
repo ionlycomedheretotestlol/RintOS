@@ -176,7 +176,7 @@ fun playPicked(ctx: android.content.Context, t: Track) {
         app = ctx.packageManager.queryIntentActivities(Intent(MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH), 0)
             .map { it.activityInfo.packageName }.firstOrNull { it != ctx.packageName }
     }
-    val via = if (m.playVia == PlayVia.ASK) PlayVia.YOUTUBE else m.playVia
+    val via = if (m.playVia == PlayVia.ASK) PlayVia.STREAM else m.playVia
     RintApp.instance.music.play(t, via, app)
 }
 
@@ -282,7 +282,7 @@ private fun PlayingWidget(ctx: WidgetCtx, np: NowPlaying, onTap: () -> Unit) {
                 Spacer(Modifier.width(8.dp))
                 Column(Modifier.weight(1f)) {
                     Text(np.track.title, color = Color.White, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(np.track.artist, color = Color.White.copy(alpha = 0.7f), fontFamily = look.font, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(np.track.artist + if (np.preview) " · 30s preview" else "", color = Color.White.copy(alpha = 0.7f), fontFamily = look.font, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Box(
                     Modifier.size(32.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.92f))
@@ -300,7 +300,12 @@ private fun PlayingWidget(ctx: WidgetCtx, np: NowPlaying, onTap: () -> Unit) {
                     np.waiting -> Row(verticalAlignment = Alignment.CenterVertically) {
                         RinSprite(Pose.WALK, 30.dp)
                         Spacer(Modifier.width(6.dp))
-                        Text(WebPlayer.status.ifBlank { "loading…" }, color = Color.White.copy(alpha = 0.8f), fontFamily = RintFonts.Pixel, fontSize = 9.sp, maxLines = 2)
+                        Text(np.via ?: "loading…", color = Color.White.copy(alpha = 0.8f), fontFamily = RintFonts.Pixel, fontSize = 9.sp, maxLines = 2)
+                    }
+                    np.preview -> Row(verticalAlignment = Alignment.CenterVertically) {
+                        BobbingHead(np.playing && look.cfg.mascot.inMusic, 30.dp)
+                        Spacer(Modifier.width(6.dp))
+                        Text("only a preview was free for this one. tap → full song in your music app", color = Color.White.copy(alpha = 0.75f), fontFamily = look.font, fontSize = 11.sp, maxLines = 2)
                     }
                     !m.lyricsOnWidget || lyrics == null -> Row(verticalAlignment = Alignment.CenterVertically) {
                         BobbingHead(np.playing && look.cfg.mascot.inMusic, 30.dp)
@@ -361,13 +366,9 @@ private fun MusicQuickActions(np: NowPlaying, onDismiss: () -> Unit) {
             }
             item("Go to fullscreen", Icons.Rounded.KeyboardArrowDown) { onDismiss(); MusicOverlay.show() }
             item(if (np.playing) "Pause" else "Play", if (np.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow) { engine.toggle(); onDismiss() }
-            val float = look.cfg.music.floatOverApps
-            item(if (float) "Stop playing over other apps" else "Keep playing over other apps", Icons.Rounded.PhoneAndroid) {
-                stores.config.update { it.copy(music = it.music.copy(floatOverApps = !float)) }
-                if (!float && !android.provider.Settings.canDrawOverlays(ctx)) {
-                    runCatching { ctx.startActivity(Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:${ctx.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-                }
+            if (np.source == Source.STREAM) item("Open the full song in my music app", Icons.Rounded.PhoneAndroid) {
                 onDismiss()
+                engine.play(np.track, PlayVia.APP, stores.config.value.music.preferredApp)
             }
             item("Stop music", Icons.Rounded.Close, look.colors.danger) { onDismiss(); engine.stop() }
         }
@@ -416,8 +417,7 @@ fun MusicPlayerScreen(onClose: () -> Unit) {
                     when (it.source) {
                         Source.LOCAL -> "on this phone"
                         Source.APP -> it.appPackage?.let { p -> appLabel(p) } ?: "your music app"
-                        Source.WEB -> "YouTube"
-                        Source.STREAM -> "Audius"
+                        Source.STREAM -> it.via ?: "streaming"
                         Source.NONE -> null
                     }
                 }
@@ -429,7 +429,7 @@ fun MusicPlayerScreen(onClose: () -> Unit) {
             }
 
             Box(Modifier.weight(1f).fillMaxWidth()) {
-                LyricsStage(np, lyrics, loadingLyrics, pos, Modifier.fillMaxSize())
+                LyricsStage(np, lyrics.takeUnless { np?.preview == true }, loadingLyrics, pos, Modifier.fillMaxSize())
             }
 
             if (np != null) NowPlayingBar(np!!, pos, onSeek = { engine.seekTo(it) })
@@ -775,49 +775,4 @@ private fun MusicSearchSheet(onPick: (Track) -> Unit, onClose: () -> Unit) {
     }
 }
 
-
-/** Hosts the YouTube web player: a big popup while it finds the song, then a small floating card. */
-@Composable
-fun WebPlayerHost() {
-    val stage = WebPlayer.stage
-    if (stage == WebPlayer.Stage.HIDDEN) return
-    val look = LocalRint.current
-    val engine = RintApp.instance.music
-    val np by engine.now.collectAsState()
-    val popup = stage == WebPlayer.Stage.POPUP
-    val t by androidx.compose.animation.core.animateFloatAsState(if (popup) 1f else 0f, spring(dampingRatio = 0.82f, stiffness = 260f), label = "wp")
-    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
-        val bigW = maxWidth - 32.dp
-        val miniW = 200.dp
-        val w = miniW + (bigW - miniW) * t
-        val h = w * 9f / 16f
-        if (t > 0.01f) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f * t)).clickable(remember { MutableInteractionSource() }, null) {})
-        val x = (maxWidth - w - 12.dp) * (1f - t) + ((maxWidth - w) / 2) * t
-        val y = (maxHeight - h - 150.dp) * (1f - t) + (maxHeight * 0.3f) * t
-        Column(Modifier.offset(x, y).width(w)) {
-            if (t > 0.3f) {
-                Row(Modifier.fillMaxWidth().padding(bottom = 10.dp).graphicsLayer { alpha = t }, verticalAlignment = Alignment.CenterVertically) {
-                    RinSprite(Pose.LISTEN, 40.dp)
-                    Spacer(Modifier.width(8.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(np?.track?.title ?: "", color = Color.White, fontFamily = look.font, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(WebPlayer.status, color = Color.White.copy(alpha = 0.7f), fontFamily = RintFonts.Pixel, fontSize = 10.sp)
-                    }
-                    Icon(Icons.Rounded.Close, "cancel", tint = Color.White, modifier = Modifier.size(28.dp).clickable { engine.stop() })
-                }
-            }
-            Box(Modifier.fillMaxWidth().height(h).clip(RoundedCornerShape(14.dp)).background(Color.Black)) {
-                androidx.compose.runtime.key(WebPlayer.hostGeneration) {
-                    androidx.compose.ui.viewinterop.AndroidView(factory = { c -> WebPlayer.view(c) }, modifier = Modifier.fillMaxSize())
-                }
-                if (!popup) {
-                    // the mini player: tap opens fullscreen lyrics, ✕ stops
-                    Box(Modifier.fillMaxSize().clickable { MusicOverlay.show() })
-                    Icon(Icons.Rounded.Close, "stop", tint = Color.White, modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(22.dp)
-                        .clip(CircleShape).background(Color.Black.copy(alpha = 0.6f)).clickable { engine.stop() }.padding(3.dp))
-                }
-            }
-        }
-    }
-}
 

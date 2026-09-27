@@ -122,7 +122,6 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         runCatching { SysWidgets.host(this).startListening() }
         RintApp.instance.music.start()
-        dev.rint.launcher.music.WebPlayer.onAppStarted()
     }
 
     override fun onResume() {
@@ -141,7 +140,6 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         runCatching { SysWidgets.host(this).stopListening() }
-        dev.rint.launcher.music.WebPlayer.onAppStopped(this, RintApp.instance.stores.config.value.music.floatOverApps)
         state?.let { st ->
             st.notchExpanded = false
             st.appMenu = null

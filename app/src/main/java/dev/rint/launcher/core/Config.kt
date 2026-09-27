@@ -251,7 +251,7 @@ data class Motion(
 )
 
 enum class LyricsFont { TERMINAL, PIXEL, INTER }
-enum class PlayVia { ASK, APP, LOCAL, YOUTUBE, AUDIUS }
+enum class PlayVia { ASK, APP, LOCAL, STREAM }
 
 @Serializable
 data class MusicCfg(
@@ -262,8 +262,7 @@ data class MusicCfg(
     val align: Align = Align.START,
     val upcoming: Int = 2,
     val highlight: Long = 0xFFFFFFFFL,
-    val playVia: PlayVia = PlayVia.YOUTUBE,
-    val floatOverApps: Boolean = false,
+    val playVia: PlayVia = PlayVia.STREAM,
     val lyricsOnWidget: Boolean = true,
     val preferredApp: String? = null,
     val offsetMs: Long = 0,

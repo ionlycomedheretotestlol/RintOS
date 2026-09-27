@@ -281,7 +281,6 @@ fun Launcher(state: LauncherState) {
         AnimatedVisibility(dev.rint.launcher.assistant.AssistantOverlay.open, enter = fadeIn() + slideInVertically { it / 4 }, exit = fadeOut() + slideOutVertically { it / 4 }) {
             dev.rint.launcher.assistant.AssistantScreen(state)
         }
-        dev.rint.launcher.music.WebPlayerHost()
         dev.rint.launcher.mascot.GuitarShowOverlay()
         CrashReport(state)
         Toast(state)
