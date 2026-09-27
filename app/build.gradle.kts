@@ -14,7 +14,7 @@ android {
         applicationId = "dev.rint.launcher"
         minSdk = 29
         targetSdk = 35
-        versionCode = 19
+        versionCode = 20
         versionName = "1.3"
     }
 

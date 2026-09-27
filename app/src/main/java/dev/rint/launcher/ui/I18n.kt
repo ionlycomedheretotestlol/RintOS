@@ -34,7 +34,7 @@ enum class Lang(val code: String, val locale: Locale) {
  * ("{}" is a hole whose content is kept as is; "{t}" in the Portuguese side also translates it).
  */
 object I18n {
-    private val hole = Regex("\\{t?}")
+    private val hole = Regex("\\{t?\\}")
     var lang by mutableStateOf(Lang.EN)
 
     val locale: Locale get() = lang.locale
@@ -46,8 +46,8 @@ object I18n {
         PtBr.patterns.sortedByDescending { it.first.replace("{}", "").length }.map { (en, pt) ->
             val parts = en.split("{}")
             val rx = parts.joinToString("(.+?)", prefix = "^", postfix = "$") { Regex.escape(it) }
-            Pattern(Regex(rx, RegexOption.DOT_MATCHES_ALL), pt)
-        }
+            runCatching { Pattern(Regex(rx, RegexOption.DOT_MATCHES_ALL), pt) }.getOrNull()
+        }.filterNotNull()
     }
     private val lower: Map<String, String> by lazy {
         PtBr.exact.entries.associate { (k, v) -> k.lowercase() to (if (k == k.uppercase() && k != k.lowercase()) v.lowercase() else v) }
@@ -57,7 +57,7 @@ object I18n {
     fun t(en: String): String {
         if (lang == Lang.EN || en.isBlank()) return en
         synchronized(cache) { cache[en]?.let { return it } }
-        val out = translate(en)
+        val out = runCatching { translate(en) }.getOrDefault(en)
         synchronized(cache) {
             if (cache.size > 3000) cache.clear()
             cache[en] = out
