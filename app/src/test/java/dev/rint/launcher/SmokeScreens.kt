@@ -53,6 +53,16 @@ class SmokeScreens {
         }
     }
 
+    @Test fun jokes() {
+        dev.rint.launcher.mascot.Joke.entries.forEach { j ->
+            frame("joke_" + j.name.lowercase()) {
+                dev.rint.launcher.mascot.Chaos.joke = j
+                dev.rint.launcher.mascot.JokeOverlay()
+            }
+        }
+        dev.rint.launcher.mascot.Chaos.joke = null
+    }
+
     @Test fun menusAndSheets() {
         frame("home_menu") { val x = remember { st().apply { homeMenu = Offset(300f, 600f) } }; dev.rint.launcher.home.HomeMenu(x) }
         frame("app_menu") {

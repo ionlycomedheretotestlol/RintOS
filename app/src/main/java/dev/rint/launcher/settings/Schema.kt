@@ -316,7 +316,7 @@ object Schema {
         )),
         Section("danger", "Dangerous", "do not press. seriously.", Icons.Rounded.Warning, Color(0xFFFF3B30), listOf(
             Opt.Action("Watch Rin play the guitar", "you have been warned", id = "guitar"),
-        )),
+        ) + dev.rint.launcher.mascot.Joke.entries.map { Opt.Action(it.title, it.desc, id = "joke:" + it.name) }),
         Section("backup", "Backup & reset", "export, import, start over", Icons.Rounded.Backup, Color(0xFF5B6380), listOf(
             Opt.Action("Export setup", "copies your whole config + layout", id = "export"),
             Opt.Action("Import setup", "paste an exported setup", id = "import"),

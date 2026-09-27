@@ -212,7 +212,7 @@ private fun Home(state: LauncherState, query: String, onQuery: (String) -> Unit,
         item {
             Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 RinSprite(Pose.SLEEP, 56.dp)
-                Text("RintOS 1.0", fontFamily = RintFonts.Pixel, fontSize = 9.sp, color = look.colors.subtext)
+                Text("RintOS 1.3", fontFamily = RintFonts.Pixel, fontSize = 9.sp, color = look.colors.subtext)
             }
         }
     }
@@ -733,6 +733,11 @@ private fun Sheets(sheet: String?, state: LauncherState, close: () -> Unit) {
         }
         "guide" -> { close(); state.settingsOpen = false; state.guideStep = 0; return }
         "guitar" -> { close(); state.settingsOpen = false; dev.rint.launcher.mascot.GuitarShow.open = true; return }
+        in dev.rint.launcher.mascot.Joke.entries.map { "joke:" + it.name } -> {
+            close(); state.settingsOpen = false
+            dev.rint.launcher.mascot.Chaos.joke = dev.rint.launcher.mascot.Joke.valueOf(sheet.removePrefix("joke:"))
+            return
+        }
         "intro" -> { close(); state.settingsOpen = false; stores.config.update { it.copy(onboarded = false) }; return }
         "resetlook" -> { close(); stores.config.update { Presets.all.first().apply(it) }; state.say("fresh look applied"); return }
         "export" -> {

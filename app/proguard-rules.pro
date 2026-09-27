@@ -23,3 +23,6 @@
 -keep class kotlin.Metadata { *; }
 -keep class kotlin.reflect.** { *; }
 -dontwarn kotlin.reflect.**
+
+# the intro 3D stage talks to the app through this bridge
+-keepclassmembers class * { @android.webkit.JavascriptInterface <methods>; }

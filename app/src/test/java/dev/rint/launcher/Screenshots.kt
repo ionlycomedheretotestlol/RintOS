@@ -77,19 +77,22 @@ class Screenshots {
     }
 
     private fun film(t: Float) = shot { Film { t } }
-    @Test fun intro_0_heart() = film(1.02f)
-    @Test fun intro_1_boot() = film(bar * 2 + 3.3f)
-    @Test fun intro_2_wordmark() = film(bar * 4 + 2.6f)
-    @Test fun intro_3_tagline() = film(bar * 7 + 1.7f)
-    @Test fun intro_3b_countdown() = film(bar * 9 + 0.55f)
-    @Test fun intro_4_montage_color() = film(bar * 10 + 5.15f)
-    @Test fun intro_5_montage_notch() = film(bar * 10 + 13.6f)
-    @Test fun intro_6_barrage() = film(bar * 18 + 2.6f)
-    @Test fun intro_6b_warp() = film(bar * 21 + 0.8f)
-    @Test fun intro_6c_silence() = film(bar * 22 + 0.5f)
-    @Test fun intro_7_rin() = film(bar * 23 + 3.0f)
-    @Test fun intro_7b_landing() = film(bar * 23 + 0.5f)
-    @Test fun intro_8_personalize() = shot { Personalize {} }
+    @Test fun intro_00_heart() = film(1.02f)
+    @Test fun intro_01_boot() = film(bar * 2 + 6.3f)
+    @Test fun intro_02_rise() = film(bar * 6 + 4.6f)
+    @Test fun intro_03_tagline() = film(bar * 11 + 1.7f)
+    @Test fun intro_04_countdown() = film(bar * 13 + 0.55f)
+    @Test fun intro_05_montage_color() = film(bar * 14 + 5.15f)
+    @Test fun intro_06_montage_notch() = film(bar * 14 + 13.6f)
+    @Test fun intro_07_tunnel() = film(bar * 22 + 3f)
+    @Test fun intro_08_evolution() = film(bar * 26 + 3.2f)
+    @Test fun intro_09_barrage() = film(bar * 28 + 1.3f)
+    @Test fun intro_10_break() = film(bar * 31 + 1.2f)
+    @Test fun intro_11_silence() = film(bar * 34 + 0.5f)
+    @Test fun intro_12_landing() = film(bar * 35 + 0.5f)
+    @Test fun intro_13_final() = film(bar * 35 + 5f)
+    @Test fun intro_14_credits() = film(bar * 41 + 3f)
+    @Test fun intro_15_personalize() = shot { Personalize {} }
 
     @Test fun home_default() = shot(wallpaperCfg) {
         Launcher(remember { LauncherState(CoroutineScope(Dispatchers.Unconfined)) })

@@ -205,7 +205,14 @@ fun Launcher(state: LauncherState) {
     Box(Modifier.fillMaxSize()) {
       CompositionLocalProvider(LocalCovered provides covered) {
        if (!hidden && morph < 0.999f) {
+        LaunchedEffect(dev.rint.launcher.mascot.Chaos.joke) {
+            if (dev.rint.launcher.mascot.Chaos.joke == null) { dev.rint.launcher.mascot.Chaos.rotation.snapTo(0f); dev.rint.launcher.mascot.Chaos.shake.snapTo(0f) }
+        }
         Box(Modifier.fillMaxSize().graphicsLayer {
+            // the Dangerous jokes can spin, flip and shake the whole home screen
+            rotationZ = dev.rint.launcher.mascot.Chaos.rotation.value
+            val sh = dev.rint.launcher.mascot.Chaos.shake.value
+            if (sh > 0f) { translationX = kotlin.math.sin(sh * 90f) * 40f * sh; translationY = kotlin.math.cos(sh * 70f) * 30f * sh }
             // battery saver: the whole home screen shrinks into a single dot
             if (morph > 0f) {
                 val k = morph * morph
@@ -282,6 +289,7 @@ fun Launcher(state: LauncherState) {
             dev.rint.launcher.assistant.AssistantScreen(state)
         }
         dev.rint.launcher.mascot.GuitarShowOverlay()
+        dev.rint.launcher.mascot.JokeOverlay()
         CrashReport(state)
         Toast(state)
         if (state.guideStep >= 0) dev.rint.launcher.intro.GuideOverlay(state)
