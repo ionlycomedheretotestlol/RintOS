@@ -20,7 +20,7 @@ Made by Carrot.
 - **Battery saver**: when battery runs low, the home screen folds into a single dot. Tap it for a plain app list with Rin in the middle. Plug in and it unfolds again.
 - **Lock screen**: 10 styles, up to 10 shortcuts, 5 unlock effects. It sits on top of the system lock screen, so your PIN/fingerprint still protects the phone.
 - **Notch**: your own dynamic island with live music activity.
-- **Settings**: 190+ options in grouped lists, a live preview, presets, search, export/import.
+- **Settings**: 200+ options in grouped lists, a live preview, presets, search, export/import.
 - **Rin himself**: drawn entirely in code, pixel art by default (or smooth 2D with a 2.5D head), in your accent color, with 40+ animations (waving, dancing, playing guitar, singing, eating, purring, crying, getting angry, winking, spinning, celebrating…).
 - **The 1.3 intro**: 84 seconds, set to "Rin's Anthem", an original 128 BPM track synthesized live (no audio files): a music-box opening, trap-hat build-ups, two drops (the second one future-bass), vocal chops, a piano breakdown, a moment of silence and a key change; real-time 3D scenes drawn by a small built-in 3D renderer (a voxel wordmark, a warp tunnel, a giant 3D "1.3"); the whole story of how RintOS got here; credits; then the START button.
 - **Settings → Dangerous**: nine buttons you should not press. Guitar solo, deleting System32, downloading more RAM, summoning 100 Rins, self destruct, and more. All jokes; none of them do anything bad.
