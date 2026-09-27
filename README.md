@@ -22,10 +22,10 @@ Made by Carrot.
 - **Saver Home**: a lighter home for weak phones: widgets float away, leaving wallpaper, apps, pages, search, the Rin button and the dock.
 - **Lock screen**: 11 styles (new: Neon), clock font, size and position, blurred/black/glow backgrounds, a greeting, up to 10 shortcuts, 5 unlock effects. It sits on top of the system lock screen, so your PIN/fingerprint still protects the phone.
 - **Notch**: your own dynamic island with live music activity, now floating over every app, with open/close sounds (quiet during music and on silent). Only real music counts: your chosen music app, and YouTube only when it's actually a song.
-- **Startup screen**: four designs (the default a detailed RintOS one) that play once after every restart, in your accent color. It never touches the system boot animation, so it can't break anything.
+- **Startup screen**: four designs (the default: Rin's head drawn pixel by pixel as a glowing outline, filled by a ripple, then he blinks awake and the wordmark drops in) that play once after every restart, in your accent color. It never touches the system boot animation, so it can't break anything.
 - **Settings**: 220+ options in grouped lists, a live preview, presets, search, export/import.
 - **Rin himself**: drawn entirely in code, pixel art by default (or smooth 2D with a 2.5D head), in your accent color, with 40+ animations (waving, dancing, playing guitar, singing, eating, purring, crying, getting angry, winking, spinning, celebrating…).
-- **The 1.4 intro**: 60 seconds, set to "Upgrade", a new 120 BPM track synthesized live (no audio files). It starts as an 8-bit chiptune, gets bit-crushed while an "UPGRADING" bar fills, then drops into full sound (funk bass, electric piano, marimba, strings). The film shows what you already love in 8-bit, then eight new features one per bar, a 3D voxel "1.4", a warp tunnel with Rin's new moves, credits, then the START button.
+- **The intro, "Rin's Upgrade Day"**: a 92-second short film with its own soundtrack, all synthesized live (no audio or video files). It starts as an 8-bit game: Rin wakes up at dawn, runs through a side-scroller headbutting ? blocks (every block pops a feature, with jump and coin sounds), finds the giant 1.4 block and powers up. The game glitches, shatters toward you and rebuilds as a 3D "1.4". Then the drop: eight new features demoed live on a 3D phone, a quiet moment under the stars, Rin's concert (spotlights, a crowd of tiny Rins, confetti), fireworks over a 3D 1.4, credits, and the START button.
 - **Settings → Dangerous**: nine buttons you should not press. Guitar solo, deleting System32, downloading more RAM, summoning 100 Rins, self destruct, and more. All jokes; none of them do anything bad.
 
 ## More looks
@@ -36,7 +36,7 @@ Same launcher, three setups: pink hexagons with a mesh gradient, green terminal 
 
 ## Install
 
-Grab `RintOS-1.4.apk` from the [Releases](../../releases) page, install it, open it and pick RintOS as your home app.
+Grab the latest `RintOS-*.apk` from the [Releases](../../releases) page, install it, open it and pick RintOS as your home app.
 
 ## Build
 

@@ -25,6 +25,7 @@ import dev.rint.launcher.home.Launcher
 import dev.rint.launcher.home.LauncherState
 import dev.rint.launcher.intro.IntroSynth
 import dev.rint.launcher.intro.Film
+import dev.rint.launcher.intro.Score
 import dev.rint.launcher.intro.Personalize
 import dev.rint.launcher.music.MusicPlayerScreen
 import dev.rint.launcher.music.NowPlaying
@@ -78,20 +79,28 @@ class Screenshots {
     }
 
     private fun film(t: Float) = shot { Film { t } }
-    @Test fun intro_00_cold() = film(bar * 1.4f)
-    @Test fun intro_01_chip_home() = film(bar * 2 + 1.2f)
-    @Test fun intro_02_chip_rin() = film(bar * 4 + 1.5f)
-    @Test fun intro_03_upgrade() = film(bar * 6 + 2.4f)
-    @Test fun intro_04_new_notch() = film(bar * 8 + 1.5f)
-    @Test fun intro_05_new_memory() = film(bar * 9 + 1.6f)
-    @Test fun intro_06_new_saver() = film(bar * 10 + 1.0f)
-    @Test fun intro_07_new_live() = film(bar * 11 + 1.2f)
-    @Test fun intro_08_new_widgets() = film(bar * 13 + 1.2f)
-    @Test fun intro_09_new_lock() = film(bar * 14 + 1.2f)
-    @Test fun intro_10_new_startup() = film(bar * 15 + 1.2f)
-    @Test fun intro_11_break_3d() = film(bar * 17 + 1.0f)
-    @Test fun intro_12_parade() = film(bar * 21 + 0.6f)
-    @Test fun intro_13_outro() = film(bar * 27 + 1.5f)
+    @Test fun intro_00_night() = film(1.2f)
+    @Test fun intro_01_wake() = film(3.3f)
+    @Test fun intro_02_jump() = film(Score.hits[1].toFloat() + 0.05f)
+    @Test fun intro_03_label() = film(Score.hits[3].toFloat() + 0.6f)
+    @Test fun intro_04_bigblock() = film(Score.hits[6].toFloat() + 0.5f)
+    @Test fun intro_05_powerup() = film(Score.GRAB.toFloat() + 0.3f)
+    @Test fun intro_06_glitch() = film(bar * 10 + 0.7f)
+    @Test fun intro_07_shatter() = film(Score.SHATTER.toFloat() + 0.5f)
+    @Test fun intro_08_voxel() = film(bar * 11 + 1.0f)
+    @Test fun intro_09_notch() = film(bar * 12 + 2.3f)
+    @Test fun intro_10_memory() = film(bar * 14 + 2.9f)
+    @Test fun intro_11_saver() = film(bar * 16 + 1.0f)
+    @Test fun intro_12_wallpapers() = film(bar * 18 + 1.3f)
+    @Test fun intro_13_lock() = film(bar * 20 + 3.6f)
+    @Test fun intro_14_widgets() = film(bar * 22 + 2.8f)
+    @Test fun intro_16_startup() = film(bar * 24 + 2.8f)
+    @Test fun intro_17_color() = film(bar * 26 + 1.8f)
+    @Test fun intro_18_stars() = film(bar * 28 + 0.9f)
+    @Test fun intro_19_show() = film(bar * 33 + 0.4f)
+    @Test fun intro_20_confetti() = film(bar * 37 + 1.0f)
+    @Test fun intro_21_finale() = film(bar * 41 + 1.1f)
+    @Test fun intro_22_credits() = film(bar * 44 + 2.6f)
     @Test fun intro_15_personalize() = shot { Personalize {} }
 
     @Test fun home_default() = shot(wallpaperCfg) {

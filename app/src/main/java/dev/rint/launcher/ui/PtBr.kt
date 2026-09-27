@@ -45,6 +45,7 @@ internal object PtBr {
         "{} GB of 16 GB · {}" to "{} GB de 16 GB · {}",
         // music
         "trying {}…" to "tentando {}…",
+        "memory test: {} MB {}" to "teste de memória: {} MB {}",
         "{} days ago" to "há {} dias",
         "lap {}" to "volta {}",
         "up {}d {}h" to "ligado há {}d {}h",
@@ -358,7 +359,7 @@ internal object PtBr {
         put("Width", "Largura"); put("Distance from top", "Distância do topo"); put("Accent glow", "Brilho de destaque")
         put("Left side", "Lado esquerdo"); put("Right side", "Lado direito"); put("Live activity", "Atividade ao vivo")
         put("grows with artwork + equalizer while music plays", "cresce com capa + equalizador enquanto a música toca"); put("Tap to expand", "Tocar pra expandir")
-        put("Open & close sounds", "Sons ao abrir e fechar"); put("quiet while music plays or the phone is on silent", "fica quieto com música tocando ou no silencioso")
+        put("Open & close sounds", "Sons ao abrir e fechar"); put("quiet while music is playing", "fica quieto com música tocando")
         put("Show in every app", "Mostrar em todos os apps"); put("the notch floats over other apps too (needs \"display over other apps\")", "o notch flutua sobre outros apps também (precisa de \"sobrepor outros apps\")")
         put("Clock", "Relógio"); put("tty blocks & 6 more faces", "blocos tty e mais 6 estilos"); put("Face", "Estilo")
         put("Seconds", "Segundos"); put("Blinking colon", "Dois-pontos piscando"); put("Show date", "Mostrar data"); put("Date format", "Formato da data")
@@ -443,6 +444,26 @@ internal object PtBr {
         put("on it. lofi, coming up.", "deixa comigo. lofi saindo."); put("remember my exam is on friday", "lembra que minha prova é sexta")
         put("got it. good luck, you've got this.", "anotado. boa sorte, você consegue."); put("MEMORY", "MEMÓRIA"); put("exam on friday", "prova na sexta")
         put("notch in every app", "notch em todo app"); put("…and it's still free", "…e continua grátis")
+        put("a game about an upgrade", "um jogo sobre uma atualização"); put("home screen", "tela inicial"); put("music + lyrics", "música + letra")
+        put("200+ settings", "200+ ajustes"); put("português", "português"); put("rintos 1.4 unlocked", "rintos 1.4 desbloqueado")
+        put("everywhere", "em todo lugar"); put("remembers", "lembra"); put("lighter", "mais leve"); put("wallpapers", "papéis de parede")
+        put("lock screen", "bloqueio"); put("widgets", "widgets"); put("startup", "inicialização"); put("your color", "sua cor")
+        put("floats over your apps, music and all", "flutua sobre seus apps, com música e tudo")
+        put("tell him things. he keeps them. on your phone only", "conte coisas pra ele. ele guarda. só no seu celular")
+        put("a lighter home for weak phones", "uma tela inicial mais leve pra celulares fracos"); put("six new wallpapers", "seis novos papéis de parede")
+        put("three of them are alive", "três deles são animados"); put("neon, fonts, sizes, backgrounds", "neon, fontes, tamanhos, fundos")
+        put("five new widgets", "cinco widgets novos"); put("countdown, world clock, rin's thought, stopwatch…", "contagem, relógio mundial, pensamento do rin, cronômetro…")
+        put("startup screens", "telas de inicialização"); put("a new hello after every restart", "um novo oi a cada reinício")
+        put("your color, everywhere", "sua cor, em todo lugar"); put("even Rin wears it", "até o Rin usa")
+        put("over any app", "sobre qualquer app"); put("got it. you've got this.", "anotado. você consegue.")
+        put("loves purple", "ama roxo"); put("plays guitar", "toca guitarra"); put("sleeps way too late", "dorme tarde demais")
+        put("made by one person.", "feito por uma pessoa."); put("tested on one phone.", "testado em um celular."); put("rebuilt a hundred times.", "refeito cem vezes.")
+        put("RIN'S NEW MOVES", "OS NOVOS PASSOS DO RIN"); put("love", "amor"); put("wave", "acenar"); put("sneeze", "espirrar")
+        put("the upgrade.", "a atualização."); put("thanks for playing.", "obrigado por jogar."); put("PRESS ANY BUTTON", "APERTE QUALQUER BOTÃO")
+        put("[ 0.004] rintos 1.4 · kernel says hi", "[ 0.004] rintos 1.4 · o kernel mandou oi"); put("[ 0.118] mounting /home ........ ok", "[ 0.118] montando /home ........ ok")
+        put("[ 0.241] waking up rin ......... ok", "[ 0.241] acordando o rin ...... ok"); put("[ 0.379] loading wallpaper ..... ok", "[ 0.379] carregando fundo ..... ok")
+        put("[ 0.512] polishing icons ....... ok", "[ 0.512] polindo ícones ....... ok"); put("[ 0.640] notch: in position .... ok", "[ 0.640] notch: em posição ..... ok")
+        put("[ 0.771] music: standing by .... ok", "[ 0.771] música: a postos ...... ok"); put("[ 0.905] welcome back.", "[ 0.905] bem-vindo de volta.")
         put("Clock font", "Fonte do relógio"); put("Clock size", "Tamanho do relógio"); put("Clock position", "Posição do relógio"); put("Greeting", "Saudação"); put("good morning / good evening above the clock", "bom dia / boa noite acima do relógio")
         put("Memory", "Memória"); put("Rin remembers you", "O Rin lembra de você"); put("facts you tell him and your app habits, kept only on this phone", "o que você conta pra ele e seus hábitos de apps, guardados só neste celular")
         put("See what Rin remembers", "Ver o que o Rin lembra"); put("delete anything you don't want him to know", "apague o que você não quer que ele saiba")

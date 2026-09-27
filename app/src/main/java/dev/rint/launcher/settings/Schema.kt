@@ -211,7 +211,7 @@ object Schema {
             Opt.Toggle("Live activity", "grows with artwork + equalizer while music plays", get = { it.notch.liveActivity }, set = { c, v -> c.copy(notch = c.notch.copy(liveActivity = v)) }),
             Opt.Toggle("Show in every app", "the notch floats over other apps too (needs \"display over other apps\")", get = { it.notch.everywhere }, set = { c, v -> c.copy(notch = c.notch.copy(everywhere = v)) }),
             Opt.Action("Allow display over other apps", id = "overlay"),
-            Opt.Toggle("Open & close sounds", "quiet while music plays or the phone is on silent", get = { it.notch.sounds }, set = { c, v -> c.copy(notch = c.notch.copy(sounds = v)) }),
+            Opt.Toggle("Open & close sounds", "quiet while music is playing", get = { it.notch.sounds }, set = { c, v -> c.copy(notch = c.notch.copy(sounds = v)) }),
             Opt.Toggle("Tap to expand", get = { it.notch.expandOnTap }, set = { c, v -> c.copy(notch = c.notch.copy(expandOnTap = v)) }),
         )),
         Section("clock", "Clock", "tty blocks & 6 more faces", Icons.Rounded.Schedule, Color(0xFF4DA3FF), listOf(

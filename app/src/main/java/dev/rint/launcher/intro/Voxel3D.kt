@@ -310,9 +310,10 @@ internal class Voxel3D(private val accent: Int) {
         glow = k
         begin()
         when {
-            bar in Score.BREAK until Score.DROP2 -> {
+            bar in Score.UPGRADE until Score.HD && t > Score.SHATTER.toFloat() - 0.2f -> {
                 fog = 0.006f
-                val lt = (t - Score.BREAK * Score.BAR.toFloat()) * K
+                // the pixels of the broken game rebuild as a 3D "1.4"
+                val lt = (t - Score.SHATTER.toFloat()) * 2.2f
                 val orbit = -1.25f + 1.25f * easeInOut(lt / 6.2f)
                 val fit = fitDistance(big.w, big.h + 9f, 1.12f)
                 val rad = fit * (1.5f - 0.5f * easeInOut(lt / 6.5f)) - (if (lt > 7f) (lt - 7f) * fit * 0.6f else 0f)
@@ -342,55 +343,10 @@ internal class Voxel3D(private val accent: Int) {
                 }
                 flush(c)
             }
-            bar in Score.DROP2 until Score.OUTRO -> {
-                fog = 0.014f
-                val lt = (t - Score.DROP2 * Score.BAR.toFloat()) * K
-                val travel = lt * 45f + (if (lt > 5f) (lt - 5f).pow(3) * 10f else 0f)
-                val fov = 60f + 45f * clamp01((lt - 5f) / 3f) + 6f * k
-                viewport(w, h, fov)
-                val camX = sin(t * 0.7f) * 0.8f; val camY = cos(t * 0.5f) * 0.6f
-                lookAt(camX, camY, -travel, camX * 0.5f, camY * 0.5f, -travel - 20f, sin(t * 0.4f) * 0.25f)
-                val rings = 30; val per = 16; val gap = 7f; val span = rings * gap
-                for (r in 0 until rings) {
-                    val z = -travel + 6f - (((-travel + 6f + r * gap) % span) + span) % span
-                    val rot = t * (if (r % 2 == 1) 0.6f else -0.6f) + r * 0.2f
-                    val radius = 7f + 0.8f * sin(r * 0.7f + t * 2f) + 1.2f * k
-                    val col = if (r % 3 == 0) accent else white
-                    for (q in 0 until per) {
-                        val a = rot + q.toFloat() / per * 2f * PI.toFloat()
-                        cube(cos(a) * radius, sin(a) * radius, z, 1.2f * (1f + 0.4f * k), col, 0f, 0f, a, sz = 2.6f)
-                    }
-                }
-                flush(c)
-                // feature cards flying past
-                val feats = tunnelCards
-                feats.forEachIndexed { j, text ->
-                    val at = 0.35f + j * 0.62f
-                    val z = -(at * 45f) - 24f
-                    val x = (if (j % 2 == 1) 1f else -1f) * 2.2f
-                    val y = ((j % 3) - 1) * 1.6f
-                    if (!project(x, y, z)) return@forEachIndexed
-                    if (pz > 70f) return@forEachIndexed
-                    val s = focal / pz
-                    val cw = 8f * s; val ch = 2f * s
-                    val vis = clamp01((70f - pz) / 20f) * clamp01((pz - 14f) / 10f)
-                    if (vis <= 0.01f) return@forEachIndexed
-                    cardPaint.color = if (j % 2 == 0) accent else 0xFF2A2F45.toInt()
-                    cardPaint.alpha = (255 * vis).toInt()
-                    c.drawRoundRect(RectF(psx - cw / 2, psy - ch / 2, psx + cw / 2, psy + ch / 2), ch / 2, ch / 2, cardPaint)
-                    // fit the text inside the card
-                    textPaint.textSize = ch * 0.42f
-                    val text = dev.rint.launcher.ui.I18n.t(text)
-                    val tw = textPaint.measureText(text)
-                    if (tw > cw * 0.86f) textPaint.textSize *= cw * 0.86f / tw
-                    textPaint.alpha = (255 * vis).toInt()
-                    c.drawText(text, psx, psy + ch * 0.15f, textPaint)
-                }
-            }
-            bar >= Score.OUTRO -> {
+            bar in Score.FINALE until Score.CREDITS -> {
                 fog = 0.003f
-                val lt = (t - Score.OUTRO * Score.BAR.toFloat()) * K
-                val outro = max(0f, t - (Score.OUTRO + 2) * Score.BAR.toFloat()) * K
+                val lt = (t - Score.FINALE * Score.BAR.toFloat()) * K
+                val outro = max(0f, t - (Score.FINALE + 2) * Score.BAR.toFloat()) * K
                 val slam = easeOutExpo(lt / 0.45f)
                 val pull = easeInOut(outro / 4f)
                 val fitC = fitDistance(big.w * 1.5f, big.h * 2.6f, 1.3f)
@@ -412,7 +368,7 @@ internal class Voxel3D(private val accent: Int) {
                         true
                     }
                     val rr = big.w * 0.75f
-                    val show = clamp01((lt - 1.2f) / 0.6f)
+                    val show = 0f   // (the orbiting wordmark cluttered the 1.4; the film's text says it instead)
                     if (show > 0f) placeWord(ring, 0f, 0f, 0f) { v, o ->
                         val a = v.tx / 9f + t * 0.4f
                         o[0] = cos(a) * rr; o[1] = 5.5f + v.ty * 0.9f - 1f; o[2] = sin(a) * rr
@@ -431,10 +387,6 @@ internal class Voxel3D(private val accent: Int) {
         return true
     }
 
-    private val tunnelCards = listOf(
-        "notch in every app", "Rin remembers you", "Saver Home", "live wallpapers",
-        "5 new widgets", "startup screens", "${dev.rint.launcher.settings.Schema.optionCount} settings", "…and it's still free",
-    )
 }
 
 /** The native 3D layer of the film. Draw-phase only: it never recomposes. */

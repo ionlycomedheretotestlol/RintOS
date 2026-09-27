@@ -133,7 +133,7 @@ fun RintNotch(state: LauncherState, modifier: Modifier = Modifier, fullWidth: Bo
             Modifier
                 .width(w)
                 .height(if (attached && !expanded) h + 6.dp else h)
-                .then(if (n.glow) Modifier.shadow(if (expanded) 24.dp else 10.dp, shape, ambientColor = look.colors.accent, spotColor = look.colors.accent) else Modifier)
+                .then(if (n.glow && !overlay) Modifier.shadow(if (expanded) 24.dp else 10.dp, shape, ambientColor = look.colors.accent, spotColor = look.colors.accent) else Modifier)
                 .clip(shape)
                 .background(bg)
                 .pointerInput(n.expandOnTap, look.cfg.gestures.notchLongPress) {

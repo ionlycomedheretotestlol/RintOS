@@ -1,21 +1,20 @@
-# RintOS 1.4 🎉
+# RintOS 1.4.1
 
-**Install:** download `RintOS-1.4.apk`, install it over 1.3 (your setup stays), or fresh.
+**Install:** download `RintOS-1.4.1.apk` and install it over 1.4 (your setup stays). To watch the new intro: Settings → Permissions → Replay the intro.
 
-## New
-- **The notch, in every app**: it floats over other apps, with live music activity, and new open/close sounds (quiet during music and on silent).
-- **Rin remembers you**: tell him things and he keeps them, and he learns which apps you use when. It all stays on your phone, and you can see or delete it in Settings → Rin assistant → Memory.
-- **Saver mode, reworked**: a breathing dot with a battery ring and sleepy Rin, settings one tap away, and the new **Saver Home**, a lighter home for weak phones (widgets float away, the essentials stay).
-- **6 new wallpapers**: sunset, synthwave and snowy peaks, plus three live ones in your accent color: starfield, rain on glass, waves.
-- **Lock screen, your way**: new Neon style, clock font/size/position, blurred, black or glow backgrounds, and a greeting.
-- **5 new widgets**: countdown, world clock, Rin's daily thought, device stats, stopwatch.
-- **Startup screens**: four designs that play once after every restart, in your accent color. (A real boot animation needs root and can brick a phone; this can't.)
-- **A new intro**: "Upgrade", 60 seconds, a brand new song that goes from 8-bit to full sound, with 3D.
-- Rin button next to search can be turned off; 220+ settings in total.
+## New intro: "Rin's Upgrade Day"
+A 92-second short film with a brand new soundtrack, synthesized live:
+- **An 8-bit game**: night falls on a pixel world, Rin wakes at dawn and runs through a side-scroller, headbutting ? blocks. Every block pops a feature, with jump and coin sounds.
+- **The power-up**: the giant 1.4 block, a sparkling orb, POWER UP!, and Rin flickers from 8-bit to HD.
+- **The upgrade**: the game glitches ("ERROR: TOO MUCH UPGRADE"), the screen shatters toward you, and the pixels rebuild as a 3D "1.4".
+- **The drop**: eight new features demoed live on a 3D phone on a lit stage: the notch morphing over an app, memories stacking up, widgets floating away, wallpapers changing on the beat, a lock screen flipbook, widgets raining into a grid, the startup screen, your accent color sweeping.
+- **Under the stars**, then **Rin's concert** (spotlights, a crowd of tiny Rins, confetti, 16 moves), **fireworks** over a 3D 1.4, and credits.
+
+## New startup screen
+Rin's head is drawn pixel by pixel as a glowing outline, filled by a ripple, then he blinks awake and the wordmark drops in. The Terminal design now shows a BIOS screen, a memory test and ASCII Rin. The Pixel design walks through the intro's 8-bit world.
 
 ## Fixed
-- **Terminal preset crash** (the Tab-shaped notch bounced to a negative size when closing).
-- The app drawer's blur now covers the whole screen and doesn't squish when the keyboard opens.
-- Music detection: only your chosen music app counts, YouTube only when it's actually music, and TikTok and Instagram videos are ignored.
+- **Notch sounds** now play (they were on the "system sounds" channel, which Do Not Disturb silences). They stay quiet only while music is playing.
+- **The notch no longer drops a shadow over other apps.**
 
 Made by Carrot.
