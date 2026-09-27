@@ -189,7 +189,8 @@ object MusicSearch {
         if (q.isBlank()) return@withContext emptyList()
         // phone files first, then the official catalog, then full-length songs from Audius
         val full = MusicSources.audiusSearch(q)
-        local(ctx, q) + catalog(q) + full
+        // full songs first: those always play in full right here
+        local(ctx, q) + full + catalog(q)
     }
 
     private fun catalog(q: String): List<Track> = runCatching {

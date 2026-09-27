@@ -255,7 +255,7 @@ class MusicEngine(private val context: Context, private val scope: CoroutineScop
                 stopLocal()
             }
             if (request == req) _now.value = _now.value?.copy(waiting = false, playing = false,
-                via = "couldn't play this one (${tried.joinToString("; ")}). check your internet, or open it in your music app.")
+                via = "no free full version of this one. tap → open it in your music app.")
         }
     }
 
@@ -432,7 +432,8 @@ object MusicSources {
         }
     }
 
-    val all: List<MusicSource> = listOf(AudiusSource(strict = true), Deezer, Apple, AudiusSource(strict = false))
+    /** Full songs only. No 30-second previews, ever. */
+    val all: List<MusicSource> = listOf(AudiusSource(strict = true), AudiusSource(strict = false))
 
     /** Full-length tracks from Audius for a free-text query (shown in search as "FULL"). */
     suspend fun audiusSearch(q: String, limit: Int = 6): List<Track> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
